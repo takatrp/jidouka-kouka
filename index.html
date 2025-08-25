@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自計化×自動化 効果試算アプリ（HTML最終版 r11）</title>
+  <title>TKC方式 | 自計化×自動化 効果試算アプリ（HTML最終版 r12）</title>
   <style>
     :root {
       --bg: #f7f9fc;
@@ -78,21 +78,17 @@
     <section class="card">
       <div class="grid" style="grid-template-columns: repeat(12, 1fr);">
         <div class="thead th" style="grid-column: span 12;">試算前提</div>
-        <div class="td" style="grid-column: span 3;">
+        <div class="td" style="grid-column: span 4;">
           <label>FXシリーズ基本料金（<span class="note">月額・円</span>）</label>
           <input id="fxFee" type="number" inputmode="decimal" placeholder="例：15000" min="0" />
         </div>
-        <div class="td" style="grid-column: span 3;">
+        <div class="td" style="grid-column: span 4;">
           <label>人件費単価（<span class="note">円/時・社保等込み</span>）</label>
           <input id="wage" type="number" inputmode="decimal" placeholder="例：3000" min="0" />
         </div>
-        <div class="td" style="grid-column: span 3;">
+        <div class="td" style="grid-column: span 4;">
           <label>月間仕訳数（<span class="note">総数</span>）</label>
           <input id="totalJournals" type="number" inputmode="numeric" value="320" min="0" />
-        </div>
-        <div class="td" style="grid-column: span 3;">
-          <label>記帳代行報酬（<span class="note">比較用・月額・円</span>）</label>
-          <input id="osFee" type="number" inputmode="decimal" placeholder="例：30000" min="0" />
         </div>
       </div>
       <div class="note" style="margin-top:8px;">※ 時間は社内の実測値で置き換えてください（例：証憑読取の前後差、銀行データ自動仕訳の前後差など）。</div>
@@ -200,24 +196,6 @@
           <div class="val" id="kpiSelfTotal">¥0</div>
           <div class="note">自動化後コスト + FX基本料金</div>
         </div>
-        <div class="item">
-          <h3>記帳代行との比較（月）</h3>
-          <div class="val" id="kpiDelta">—</div>
-          <div class="note">差額＝ 記帳代行報酬 − 自計化×自動化トータルコスト</div>
-        </div>
-      </div>
-
-      <div class="kpi" style="margin-top:12px;">
-        <div class="item">
-          <h3>記帳代行報酬（月）</h3>
-          <div class="val" id="kpiOsFee">¥0</div>
-          <div class="note">比較用の入力値</div>
-        </div>
-        <div class="item">
-          <h3>差額（年間換算）</h3>
-          <div class="val" id="kpiDeltaYear">¥0</div>
-          <div class="note">差額（月）×12</div>
-        </div>
 
         <div class="item" style="grid-column: 1 / -1;">
           <div class="btns">
@@ -242,7 +220,7 @@
     </section>
 
     <footer>
-      v r11 · 作成: ChatGPT（TKC方式 内部試算用） · このツールは社内実測値の入力を前提としています。
+      v r12 · 作成: ChatGPT（TKC方式 内部試算用） · このツールは社内実測値の入力を前提としています。
       <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"> </div>
     </footer>
   </div>
@@ -253,7 +231,7 @@
     const yen = (n) => isNaN(n) ? '¥0' : n.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY', maximumFractionDigits: 0 });
 
     const ids = {
-      fxFee: 'fxFee', wage: 'wage', totalJournals: 'totalJournals', osFee: 'osFee',
+      fxFee: 'fxFee', wage: 'wage', totalJournals: 'totalJournals',
       n_receipts: 'n_receipts', t_receipts_before: 't_receipts_before', t_receipts_after: 't_receipts_after',
       n_bank: 'n_bank', t_bank_before: 't_bank_before', t_bank_after: 't_bank_after',
       n_payroll: 'n_payroll', t_payroll_before: 't_payroll_before', t_payroll_after: 't_payroll_after',
@@ -290,7 +268,6 @@
     function compute(){
       const wage = num(ids.wage);
       const fxFee = num(ids.fxFee);
-      const osFee = num(ids.osFee);
 
       const mods = [
         moduleMetrics('証憑保存（スマホで経費）', num(ids.n_receipts), num(ids.t_receipts_before), num(ids.t_receipts_after), wage),
@@ -309,10 +286,8 @@
       const net = monthlySaving - fxFee;
       const netYear = net * 12;
       const selfTotal = costAfter + fxFee;
-      const delta = osFee - selfTotal; // 記帳代行 − 自計化×自動化（正：代行の方が高い）
-      const deltaYear = delta * 12;
 
-      return { wage, fxFee, osFee, mods, hBefore, hAfter, hSaved, costBefore, costAfter, monthlySaving, net, netYear, selfTotal, delta, deltaYear };
+      return { wage, fxFee, mods, hBefore, hAfter, hSaved, costBefore, costAfter, monthlySaving, net, netYear, selfTotal };
     }
 
     function updateUI(r){
@@ -332,11 +307,6 @@
       $('kpiCostBefore').textContent = yen(r.costBefore);
       $('kpiCostAfter').textContent  = yen(r.costAfter);
       $('kpiSelfTotal').textContent  = yen(r.selfTotal);
-
-      $('kpiOsFee').textContent = yen(r.osFee);
-      $('kpiDelta').textContent = yen(r.delta);
-      $('kpiDelta').style.color = r.delta >= 0 ? 'var(--good)' : 'var(--warn)';
-      $('kpiDeltaYear').textContent = yen(r.deltaYear);
     }
 
     function toast(msg){
@@ -349,15 +319,15 @@
       const r = compute();
       const lines = [];
       lines.push('【自計化×自動化 効果試算サマリー】');
-      lines.push(`人件費単価: ${r.wage} 円/時, FX基本料金: ${r.fxFee} 円/月, 記帳代行報酬: ${r.osFee} 円/月`);
+      lines.push(`人件費単価: ${r.wage} 円/時, FX基本料金: ${r.fxFee} 円/月`);
       lines.push('— 機能別（件数/分/分/削減h）');
       r.mods.forEach(m=>lines.push(`${m.label}: ${m.cnt}件 / ${m.tb}分 / ${m.ta}分 / ${m.hS.toFixed(2)}h`));
       lines.push(`総手作業時間: ${r.hBefore.toFixed(2)}h, 自動化後時間: ${r.hAfter.toFixed(2)}h, 時間短縮: ${r.hSaved.toFixed(2)}h`);
       lines.push(`手作業コスト: ${Math.round(r.costBefore)} 円, 自動化後コスト: ${Math.round(r.costAfter)} 円, 削減額: ${Math.round(r.monthlySaving)} 円`);
       lines.push(`ネット効果（月）: ${Math.round(r.net)} 円 / 年: ${Math.round(r.netYear)} 円`);
       lines.push(`自計化×自動化トータルコスト（月）: ${Math.round(r.selfTotal)} 円`);
-      lines.push(`記帳代行比較: 差額（月）= ${Math.round(r.delta)} 円（記帳代行 − 自計化×自動化） / 年 = ${Math.round(r.deltaYear)} 円`);
-      const text = lines.join('\n');
+      const text = lines.join('
+');
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
@@ -379,7 +349,6 @@
       rows.push([]);
       rows.push(['人件費単価(円/時)', r.wage]);
       rows.push(['FX基本料金(円/月)', r.fxFee]);
-      rows.push(['記帳代行報酬(円/月)', r.osFee]);
       rows.push(['総手作業時間(h)', r.hBefore.toFixed(2)]);
       rows.push(['総自動化後時間(h)', r.hAfter.toFixed(2)]);
       rows.push(['時間短縮(h)', r.hSaved.toFixed(2)]);
@@ -389,9 +358,10 @@
       rows.push(['ネット効果(円/月)', Math.round(r.net)]);
       rows.push(['ネット効果(円/年)', Math.round(r.netYear)]);
       rows.push(['自計化×自動化トータルコスト(円/月)', Math.round(r.selfTotal)]);
-      rows.push(['差額=記帳代行−自計化×自動化(円/月)', Math.round(r.delta)]);
-      rows.push(['差額(円/年)', Math.round(r.deltaYear)]);
-      const csv = rows.map(a => a.map(v => (v===undefined||v===null)?'':String(v).replace(/"/g,'""')).map(v => /[,\n\r]/.test(v) ? '"'+v+'"' : v).join(',')).join('\n');
+      const csv = rows.map(a => a.map(v => (v===undefined||v===null)?'':String(v).replace(/"/g,'""')).map(v => /[,
+
+]/.test(v) ? '"'+v+'"' : v).join(',')).join('
+');
       try {
         const blob = new Blob([csv], {type: 'text/csv'});
         const a = document.createElement('a');
@@ -417,7 +387,6 @@
     function reset(){
       $(ids.fxFee).value = '';
       $(ids.wage).value = '';
-      $(ids.osFee).value = '';
       $(ids.totalJournals).value = 320;
 
       $(ids.n_receipts).value = 30; $(ids.t_receipts_before).value = 3; $(ids.t_receipts_after).value = 1;
@@ -427,7 +396,7 @@
       $(ids.t_other_before).value = 1.5; $(ids.t_other_after).value = 1.5;
 
       ['h_receipts','h_bank','h_payroll','h_sales','h_other'].forEach(id => $(id).textContent = '0.00');
-      ['kpiHours','kpiNet','kpiNetYear','kpiYen','kpiCostBefore','kpiCostAfter','kpiSelfTotal','kpiOsFee','kpiDelta','kpiDeltaYear']
+      ['kpiHours','kpiNet','kpiNetYear','kpiYen','kpiCostBefore','kpiCostAfter','kpiSelfTotal']
         .forEach(id => { $(id).textContent = id.includes('Hours') ? '0.00 時間' : '¥0'; $(id).style && ($(id).style.color = 'inherit'); });
 
       recalcOther();
