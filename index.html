@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自計化×自動化 効果試算アプリ（r7）</title>
+  <title>TKC方式 | 自計化×自動化 効果試算アプリ（r8）</title>
   <style>
     :root {
       --bg: #f7f9fc;
@@ -57,6 +57,12 @@
     @media (max-width: 720px) {
       .kpi { grid-template-columns: 1fr; }
     }
+  </style>
+  <style media="print">
+    /* 印刷用：背景や不要UIを非表示 */
+    .btns, #calcBtn, #resetBtn, #copyBtn, #csvBtn, #printBtn { display: none !important; }
+    body { background: #fff; }
+    .card { box-shadow: none; border: 1px solid #e5e7eb; }
   </style>
 </head>
 <body>
@@ -232,7 +238,8 @@
     </section>
 
     <footer>
-      v r7 · 作成: ChatGPT（TKC方式 内部試算用） · このツールは社内実測値の入力を前提としています。
+      v r8 · 作成: ChatGPT（TKC方式 内部試算用） · このツールは社内実測値の入力を前提としています。
+      <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"> </div>
     </footer>
   </div>
 
@@ -431,6 +438,95 @@
 
     // init
     reset();
+
+    // ---------- ユーティリティ ----------
+    function toast(msg){
+      const t = $('toast');
+      t.textContent = msg; t.style.opacity = 1; t.style.pointerEvents = 'auto';
+      setTimeout(()=>{ t.style.opacity = 0; t.style.pointerEvents = 'none'; }, 1500);
+    }
+
+    // クリップボード（フォールバック付き）
+    async function writeClipboard(text){
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (e) {}
+      // フォールバック
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch (e) { return false; }
+    }
+
+    // 印刷（新規ウィンドウフォールバック）
+    function printPage(){
+      try { window.print(); return; } catch(e) {}
+      try {
+        const w = window.open('','_blank','noopener,noreferrer');
+        if(!w) throw new Error('popup blocked');
+        const html = document.documentElement.cloneNode(true);
+        w.document.open();
+        w.document.write('<!doctype html>'+html.outerHTML);
+        w.document.close();
+        setTimeout(()=>{ w.focus(); w.print(); w.close(); }, 300);
+      } catch(e) {
+        alert('印刷機能がブロックされています。ブラウザの印刷(Ctrl/Cmd+P)をお使いください。');
+      }
+    }
+
+    // CSV出力（フォールバックで新規タブ表示）
+    function downloadCSV(name, csv){
+      try {
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } catch(e) {
+        const w = window.open('','_blank','noopener');
+        if(w){ w.document.write('<pre>'+csv.replace(/[&<>]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[s]))+'</pre>'); }
+        else { alert('CSVの自動ダウンロードがブロックされました。表示された内容を保存してください。'); }
+      }
+    }
+
+    // ボタンのイベント登録（安全側）
+    $('copyBtn').onclick = async ()=>{ const r = compute(); const ok = await writeClipboard(summaryText(r)); toast(ok?'コピーしました':'コピーに失敗しました'); };
+    $('csvBtn').onclick  = ()=>{ const r = compute();
+      const rows = [];
+      rows.push(['項目','件数','手作業(分/件)','自動化後(分/件)','手作業時間(h)','自動化後時間(h)','削減時間(h)','手作業コスト(円)','自動化後コスト(円)']);
+      r.mods.forEach(m => { rows.push([m.label, m.cnt, m.tb, m.ta, m.hB.toFixed(2), m.hA.toFixed(2), m.hS.toFixed(2), Math.round(m.cB), Math.round(m.cA)]); });
+      rows.push([]);
+      rows.push(['人件費単価(円/時)', r.wage]);
+      rows.push(['FX基本料金(円/月)', r.fxFee]);
+      rows.push(['記帳代行報酬(円/月)', r.osFee]);
+      rows.push(['総手作業時間(h)', r.hBefore.toFixed(2)]);
+      rows.push(['総自動化後時間(h)', r.hAfter.toFixed(2)]);
+      rows.push(['時間短縮(h)', r.hSaved.toFixed(2)]);
+      rows.push(['手作業コスト(円/月)', Math.round(r.costBefore)]);
+      rows.push(['自動化後コスト(円/月)', Math.round(r.costAfter)]);
+      rows.push(['削減額(円/月)', Math.round(r.monthlySaving)]);
+      rows.push(['ネット効果(円/月)', Math.round(r.net)]);
+      rows.push(['ネット効果(円/年)', Math.round(r.netYear)]);
+      rows.push(['自計化×自動化トータルコスト(円/月)', Math.round(r.selfTotal)]);
+      rows.push(['差額=記帳代行−自計化×自動化(円/月)', Math.round(r.delta)]);
+      rows.push(['差額(円/年)', Math.round(r.deltaYear)]);
+      const csv = rows.map(a => a.map(v => (v===undefined||v===null)?'':String(v).replace(/"/g,'""')).map(v => /[,
+
+]/.test(v) ? '"'+v+'"' : v).join(',')).join('
+');
+      const now = new Date(); const pad = (n)=>String(n).padStart(2,'0');
+      const name = `tkc_effect_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+      downloadCSV(name, csv);
+      toast('CSVを作成しました'); };
+    $('printBtn').onclick = ()=>{ calc(); printPage(); toast('印刷を開始します'); };
+
   </script>
 </body>
 </html>
