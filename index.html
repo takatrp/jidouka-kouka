@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自計化×自動化 効果試算アプリ（r6）</title>
+  <title>TKC方式 | 自計化×自動化 効果試算アプリ（r7）</title>
   <style>
     :root {
       --bg: #f7f9fc;
@@ -70,17 +70,21 @@
     <section class="card">
       <div class="grid" style="grid-template-columns: repeat(12, 1fr);">
         <div class="thead th" style="grid-column: span 12;">試算前提</div>
-        <div class="td" style="grid-column: span 4;">
+        <div class="td" style="grid-column: span 3;">
           <label>FXシリーズ基本料金（<span class="note">月額・円</span>）</label>
           <input id="fxFee" type="number" inputmode="decimal" placeholder="例：15000" min="0" />
         </div>
-        <div class="td" style="grid-column: span 4;">
+        <div class="td" style="grid-column: span 3;">
           <label>人件費単価（<span class="note">円/時・社保等込み</span>）</label>
           <input id="wage" type="number" inputmode="decimal" placeholder="例：3000" min="0" />
         </div>
-        <div class="td" style="grid-column: span 4;">
+        <div class="td" style="grid-column: span 3;">
           <label>月間仕訳数（<span class="note">総数</span>）</label>
           <input id="totalJournals" type="number" inputmode="numeric" value="320" min="0" />
+        </div>
+        <div class="td" style="grid-column: span 3;">
+          <label>記帳代行報酬（<span class="note">比較用・月額・円</span>）</label>
+          <input id="osFee" type="number" inputmode="decimal" placeholder="例：30000" min="0" />
         </div>
       </div>
       <div class="note" style="margin-top:8px;">※ 時間は社内の実測値で置き換えてください（例：証憑読取の前後差、銀行データ自動仕訳の前後差など）。</div>
@@ -171,6 +175,48 @@
           <div class="note">ネット効果（月間）×12</div>
         </div>
       </div>
+
+      <div class="kpi" style="margin-top:12px;">
+        <div class="item">
+          <h3>手作業コスト（月）</h3>
+          <div class="val" id="kpiCostBefore">¥0</div>
+          <div class="note">（総手作業時間 × 人件費単価）</div>
+        </div>
+        <div class="item">
+          <h3>自動化後コスト（月）</h3>
+          <div class="val" id="kpiCostAfter">¥0</div>
+          <div class="note">（総自動化後時間 × 人件費単価）</div>
+        </div>
+        <div class="item">
+          <h3>自計化×自動化トータルコスト（月）</h3>
+          <div class="val" id="kpiSelfTotal">¥0</div>
+          <div class="note">自動化後コスト + FX基本料金</div>
+        </div>
+        <div class="item">
+          <h3>記帳代行との比較（月）</h3>
+          <div class="val" id="kpiDelta">—</div>
+          <div class="note">差額＝ 記帳代行報酬 − 自計化×自動化トータルコスト</div>
+        </div>
+      </div>
+
+      <div class="kpi" style="margin-top:12px;">
+        <div class="item">
+          <h3>記帳代行報酬（月）</h3>
+          <div class="val" id="kpiOsFee">¥0</div>
+          <div class="note">比較用の入力値</div>
+        </div>
+        <div class="item">
+          <h3>差額（年間換算）</h3>
+          <div class="val" id="kpiDeltaYear">¥0</div>
+          <div class="note">差額（月）×12</div>
+        </div>
+      </div>
+
+      <div class="btns" style="margin-top:12px;">
+        <button class="outline" id="copyBtn">コピー</button>
+        <button class="outline" id="printBtn">印刷</button>
+        <button class="outline" id="csvBtn">CSV出力</button>
+      </div>
     </section>
 
     <!-- 3) チェックポイント -->
@@ -186,7 +232,7 @@
     </section>
 
     <footer>
-      v r6 · 作成: ChatGPT（TKC方式 内部試算用） · このツールは社内実測値の入力を前提としています。
+      v r7 · 作成: ChatGPT（TKC方式 内部試算用） · このツールは社内実測値の入力を前提としています。
     </footer>
   </div>
 
@@ -195,7 +241,7 @@
     const yen = (n) => n.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY', maximumFractionDigits: 0 });
 
     const ids = {
-      fxFee: 'fxFee', wage: 'wage', totalJournals: 'totalJournals',
+      fxFee: 'fxFee', wage: 'wage', totalJournals: 'totalJournals', osFee: 'osFee',
       n_receipts: 'n_receipts', t_receipts_before: 't_receipts_before', t_receipts_after: 't_receipts_after',
       n_bank: 'n_bank', t_bank_before: 't_bank_before', t_bank_after: 't_bank_after',
       n_payroll: 'n_payroll', t_payroll_before: 't_payroll_before', t_payroll_after: 't_payroll_after',
@@ -203,116 +249,187 @@
       n_other: 'n_other', t_other_before: 't_other_before', t_other_after: 't_other_after'
     };
 
-    function getNum(id) {
-      const v = parseFloat($(id).value);
-      return isNaN(v) ? 0 : v;
-    }
-
-    function rowHours(n, tBefore, tAfter) {
-      const count = Math.max(0, n); // 負の件数は削減計算に含めない
-      const diffMin = Math.max(0, (tBefore - tAfter));
-      return (diffMin * count) / 60; // hours
-    }
+    function num(id) { const v = parseFloat($(id).value); return isNaN(v) ? 0 : v; }
+    const safeCount = (n) => Math.max(0, n); // 負値は0扱いで時間計算
 
     function recalcOther() {
-      const total = getNum(ids.totalJournals);
-      const sumFour = getNum(ids.n_receipts) + getNum(ids.n_bank) + getNum(ids.n_payroll) + getNum(ids.n_sales);
+      const total = num(ids.totalJournals);
+      const sumFour = num(ids.n_receipts) + num(ids.n_bank) + num(ids.n_payroll) + num(ids.n_sales);
       const other = total - sumFour; // 負も許容（過剰カウントの見える化）
       $(ids.n_other).value = other;
-
       $('sumFour').textContent = sumFour.toString();
       $('sumOther').textContent = other.toString();
       $('sumTotal').textContent = (sumFour + other).toString();
-
       const deltaMsg = $('deltaMsg');
-      if (other < 0) {
-        deltaMsg.textContent = '合計が総数を超過しています（その他が負値）。件数配分を見直してください。';
-        deltaMsg.className = 'warn';
-      } else {
-        deltaMsg.textContent = 'その他は自動調整されます。合計は常に総数と一致します。';
-        deltaMsg.className = 'ok';
-      }
+      if (other < 0) { deltaMsg.textContent = '合計が総数を超過しています（その他が負値）。件数配分を見直してください。'; deltaMsg.className = 'warn'; }
+      else { deltaMsg.textContent = 'その他は自動調整されます。合計は常に総数と一致します。'; deltaMsg.className = 'ok'; }
+    }
+
+    function moduleMetrics(label, n, tb, ta, wage) {
+      const cnt = safeCount(n);
+      const hB = (tb * cnt) / 60;
+      const hA = (ta * cnt) / 60;
+      const hS = Math.max(0, hB - hA);
+      const cB = hB * wage;
+      const cA = hA * wage;
+      return { label, cnt, tb, ta, hB, hA, hS, cB, cA };
+    }
+
+    function compute() {
+      const wage = num(ids.wage);
+      const fxFee = num(ids.fxFee);
+      const osFee = num(ids.osFee);
+
+      const mods = [
+        moduleMetrics('証憑保存（スマホで経費）', num(ids.n_receipts), num(ids.t_receipts_before), num(ids.t_receipts_after), wage),
+        moduleMetrics('銀行信販データ受信機能', num(ids.n_bank), num(ids.t_bank_before), num(ids.t_bank_after), wage),
+        moduleMetrics('給与計算機能（仕訳含む）', num(ids.n_payroll), num(ids.t_payroll_before), num(ids.t_payroll_after), wage),
+        moduleMetrics('販売管理機能（売上計上・請求）', num(ids.n_sales), num(ids.t_sales_before), num(ids.t_sales_after), wage),
+        moduleMetrics('その他', safeCount(num(ids.n_other)), num(ids.t_other_before), num(ids.t_other_after), wage)
+      ];
+
+      // 合計
+      const hBefore = mods.reduce((s,m)=>s+m.hB,0);
+      const hAfter  = mods.reduce((s,m)=>s+m.hA,0);
+      const hSaved  = Math.max(0, hBefore - hAfter);
+      const costBefore = hBefore * wage;
+      const costAfter  = hAfter * wage;
+      const monthlySaving = costBefore - costAfter; // = hSaved * wage
+      const net = monthlySaving - fxFee;
+      const netYear = net * 12;
+      const selfTotal = costAfter + fxFee;
+      const delta = osFee - selfTotal; // 記帳代行 − 自計化×自動化（正：代行の方が高い）
+      const deltaYear = delta * 12;
+
+      return { wage, fxFee, osFee, mods, hBefore, hAfter, hSaved, costBefore, costAfter, monthlySaving, net, netYear, selfTotal, delta, deltaYear };
+    }
+
+    function updateUI(r) {
+      $('h_receipts').textContent = r.mods[0].hS.toFixed(2);
+      $('h_bank').textContent     = r.mods[1].hS.toFixed(2);
+      $('h_payroll').textContent  = r.mods[2].hS.toFixed(2);
+      $('h_sales').textContent    = r.mods[3].hS.toFixed(2);
+      $('h_other').textContent    = r.mods[4].hS.toFixed(2);
+
+      $('kpiHours').textContent = `${r.hSaved.toFixed(2)} 時間`;
+      $('kpiYen').textContent   = yen(r.monthlySaving);
+
+      $('kpiNet').textContent = yen(r.net);
+      $('kpiNet').style.color = r.net >= 0 ? 'var(--good)' : 'var(--warn)';
+      $('kpiNetYear').textContent = yen(r.netYear);
+
+      $('kpiCostBefore').textContent = yen(r.costBefore);
+      $('kpiCostAfter').textContent  = yen(r.costAfter);
+      $('kpiSelfTotal').textContent  = yen(r.selfTotal);
+
+      $('kpiOsFee').textContent = yen(r.osFee);
+      $('kpiDelta').textContent = yen(r.delta);
+      $('kpiDelta').style.color = r.delta >= 0 ? 'var(--good)' : 'var(--warn)';
+      $('kpiDeltaYear').textContent = yen(r.deltaYear);
     }
 
     function calc() {
-      // per row
-      const h_receipts = rowHours(getNum(ids.n_receipts), getNum(ids.t_receipts_before), getNum(ids.t_receipts_after));
-      const h_bank     = rowHours(getNum(ids.n_bank),     getNum(ids.t_bank_before),     getNum(ids.t_bank_after));
-      const h_payroll  = rowHours(getNum(ids.n_payroll),  getNum(ids.t_payroll_before),  getNum(ids.t_payroll_after));
-      const h_sales    = rowHours(getNum(ids.n_sales),    getNum(ids.t_sales_before),    getNum(ids.t_sales_after));
-      const h_other    = rowHours(getNum(ids.n_other),    getNum(ids.t_other_before),    getNum(ids.t_other_after));
-
-      $('h_receipts').textContent = h_receipts.toFixed(2);
-      $('h_bank').textContent     = h_bank.toFixed(2);
-      $('h_payroll').textContent  = h_payroll.toFixed(2);
-      $('h_sales').textContent    = h_sales.toFixed(2);
-      $('h_other').textContent    = h_other.toFixed(2);
-
-      const totalH = h_receipts + h_bank + h_payroll + h_sales + h_other;
-      $('kpiHours').textContent = `${totalH.toFixed(2)} 時間`;
-
-      const wage = getNum(ids.wage);
-      const fxFee = getNum(ids.fxFee);
-
-      const monthlySaving = totalH * wage; // 円
-      $('kpiYen').textContent = yen(monthlySaving);
-
-      const net = monthlySaving - fxFee;
-      $('kpiNet').textContent = yen(net);
-      $('kpiNet').style.color = net >= 0 ? 'var(--good)' : 'var(--warn)';
-
-      const netYear = net * 12;
-      $('kpiNetYear').textContent = yen(netYear);
-
       recalcOther();
+      const res = compute();
+      updateUI(res);
     }
 
     function reset() {
-      // Keep default counts; clear globals
       $(ids.fxFee).value = '';
       $(ids.wage).value = '';
+      $(ids.osFee).value = '';
       $(ids.totalJournals).value = 320;
 
-      // counts with defaults
-      $(ids.n_receipts).value = 30;
-      $(ids.t_receipts_before).value = 3;
-      $(ids.t_receipts_after).value = 1;
-
-      $(ids.n_bank).value = 260;
-      $(ids.t_bank_before).value = 2;
-      $(ids.t_bank_after).value = 0.5;
-
-      $(ids.n_payroll).value = 10;
-      $(ids.t_payroll_before).value = 8;
-      $(ids.t_payroll_after).value = 3;
-
-      $(ids.n_sales).value = 12;
-      $(ids.t_sales_before).value = 10;
-      $(ids.t_sales_after).value = 4;
-
-      $(ids.t_other_before).value = 1.5;
-      $(ids.t_other_after).value = 1.5;
+      $(ids.n_receipts).value = 30; $(ids.t_receipts_before).value = 3; $(ids.t_receipts_after).value = 1;
+      $(ids.n_bank).value = 260;    $(ids.t_bank_before).value = 2;   $(ids.t_bank_after).value = 0.5;
+      $(ids.n_payroll).value = 10;  $(ids.t_payroll_before).value = 8; $(ids.t_payroll_after).value = 3;
+      $(ids.n_sales).value = 12;    $(ids.t_sales_before).value = 10;  $(ids.t_sales_after).value = 4;
+      $(ids.t_other_before).value = 1.5; $(ids.t_other_after).value = 1.5;
 
       ['h_receipts','h_bank','h_payroll','h_sales','h_other'].forEach(id => $(id).textContent = '0.00');
-      $('kpiHours').textContent = '0.00 時間';
-      $('kpiYen').textContent = '¥0';
-      $('kpiNet').textContent = '¥0';
-      $('kpiNet').style.color = 'inherit';
-      $('kpiNetYear').textContent = '¥0';
+      ['kpiHours','kpiNet','kpiNetYear','kpiYen','kpiCostBefore','kpiCostAfter','kpiSelfTotal','kpiOsFee','kpiDelta','kpiDeltaYear']
+        .forEach(id => { $(id).textContent = id.includes('Hours') ? '0.00 時間' : '¥0'; $(id).style && ($(id).style.color = 'inherit'); });
 
       recalcOther();
     }
 
-    // Wire up
+    function summaryText(r) {
+      const lines = [];
+      lines.push('【自計化×自動化 効果試算サマリー】');
+      lines.push(`人件費単価: ${r.wage} 円/時, FX基本料金: ${r.fxFee} 円/月, 記帳代行報酬: ${r.osFee} 円/月`);
+      lines.push('— 機能別（件数/分/分/削減h）');
+      r.mods.forEach(m => {
+        lines.push(`${m.label}: ${m.cnt}件 / ${m.tb}分 / ${m.ta}分 / ${m.hS.toFixed(2)}h`);
+      });
+      lines.push(`総手作業時間: ${r.hBefore.toFixed(2)}h, 自動化後時間: ${r.hAfter.toFixed(2)}h, 時間短縮: ${r.hSaved.toFixed(2)}h`);
+      lines.push(`手作業コスト: ${yen(r.costBefore)}, 自動化後コスト: ${yen(r.costAfter)}, 削減額: ${yen(r.monthlySaving)}`);
+      lines.push(`ネット効果（月）: ${yen(r.net)}（= 削減額 − FX） / 年: ${yen(r.netYear)}`);
+      lines.push(`自計化×自動化トータルコスト（月）: ${yen(r.selfTotal)}`);
+      lines.push(`記帳代行比較: 差額（月）= ${yen(r.delta)}（記帳代行 − 自計化×自動化） / 年 = ${yen(r.deltaYear)}`);
+      return lines.join('
+');
+    }
+
+    async function copySummary() {
+      const r = compute();
+      const text = summaryText(r);
+      try {
+        await navigator.clipboard.writeText(text);
+        const btn = $('copyBtn');
+        const old = btn.textContent; btn.textContent = 'コピーしました';
+        setTimeout(()=>btn.textContent = old, 1500);
+      } catch (e) {
+        alert('クリップボードにコピーできませんでした。');
+      }
+    }
+
+    function exportCSV() {
+      const r = compute();
+      const rows = [];
+      rows.push(['項目','件数','手作業(分/件)','自動化後(分/件)','手作業時間(h)','自動化後時間(h)','削減時間(h)','手作業コスト(円)','自動化後コスト(円)']);
+      r.mods.forEach(m => {
+        rows.push([m.label, m.cnt, m.tb, m.ta, m.hB.toFixed(2), m.hA.toFixed(2), m.hS.toFixed(2), Math.round(m.cB), Math.round(m.cA)]);
+      });
+      rows.push([]);
+      rows.push(['人件費単価(円/時)', r.wage]);
+      rows.push(['FX基本料金(円/月)', r.fxFee]);
+      rows.push(['記帳代行報酬(円/月)', r.osFee]);
+      rows.push(['総手作業時間(h)', r.hBefore.toFixed(2)]);
+      rows.push(['総自動化後時間(h)', r.hAfter.toFixed(2)]);
+      rows.push(['時間短縮(h)', r.hSaved.toFixed(2)]);
+      rows.push(['手作業コスト(円/月)', Math.round(r.costBefore)]);
+      rows.push(['自動化後コスト(円/月)', Math.round(r.costAfter)]);
+      rows.push(['削減額(円/月)', Math.round(r.monthlySaving)]);
+      rows.push(['ネット効果(円/月)', Math.round(r.net)]);
+      rows.push(['ネット効果(円/年)', Math.round(r.netYear)]);
+      rows.push(['自計化×自動化トータルコスト(円/月)', Math.round(r.selfTotal)]);
+      rows.push(['差額=記帳代行−自計化×自動化(円/月)', Math.round(r.delta)]);
+      rows.push(['差額(円/年)', Math.round(r.deltaYear)]);
+
+      const csv = rows.map(a => a.map(v => (v===undefined||v===null)?'':String(v).replace(/"/g,'""')).map(v => /[,
+
+]/.test(v) ? '"'+v+'"' : v).join(',')).join('
+');
+      const blob = new Blob([csv], {type: 'text/csv'});
+      const a = document.createElement('a');
+      const now = new Date();
+      const pad = (n)=>String(n).padStart(2,'0');
+      a.href = URL.createObjectURL(blob);
+      a.download = `tkc_effect_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    function printPage(){ window.print(); }
+
+    // Events
     $('calcBtn').addEventListener('click', calc);
     $('resetBtn').addEventListener('click', reset);
+    [ids.n_receipts, ids.n_bank, ids.n_payroll, ids.n_sales, ids.totalJournals].forEach(id => { $(id).addEventListener('input', recalcOther); });
+    $('copyBtn').addEventListener('click', copySummary);
+    $('csvBtn').addEventListener('click', exportCSV);
+    $('printBtn').addEventListener('click', printPage);
 
-    // live updates for counts/targets to keep "その他" in sync
-    [ids.n_receipts, ids.n_bank, ids.n_payroll, ids.n_sales, ids.totalJournals].forEach(id => {
-      $(id).addEventListener('input', recalcOther);
-    });
-
-    // first run
+    // init
     reset();
   </script>
 </body>
