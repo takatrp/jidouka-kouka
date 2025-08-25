@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC自計化×自動化 効果試算ツール r4</title>
+<title>TKC自計化×自動化 効果試算ツール r5</title>
 <style>
   :root { --bg:#f7f7fb; --panel:#ffffff; --ink:#1f2937; --sub:#6b7280; --brand:#578899; --ok:#16a34a; }
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
@@ -17,7 +17,7 @@
   label{font-size:13px;color:var(--sub);display:block;margin-bottom:6px}
   input[type="number"],select,textarea{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font-size:15px}
   input:focus,select:focus,textarea:focus{outline:2px solid #cfe7ee;border-color:#9cc9d8}
-  .row{display:grid;grid-template-columns:1.6fr .8fr .8fr;gap:8px;align-items:end}
+  .row{display:grid;grid-template-columns:1.6fr .8fr;gap:8px;align-items:end}
   .unit{font-size:12px;color:#9ca3af}
   .mod{border:1px dashed #d4dde5;border-radius:14px;padding:12px;margin-top:10px;background:#fcfdff}
   .mod header{display:flex;gap:10px;align-items:center}
@@ -40,12 +40,12 @@
 <body>
   <div class="wrap" id="app">
     <header>
-      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r4</span></div>
+      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r5</span></div>
       <div class="pill" id="tsNow">—</div>
     </header>
 
+    <!-- 0) 基本情報・共通設定 -->
     <div class="card">
-      <p class="muted" style="margin:0 0 8px">月次で各モジュールの件数・時間・削減率を入れると、<b>削減時間</b>→<b>人件費削減額</b>→<b>純効果</b>を即時計算します。数値は概算なので現場実測で上書きしてください。</p>
       <div class="grid">
         <div>
           <label>担当者の時給（社保込の実勢）</label>
@@ -59,9 +59,33 @@
           </select>
         </div>
       </div>
+      <div class="grid" style="margin-top:8px">
+        <div>
+          <label>参考：月間仕訳数（件）※計算には未使用</label>
+          <input type="number" id="journal-n" value="320" min="0" step="10" inputmode="numeric" />
+        </div>
+      </div>
     </div>
 
-    <!-- 証憑保存（スマホで経費） -->
+    <!-- 1) FXシリーズ基本料金 -->
+    <div class="card mod">
+      <header>
+        <h3>FXシリーズ基本料金</h3>
+        <span class="pill">月額固定費</span>
+      </header>
+      <div class="grid">
+        <div>
+          <label>月額費用（円）</label>
+          <input type="number" id="fx-fee" value="0" min="0" step="100" inputmode="numeric" />
+        </div>
+        <div>
+          <label>備考（任意）</label>
+          <input type="text" id="fx-note" placeholder="例：FX2/3/4、導入ID数 など" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 2) 証憑保存（スマホで経費） -->
     <div class="card mod">
       <header>
         <input type="checkbox" id="exp-on" checked />
@@ -71,7 +95,7 @@
       <div class="grid">
         <div>
           <label>対象枚数/月</label>
-          <input type="number" id="exp-n" value="400" min="0" step="10" inputmode="numeric" />
+          <input type="number" id="exp-n" value="30" min="0" step="1" inputmode="numeric" />
         </div>
         <div>
           <label>月額費用（円）</label>
@@ -89,14 +113,10 @@
           <input type="number" id="exp-after" value="30" min="0" step="1" inputmode="numeric" />
           <div class="unit">例：撮影→自動読取→確認</div>
         </div>
-        <div>
-          <label>または 削減率（%）</label>
-          <input type="number" id="exp-rate" value="" min="0" max="100" step="1" inputmode="numeric" placeholder="未指定" />
-        </div>
       </div>
     </div>
 
-    <!-- 銀行・信販データ受信 -->
+    <!-- 3) 銀行・信販データ受信 -->
     <div class="card mod">
       <header>
         <input type="checkbox" id="bank-on" checked />
@@ -106,7 +126,7 @@
       <div class="grid">
         <div>
           <label>取引件数/月</label>
-          <input type="number" id="bank-n" value="800" min="0" step="10" inputmode="numeric" />
+          <input type="number" id="bank-n" value="260" min="0" step="1" inputmode="numeric" />
         </div>
         <div>
           <label>月額費用（円）</label>
@@ -124,14 +144,10 @@
           <input type="number" id="bank-after" value="8" min="0" step="1" inputmode="numeric" />
           <div class="unit">自動取込＋学習ルール</div>
         </div>
-        <div>
-          <label>または 削減率（%）</label>
-          <input type="number" id="bank-rate" value="" min="0" max="100" step="1" inputmode="numeric" placeholder="未指定" />
-        </div>
       </div>
     </div>
 
-    <!-- 給与計算 -->
+    <!-- 4) 給与計算 -->
     <div class="card mod">
       <header>
         <input type="checkbox" id="pay-on" checked />
@@ -141,7 +157,7 @@
       <div class="grid">
         <div>
           <label>従業員数</label>
-          <input type="number" id="pay-n" value="50" min="0" step="1" inputmode="numeric" />
+          <input type="number" id="pay-n" value="10" min="0" step="1" inputmode="numeric" />
         </div>
         <div>
           <label>月額費用（円）</label>
@@ -159,14 +175,10 @@
           <input type="number" id="pay-after" value="8" min="0" step="1" inputmode="numeric" />
           <div class="unit">自動連携＋一括計算</div>
         </div>
-        <div>
-          <label>または 削減率（%）</label>
-          <input type="number" id="pay-rate" value="" min="0" max="100" step="1" inputmode="numeric" placeholder="未指定" />
-        </div>
       </div>
     </div>
 
-    <!-- 販売管理（受注・請求） -->
+    <!-- 5) 販売管理（受注・請求） -->
     <div class="card mod">
       <header>
         <input type="checkbox" id="sales-on" checked />
@@ -176,7 +188,7 @@
       <div class="grid">
         <div>
           <label>件数/月（受注・請求の合計）</label>
-          <input type="number" id="sales-n" value="300" min="0" step="10" inputmode="numeric" />
+          <input type="number" id="sales-n" value="12" min="0" step="1" inputmode="numeric" />
         </div>
         <div>
           <label>月額費用（円）</label>
@@ -194,10 +206,6 @@
           <input type="number" id="sales-after" value="2" min="0" step="1" inputmode="numeric" />
           <div class="unit">自動連携・一括処理</div>
         </div>
-        <div>
-          <label>または 削減率（%）</label>
-          <input type="number" id="sales-rate" value="" min="0" max="100" step="1" inputmode="numeric" placeholder="未指定" />
-        </div>
       </div>
     </div>
 
@@ -206,10 +214,10 @@
       <div class="stat" aria-live="polite">
         <div class="k"><div class="label muted">合計削減時間</div><div class="v" id="out-hours">—</div><div class="muted" id="out-hours-note">/月</div></div>
         <div class="k"><div class="label muted">人件費削減額</div><div class="v" id="out-laborsave">—</div><div class="muted" id="out-laborsave-note"></div></div>
-        <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（4モジュール）</div></div>
+        <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（基本＋4モジュール）</div></div>
         <div class="k"><div class="label muted">純効果（削減−費用）</div><div class="v" id="out-net">—</div><div class="muted" id="out-net-note"></div></div>
       </div>
-      <div class="notice" style="margin-top:10px">注意：削減時間は0未満にならないよう自動で0に丸めています。%を入れた場合は%を優先します。</div>
+      <div class="notice" style="margin-top:10px">注意：削減時間は0未満にならないよう自動で0に丸めています。</div>
     </div>
 
     <div class="card">
@@ -226,7 +234,7 @@
       <button class="btn good" id="do-print" type="button">印刷</button>
     </div>
 
-    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r4（2025-08-25）。</footer>
+    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r5（2025-08-25）。</footer>
   </div>
 
 <script>
@@ -234,15 +242,10 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const N = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
-  const clamp = (x,min,max)=> Math.min(Math.max(x,min),max);
   const fmtYen = n => Number.isFinite(n) ? '¥'+Math.round(n).toLocaleString() : '—';
   const fmtH = h => Number.isFinite(h) ? (h.toFixed(1)+' 時間') : '—';
   let rafId = null;
 
-  function secByRate(baseSec, rateStr){
-    if(rateStr===''||rateStr===null||rateStr===undefined) return null;
-    const r = clamp(N(rateStr),0,100)/100; return baseSec*(1-r);
-  }
   function savedHoursBySec(n, baseSec, afterSec){
     const saved = Math.max((baseSec-afterSec)*n, 0);
     return saved/3600;
@@ -254,34 +257,30 @@
 
   function mExpense(){
     if(!$('exp-on').checked) return {h:0, fee:N($('exp-fee').value)};
-    const n=N($('exp-n').value), base=N($('exp-base').value), rate=$('exp-rate').value, after0=N($('exp-after').value);
-    const after = secByRate(base, rate) ?? after0; 
-    return {h: savedHoursBySec(n, base, after), fee:N($('exp-fee').value)};
+    const n=N($('exp-n').value), base=N($('exp-base').value), after0=N($('exp-after').value);
+    return {h: savedHoursBySec(n, base, after0), fee:N($('exp-fee').value)};
   }
   function mBank(){
     if(!$('bank-on').checked) return {h:0, fee:N($('bank-fee').value)};
-    const n=N($('bank-n').value), base=N($('bank-base').value), rate=$('bank-rate').value, after0=N($('bank-after').value);
-    const after = secByRate(base, rate) ?? after0;
-    return {h: savedHoursBySec(n, base, after), fee:N($('bank-fee').value)};
+    const n=N($('bank-n').value), base=N($('bank-base').value), after0=N($('bank-after').value);
+    return {h: savedHoursBySec(n, base, after0), fee:N($('bank-fee').value)};
   }
   function mPayroll(){
     if(!$('pay-on').checked) return {h:0, fee:N($('pay-fee').value)};
-    const n=N($('pay-n').value), base=N($('pay-base').value), r=$('pay-rate').value, after0=N($('pay-after').value);
-    const after = (r===''||r===null)? after0 : base*(1-clamp(N(r),0,100)/100);
-    return {h: savedHoursByMin(n, base, after), fee:N($('pay-fee').value)};
+    const n=N($('pay-n').value), base=N($('pay-base').value), after0=N($('pay-after').value);
+    return {h: savedHoursByMin(n, base, after0), fee:N($('pay-fee').value)};
   }
   function mSales(){
     if(!$('sales-on').checked) return {h:0, fee:N($('sales-fee').value)};
-    const n=N($('sales-n').value), base=N($('sales-base').value), r=$('sales-rate').value, after0=N($('sales-after').value);
-    const after = (r===''||r===null)? after0 : base*(1-clamp(N(r),0,100)/100);
-    return {h: savedHoursByMin(n, base, after), fee:N($('sales-fee').value)};
+    const n=N($('sales-n').value), base=N($('sales-base').value), after0=N($('sales-after').value);
+    return {h: savedHoursByMin(n, base, after0), fee:N($('sales-fee').value)};
   }
 
   function recalc(){
     const unit = $('unit').value; const wage=N($('wage').value);
     const mods=[mExpense(),mBank(),mPayroll(),mSales()];
     let hours = mods.reduce((s,m)=>s+m.h,0);
-    let fees = mods.reduce((s,m)=>s+m.fee,0);
+    let fees = mods.reduce((s,m)=>s+m.fee,0) + N($('fx-fee').value);
     let note = '/月';
     if(unit==='year'){ hours*=12; fees*=12; note='/年'; }
     const laborSave = hours*wage; const net=laborSave-fees;
@@ -295,31 +294,24 @@
     $('out-net-note').textContent= net>=0?'（導入効果プラス）':'（要見直し）';
 
     const detail = (name,m)=>`${name}: 時間${m.h.toFixed(2)}h, 費用${fmtYen(m.fee)}`;
-    const [e,b,p,s]=[mExpense(),mBank(),mPayroll(),mSales()];
+    const [e,b,p,s]=mods;
     const lines=[`【効果サマリ${unit==='year'?'（年換算）':'（月次）'}】削減時間: ${hours.toFixed(1)}時間 / 人件費削減額: ${fmtYen(laborSave)} / 費用合計: ${fmtYen(fees)} / 純効果: ${fmtYen(net)}`,
                  [detail('証憑保存',e),detail('銀行・信販データ受信',b),detail('給与計算',p),detail('販売管理',s)].join(' / '),
-                 `前提：時給 ${fmtYen(wage)}、表示単位=${unit==='year'?'年':'月'}。`];
-    $('out-text').value=lines.join('\n');
+                 `前提：時給 ${fmtYen(wage)}、表示単位=${unit==='year'?'年':'月'}、FX基本=${fmtYen(N($('fx-fee').value))}。`];
+    $('out-text').value=lines.join('
+');
   }
 
   function schedule(){ if(rafId) cancelAnimationFrame(rafId); rafId=requestAnimationFrame(recalc); }
 
-  function bindOnce(el, ev, handler){
-    if(!el) return; if(el.dataset.bound==='1') return; el.addEventListener(ev, handler); el.dataset.bound='1';
-  }
   function bind(){
     const app=$('app');
-    if(app && app.dataset.bound!=='1'){
-      app.addEventListener('input', schedule, {passive:true});
-      app.addEventListener('change', schedule, {passive:true});
-      app.dataset.bound='1';
-    }
-    bindOnce($('do-calc'),'click', recalc);
-    bindOnce($('do-print'),'click', ()=>window.print());
-    bindOnce($('do-reset'),'click', ()=>location.reload());
-    bindOnce($('do-copy'),'click', ()=>{
-      try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}
-    });
+    app.addEventListener('input', schedule, {passive:true});
+    app.addEventListener('change', schedule, {passive:true});
+    $('do-calc').addEventListener('click', recalc);
+    $('do-print').addEventListener('click', ()=>window.print());
+    $('do-reset').addEventListener('click', ()=>location.reload());
+    $('do-copy').addEventListener('click', ()=>{ try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}});
   }
 
   function init(){
@@ -328,24 +320,21 @@
     const ts=$('tsNow'); if(ts) ts.textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
   }
 
-  // DOM準備の有無に依存しない初期化（キャンバス対策）
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', init, {once:true});
   } else {
-    // すでに読み込み済みの場合でも確実に初期化
     setTimeout(init, 0);
   }
-  // 念のための再バインド（埋め込み環境での遅延対策）
-  setTimeout(bind, 300);
 })();
 </script>
 </body>
-</html><!DOCTYPE html>
+</html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC自計化×自動化 効果試算ツール r4</title>
+<title>TKC自計化×自動化 効果試算ツール r5</title>
 <style>
   :root { --bg:#f7f7fb; --panel:#ffffff; --ink:#1f2937; --sub:#6b7280; --brand:#578899; --ok:#16a34a; }
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
@@ -359,7 +348,7 @@
   label{font-size:13px;color:var(--sub);display:block;margin-bottom:6px}
   input[type="number"],select,textarea{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font-size:15px}
   input:focus,select:focus,textarea:focus{outline:2px solid #cfe7ee;border-color:#9cc9d8}
-  .row{display:grid;grid-template-columns:1.6fr .8fr .8fr;gap:8px;align-items:end}
+  .row{display:grid;grid-template-columns:1.6fr .8fr;gap:8px;align-items:end}
   .unit{font-size:12px;color:#9ca3af}
   .mod{border:1px dashed #d4dde5;border-radius:14px;padding:12px;margin-top:10px;background:#fcfdff}
   .mod header{display:flex;gap:10px;align-items:center}
@@ -382,12 +371,12 @@
 <body>
   <div class="wrap" id="app">
     <header>
-      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r4</span></div>
+      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r5</span></div>
       <div class="pill" id="tsNow">—</div>
     </header>
 
+    <!-- 0) 基本情報・共通設定 -->
     <div class="card">
-      <p class="muted" style="margin:0 0 8px">月次で各モジュールの件数・時間・削減率を入れると、<b>削減時間</b>→<b>人件費削減額</b>→<b>純効果</b>を即時計算します。数値は概算なので現場実測で上書きしてください。</p>
       <div class="grid">
         <div>
           <label>担当者の時給（社保込の実勢）</label>
@@ -401,9 +390,33 @@
           </select>
         </div>
       </div>
+      <div class="grid" style="margin-top:8px">
+        <div>
+          <label>参考：月間仕訳数（件）※計算には未使用</label>
+          <input type="number" id="journal-n" value="320" min="0" step="10" inputmode="numeric" />
+        </div>
+      </div>
     </div>
 
-    <!-- 証憑保存（スマホで経費） -->
+    <!-- 1) FXシリーズ基本料金 -->
+    <div class="card mod">
+      <header>
+        <h3>FXシリーズ基本料金</h3>
+        <span class="pill">月額固定費</span>
+      </header>
+      <div class="grid">
+        <div>
+          <label>月額費用（円）</label>
+          <input type="number" id="fx-fee" value="0" min="0" step="100" inputmode="numeric" />
+        </div>
+        <div>
+          <label>備考（任意）</label>
+          <input type="text" id="fx-note" placeholder="例：FX2/3/4、導入ID数 など" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 2) 証憑保存（スマホで経費） -->
     <div class="card mod">
       <header>
         <input type="checkbox" id="exp-on" checked />
@@ -413,7 +426,7 @@
       <div class="grid">
         <div>
           <label>対象枚数/月</label>
-          <input type="number" id="exp-n" value="400" min="0" step="10" inputmode="numeric" />
+          <input type="number" id="exp-n" value="30" min="0" step="1" inputmode="numeric" />
         </div>
         <div>
           <label>月額費用（円）</label>
@@ -431,14 +444,10 @@
           <input type="number" id="exp-after" value="30" min="0" step="1" inputmode="numeric" />
           <div class="unit">例：撮影→自動読取→確認</div>
         </div>
-        <div>
-          <label>または 削減率（%）</label>
-          <input type="number" id="exp-rate" value="" min="0" max="100" step="1" inputmode="numeric" placeholder="未指定" />
-        </div>
       </div>
     </div>
 
-    <!-- 銀行・信販データ受信 -->
+    <!-- 3) 銀行・信販データ受信 -->
     <div class="card mod">
       <header>
         <input type="checkbox" id="bank-on" checked />
@@ -448,7 +457,7 @@
       <div class="grid">
         <div>
           <label>取引件数/月</label>
-          <input type="number" id="bank-n" value="800" min="0" step="10" inputmode="numeric" />
+          <input type="number" id="bank-n" value="260" min="0" step="1" inputmode="numeric" />
         </div>
         <div>
           <label>月額費用（円）</label>
@@ -466,14 +475,10 @@
           <input type="number" id="bank-after" value="8" min="0" step="1" inputmode="numeric" />
           <div class="unit">自動取込＋学習ルール</div>
         </div>
-        <div>
-          <label>または 削減率（%）</label>
-          <input type="number" id="bank-rate" value="" min="0" max="100" step="1" inputmode="numeric" placeholder="未指定" />
-        </div>
       </div>
     </div>
 
-    <!-- 給与計算 -->
+    <!-- 4) 給与計算 -->
     <div class="card mod">
       <header>
         <input type="checkbox" id="pay-on" checked />
@@ -483,7 +488,7 @@
       <div class="grid">
         <div>
           <label>従業員数</label>
-          <input type="number" id="pay-n" value="50" min="0" step="1" inputmode="numeric" />
+          <input type="number" id="pay-n" value="10" min="0" step="1" inputmode="numeric" />
         </div>
         <div>
           <label>月額費用（円）</label>
@@ -501,14 +506,10 @@
           <input type="number" id="pay-after" value="8" min="0" step="1" inputmode="numeric" />
           <div class="unit">自動連携＋一括計算</div>
         </div>
-        <div>
-          <label>または 削減率（%）</label>
-          <input type="number" id="pay-rate" value="" min="0" max="100" step="1" inputmode="numeric" placeholder="未指定" />
-        </div>
       </div>
     </div>
 
-    <!-- 販売管理（受注・請求） -->
+    <!-- 5) 販売管理（受注・請求） -->
     <div class="card mod">
       <header>
         <input type="checkbox" id="sales-on" checked />
@@ -518,7 +519,7 @@
       <div class="grid">
         <div>
           <label>件数/月（受注・請求の合計）</label>
-          <input type="number" id="sales-n" value="300" min="0" step="10" inputmode="numeric" />
+          <input type="number" id="sales-n" value="12" min="0" step="1" inputmode="numeric" />
         </div>
         <div>
           <label>月額費用（円）</label>
@@ -536,10 +537,6 @@
           <input type="number" id="sales-after" value="2" min="0" step="1" inputmode="numeric" />
           <div class="unit">自動連携・一括処理</div>
         </div>
-        <div>
-          <label>または 削減率（%）</label>
-          <input type="number" id="sales-rate" value="" min="0" max="100" step="1" inputmode="numeric" placeholder="未指定" />
-        </div>
       </div>
     </div>
 
@@ -548,10 +545,10 @@
       <div class="stat" aria-live="polite">
         <div class="k"><div class="label muted">合計削減時間</div><div class="v" id="out-hours">—</div><div class="muted" id="out-hours-note">/月</div></div>
         <div class="k"><div class="label muted">人件費削減額</div><div class="v" id="out-laborsave">—</div><div class="muted" id="out-laborsave-note"></div></div>
-        <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（4モジュール）</div></div>
+        <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（基本＋4モジュール）</div></div>
         <div class="k"><div class="label muted">純効果（削減−費用）</div><div class="v" id="out-net">—</div><div class="muted" id="out-net-note"></div></div>
       </div>
-      <div class="notice" style="margin-top:10px">注意：削減時間は0未満にならないよう自動で0に丸めています。%を入れた場合は%を優先します。</div>
+      <div class="notice" style="margin-top:10px">注意：削減時間は0未満にならないよう自動で0に丸めています。</div>
     </div>
 
     <div class="card">
@@ -568,7 +565,7 @@
       <button class="btn good" id="do-print" type="button">印刷</button>
     </div>
 
-    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r4（2025-08-25）。</footer>
+    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r5（2025-08-25）。</footer>
   </div>
 
 <script>
@@ -576,15 +573,10 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const N = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
-  const clamp = (x,min,max)=> Math.min(Math.max(x,min),max);
   const fmtYen = n => Number.isFinite(n) ? '¥'+Math.round(n).toLocaleString() : '—';
   const fmtH = h => Number.isFinite(h) ? (h.toFixed(1)+' 時間') : '—';
   let rafId = null;
 
-  function secByRate(baseSec, rateStr){
-    if(rateStr===''||rateStr===null||rateStr===undefined) return null;
-    const r = clamp(N(rateStr),0,100)/100; return baseSec*(1-r);
-  }
   function savedHoursBySec(n, baseSec, afterSec){
     const saved = Math.max((baseSec-afterSec)*n, 0);
     return saved/3600;
@@ -596,34 +588,30 @@
 
   function mExpense(){
     if(!$('exp-on').checked) return {h:0, fee:N($('exp-fee').value)};
-    const n=N($('exp-n').value), base=N($('exp-base').value), rate=$('exp-rate').value, after0=N($('exp-after').value);
-    const after = secByRate(base, rate) ?? after0; 
-    return {h: savedHoursBySec(n, base, after), fee:N($('exp-fee').value)};
+    const n=N($('exp-n').value), base=N($('exp-base').value), after0=N($('exp-after').value);
+    return {h: savedHoursBySec(n, base, after0), fee:N($('exp-fee').value)};
   }
   function mBank(){
     if(!$('bank-on').checked) return {h:0, fee:N($('bank-fee').value)};
-    const n=N($('bank-n').value), base=N($('bank-base').value), rate=$('bank-rate').value, after0=N($('bank-after').value);
-    const after = secByRate(base, rate) ?? after0;
-    return {h: savedHoursBySec(n, base, after), fee:N($('bank-fee').value)};
+    const n=N($('bank-n').value), base=N($('bank-base').value), after0=N($('bank-after').value);
+    return {h: savedHoursBySec(n, base, after0), fee:N($('bank-fee').value)};
   }
   function mPayroll(){
     if(!$('pay-on').checked) return {h:0, fee:N($('pay-fee').value)};
-    const n=N($('pay-n').value), base=N($('pay-base').value), r=$('pay-rate').value, after0=N($('pay-after').value);
-    const after = (r===''||r===null)? after0 : base*(1-clamp(N(r),0,100)/100);
-    return {h: savedHoursByMin(n, base, after), fee:N($('pay-fee').value)};
+    const n=N($('pay-n').value), base=N($('pay-base').value), after0=N($('pay-after').value);
+    return {h: savedHoursByMin(n, base, after0), fee:N($('pay-fee').value)};
   }
   function mSales(){
     if(!$('sales-on').checked) return {h:0, fee:N($('sales-fee').value)};
-    const n=N($('sales-n').value), base=N($('sales-base').value), r=$('sales-rate').value, after0=N($('sales-after').value);
-    const after = (r===''||r===null)? after0 : base*(1-clamp(N(r),0,100)/100);
-    return {h: savedHoursByMin(n, base, after), fee:N($('sales-fee').value)};
+    const n=N($('sales-n').value), base=N($('sales-base').value), after0=N($('sales-after').value);
+    return {h: savedHoursByMin(n, base, after0), fee:N($('sales-fee').value)};
   }
 
   function recalc(){
     const unit = $('unit').value; const wage=N($('wage').value);
     const mods=[mExpense(),mBank(),mPayroll(),mSales()];
     let hours = mods.reduce((s,m)=>s+m.h,0);
-    let fees = mods.reduce((s,m)=>s+m.fee,0);
+    let fees = mods.reduce((s,m)=>s+m.fee,0) + N($('fx-fee').value);
     let note = '/月';
     if(unit==='year'){ hours*=12; fees*=12; note='/年'; }
     const laborSave = hours*wage; const net=laborSave-fees;
@@ -637,31 +625,24 @@
     $('out-net-note').textContent= net>=0?'（導入効果プラス）':'（要見直し）';
 
     const detail = (name,m)=>`${name}: 時間${m.h.toFixed(2)}h, 費用${fmtYen(m.fee)}`;
-    const [e,b,p,s]=[mExpense(),mBank(),mPayroll(),mSales()];
+    const [e,b,p,s]=mods;
     const lines=[`【効果サマリ${unit==='year'?'（年換算）':'（月次）'}】削減時間: ${hours.toFixed(1)}時間 / 人件費削減額: ${fmtYen(laborSave)} / 費用合計: ${fmtYen(fees)} / 純効果: ${fmtYen(net)}`,
                  [detail('証憑保存',e),detail('銀行・信販データ受信',b),detail('給与計算',p),detail('販売管理',s)].join(' / '),
-                 `前提：時給 ${fmtYen(wage)}、表示単位=${unit==='year'?'年':'月'}。`];
-    $('out-text').value=lines.join('\n');
+                 `前提：時給 ${fmtYen(wage)}、表示単位=${unit==='year'?'年':'月'}、FX基本=${fmtYen(N($('fx-fee').value))}。`];
+    $('out-text').value=lines.join('
+');
   }
 
   function schedule(){ if(rafId) cancelAnimationFrame(rafId); rafId=requestAnimationFrame(recalc); }
 
-  function bindOnce(el, ev, handler){
-    if(!el) return; if(el.dataset.bound==='1') return; el.addEventListener(ev, handler); el.dataset.bound='1';
-  }
   function bind(){
     const app=$('app');
-    if(app && app.dataset.bound!=='1'){
-      app.addEventListener('input', schedule, {passive:true});
-      app.addEventListener('change', schedule, {passive:true});
-      app.dataset.bound='1';
-    }
-    bindOnce($('do-calc'),'click', recalc);
-    bindOnce($('do-print'),'click', ()=>window.print());
-    bindOnce($('do-reset'),'click', ()=>location.reload());
-    bindOnce($('do-copy'),'click', ()=>{
-      try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}
-    });
+    app.addEventListener('input', schedule, {passive:true});
+    app.addEventListener('change', schedule, {passive:true});
+    $('do-calc').addEventListener('click', recalc);
+    $('do-print').addEventListener('click', ()=>window.print());
+    $('do-reset').addEventListener('click', ()=>location.reload());
+    $('do-copy').addEventListener('click', ()=>{ try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}});
   }
 
   function init(){
@@ -670,15 +651,11 @@
     const ts=$('tsNow'); if(ts) ts.textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
   }
 
-  // DOM準備の有無に依存しない初期化（キャンバス対策）
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded', init, {once:true});
   } else {
-    // すでに読み込み済みの場合でも確実に初期化
     setTimeout(init, 0);
   }
-  // 念のための再バインド（埋め込み環境での遅延対策）
-  setTimeout(bind, 300);
 })();
 </script>
 </body>
