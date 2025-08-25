@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TKC自計化×自動化 効果試算ツール r1</title>
+<style>
+  :root {
+    --bg:#f7f7fb; --panel:#ffffff; --ink:#222; --sub:#555; --brand:#578899; --accent:#0ea5e9; --ok:#16a34a; --warn:#eab308; --bad:#ef4444;
+  }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
+  .wrap{max-width:980px;margin:24px auto;padding:0 12px 56px;}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .h1{font-size:clamp(18px,4.6vw,28px);font-weight:800;letter-spacing:.4px;color:var(--brand);}
+  .badge{font-size:12px;background:#e6f3f7;color:#145b6b;border:1px solid #cfe7ee;padding:6px 10px;border-radius:999px;}
+  .card{background:var(--panel);border:1px solid #e9ecf1;border-radius:16px;box-shadow:0 4px 14px rgba(20,60,100,.05);padding:16px;margin:12px 0;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:760px){.grid{grid-template-columns:1fr}}
+  label{font-size:13px;color:var(--sub);display:block;margin-bottom:6px}
+  input[type="number"],input[type="text"],select{width:100%;padding:10px 12px;border:1px solid #dfe4ea;border-radius:10px;background:#fff;font-size:15px}
+  input:focus,select:focus{outline:2px solid #cfe7ee;border-color:#a6d0dd}
+  .row{display:grid;grid-template-columns:1.6fr .8fr .8fr;gap:8px;align-items:end}
+  .row label{margin-bottom:4px}
+  .row .unit{font-size:12px;color:#777}
+  .mod{border:1px dashed #d4dde5;border-radius:14px;padding:12px;margin-top:10px;background:#fcfdff}
+  .mod header{display:flex;gap:10px;align-items:center}
+  .mod h3{margin:0;font-size:16px}
+  .muted{color:#6b7280}
+  .help{font-size:12px;color:#667085;line-height:1.5}
+  .flex{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{appearance:none;border:1px solid #d1d7de;background:#fff;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,#2bb3df,#2598c9);border-color:#197da6;color:#fff}
+  .btn.ghost{background:#f4f7fb}
+  .btn.good{background:#10b981;border-color:#059669;color:#fff}
+  .btn:active{transform:translateY(1px)}
+  .toolbar{position:sticky;bottom:0;left:0;right:0;background:rgba(247,247,251,.9);backdrop-filter:saturate(120%) blur(8px);border-top:1px solid #e7ebf2;padding:8px 12px;display:flex;gap:8px;justify-content:center;}
+  .stat{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  @media(max-width:760px){.stat{grid-template-columns:1fr 1fr}}
+  .stat .k{background:#fff;border:1px solid #e9ecf1;border-radius:14px;padding:12px}
+  .stat .k .v{font-size:22px;font-weight:800}
+  .pill{display:inline-flex;gap:6px;align-items:center;border:1px solid #e4e9ee;background:#fafcff;border-radius:999px;padding:4px 10px;font-size:12px}
+  details{border:1px solid #e7edf3;background:#fbfdff;border-radius:12px;padding:10px;margin-top:10px}
+  details summary{cursor:pointer;font-weight:700;color:#334155}
+  footer{margin-top:20px;color:#6b7280;font-size:12px}
+  .notice{background:#fff8e1;border:1px solid #f1d48c;color:#7a5d00;padding:10px;border-radius:10px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r1</span></div>
+      <div class="pill" id="tsNow">—</div>
+    </header>
+
+    <div class="card">
+      <p class="muted" style="margin:0 0 8px">前提：月次ベースで、各モジュールごとに「件数」と「1件あたりの現行時間」と「導入後時間（または削減率）」を入れるだけで、<b>削減時間</b>と<b>人件費削減額</b>、<b>純効果（費用控除後）</b>を即時計算します。初期値は保守的に設定しています。御社の実データに合わせて調整してください。</p>
+      <div class="grid">
+        <div>
+          <label>担当者の時給（社会保険等込みの実勢）</label>
+          <input type="number" id="wage" value="2500" min="0" step="100" />
+        </div>
+        <div>
+          <label>表示単位</label>
+          <select id="displayUnit">
+            <option value="month">月次</option>
+            <option value="year">年換算（×12）</option>
+          </select>
+        </div>
+      </div>
+      <details>
+        <summary>前提のヒント</summary>
+        <div class="help">
+          <ul>
+            <li>実際の効果は現状フロー次第です。<b>件数</b>と<b>1件あたり時間</b>は、担当者へのヒアリングやタイムスタディで埋めるのが確実です。</li>
+            <li>「導入後時間」は、スマホでのレシート撮影＋自動読取、銀行信販の明細自動取込、給与計算の自動化、販売（受注・請求）管理の自動化を想定しています。</li>
+            <li>月額費用欄には、ソフト利用料や連携オプション費用の概算を入れてください（ゼロでも可）。</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <!-- 証憑保存（スマホで経費） -->
+    <div class="card mod" id="mod-expense">
+      <header>
+        <input type="checkbox" id="enable-expense" checked />
+        <h3>証憑保存（スマホで経費）</h3>
+        <span class="pill">領収書・請求書を撮影→OCR→自動起票</span>
+      </header>
+      <div class="grid">
+        <div>
+          <label>対象枚数/月</label>
+          <input type="number" id="expense-n" value="400" min="0" step="10" />
+        </div>
+        <div>
+          <label>月額費用（円）</label>
+          <input type="number" id="expense-fee" value="0" min="0" step="100" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>現行：1枚あたり時間（秒）</label>
+          <input type="number" id="expense-base" value="90" min="0" step="5" />
+          <div class="unit">例：ホチキス外し・貼付・入力・保管台帳</div>
+        </div>
+        <div>
+          <label>導入後：1枚あたり（秒）</label>
+          <input type="number" id="expense-after" value="30" min="0" step="1" />
+          <div class="unit">例：撮影→自動読取→確認のみ</div>
+        </div>
+        <div>
+          <label>または 削減率（%）</label>
+          <input type="number" id="expense-rate" value="" min="0" max="100" step="1" placeholder="未指定" />
+          <div class="unit">空欄の場合は上の秒数で計算</div>
+        </div>
+      </div>
+      <details>
+        <summary>ヒント</summary>
+        <div class="help">ベンチマーク：電帳法対応の事例では、<b>販売票400枚を約90分で処理</b>（=1枚13.5秒）という報告があります。現場に合わせて保守的に設定してください。</div>
+      </details>
+    </div>
+
+    <!-- 銀行・信販データ受信 -->
+    <div class="card mod" id="mod-bank">
+      <header>
+        <input type="checkbox" id="enable-bank" checked />
+        <h3>銀行・信販データ受信</h3>
+        <span class="pill">明細自動取込＋自動仕訳ルール</span>
+      </header>
+      <div class="grid">
+        <div>
+          <label>取引件数/月</label>
+          <input type="number" id="bank-n" value="800" min="0" step="10" />
+        </div>
+        <div>
+          <label>月額費用（円）</label>
+          <input type="number" id="bank-fee" value="0" min="0" step="100" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>現行：1件あたり（秒）</label>
+          <input type="number" id="bank-base" value="30" min="0" step="5" />
+          <div class="unit">手入力・通帳照合・CSV整形など</div>
+        </div>
+        <div>
+          <label>導入後：1件あたり（秒）</label>
+          <input type="number" id="bank-after" value="8" min="0" step="1" />
+          <div class="unit">自動取込＋学習ルールで確認のみ</div>
+        </div>
+        <div>
+          <label>または 削減率（%）</label>
+          <input type="number" id="bank-rate" value="" min="0" max="100" step="1" placeholder="未指定" />
+        </div>
+      </div>
+      <details>
+        <summary>ヒント</summary>
+        <div class="help">ベンチマーク：銀行フィードと自動突合で<b>週5.5時間短縮</b>とする公表値があります。上記の秒数は控えめに設定しています。</div>
+      </details>
+    </div>
+
+    <!-- 給与計算 -->
+    <div class="card mod" id="mod-payroll">
+      <header>
+        <input type="checkbox" id="enable-payroll" checked />
+        <h3>給与計算</h3>
+        <span class="pill">勤怠連携・控除計算・明細配信の自動化</span>
+      </header>
+      <div class="grid">
+        <div>
+          <label>従業員数</label>
+          <input type="number" id="payroll-n" value="50" min="0" step="1" />
+        </div>
+        <div>
+          <label>月額費用（円）</label>
+          <input type="number" id="payroll-fee" value="0" min="0" step="100" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>現行：1人あたり（分）</label>
+          <input type="number" id="payroll-base" value="20" min="0" step="1" />
+          <div class="unit">勤怠取り込み・控除・社保・明細配布</div>
+        </div>
+        <div>
+          <label>導入後：1人あたり（分）</label>
+          <input type="number" id="payroll-after" value="8" min="0" step="1" />
+          <div class="unit">自動連携＋一括計算＋Web明細</div>
+        </div>
+        <div>
+          <label>または 削減率（%）</label>
+          <input type="number" id="payroll-rate" value="" min="0" max="100" step="1" placeholder="未指定" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 販売管理（受注・請求） -->
+    <div class="card mod" id="mod-sales">
+      <header>
+        <input type="checkbox" id="enable-sales" checked />
+        <h3>販売管理（受注・請求）</h3>
+        <span class="pill">受注→売上→請求→入金消込の自動化</span>
+      </header>
+      <div class="grid">
+        <div>
+          <label>件数/月（受注・請求の合計）</label>
+          <input type="number" id="sales-n" value="300" min="0" step="10" />
+        </div>
+        <div>
+          <label>月額費用（円）</label>
+          <input type="number" id="sales-fee" value="0" min="0" step="100" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div>
+          <label>現行：1件あたり（分）</label>
+          <input type="number" id="sales-base" value="6" min="0" step="1" />
+          <div class="unit">受注入力・売上転記・請求書発行</div>
+        </div>
+        <div>
+          <label>導入後：1件あたり（分）</label>
+          <input type="number" id="sales-after" value="2" min="0" step="1" />
+          <div class="unit">自動連携・定期/ルール・一括処理</div>
+        </div>
+        <div>
+          <label>または 削減率（%）</label>
+          <input type="number" id="sales-rate" value="" min="0" max="100" step="1" placeholder="未指定" />
+        </div>
+      </div>
+      <details>
+        <summary>ヒント</summary>
+        <div class="help">O2C自動化のケースでは<b>1〜2分 → 30秒</b>や<b>65%短縮</b>といった報告があります。受注種別に応じて控えめに設定しましょう。</div>
+      </details>
+    </div>
+
+    <!-- 結果 -->
+    <div class="card">
+      <div class="stat">
+        <div class="k"><div class="label muted">合計削減時間</div><div class="v" id="out-hours">—</div><div class="muted" id="out-hours-note">/月</div></div>
+        <div class="k"><div class="label muted">人件費削減額</div><div class="v" id="out-laborsave">—</div><div class="muted" id="out-laborsave-note"></div></div>
+        <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（4モジュール）</div></div>
+        <div class="k"><div class="label muted">純効果（削減−費用）</div><div class="v" id="out-net">—</div><div class="muted" id="out-net-note"></div></div>
+      </div>
+      <footer>
+        <div class="notice">注意：本ツールの数値は概算です。社内現場の実測（タイムスタディ）に置き換えることで精度が上がります。</div>
+      </footer>
+    </div>
+
+    <div class="card">
+      <details open>
+        <summary>出力テキスト</summary>
+        <textarea id="out-text" style="width:100%;min-height:110px;border:1px solid #e1e5ea;border-radius:10px;padding:10px" readonly></textarea>
+      </details>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn primary" id="btn-calc">効果を計算</button>
+      <button class="btn" id="btn-copy">コピー</button>
+      <button class="btn ghost" id="btn-reset">リセット</button>
+      <button class="btn good" id="btn-print">印刷</button>
+    </div>
+
+    <footer>
+      <div>© 松本会計｜試算アプリ r1（2025-08-25）。計算ロジック：件数×（現行時間−導入後）→分→時間→人件費換算。削減率入力がある場合は秒・分より優先。</div>
+    </footer>
+  </div>
+
+<script>
+  const J = v => JSON.stringify(v);
+  const fmtYen = n => (isNaN(n)?"—":"¥" + Math.round(n).toLocaleString());
+  const fmtH = h => isNaN(h)?"—": (h.toFixed(1) + " 時間");
+  const elt = id => document.getElementById(id);
+
+  function secondsByRate(baseSec, rate){
+    if(!rate && rate !== 0) return null;
+    const r = Math.min(Math.max(rate,0),100) / 100;
+    return baseSec * (1 - r);
+  }
+
+  function getExpense(){
+    if(!elt('enable-expense').checked) return {hours:0, fee: val('expense-fee')};
+    const n = val('expense-n');
+    const base = val('expense-base');
+    const rate = val('expense-rate');
+    let after = val('expense-after');
+    const secByRate = secondsByRate(base, rate);
+    if(secByRate!==null) after = secByRate;
+    const savedSec = (base - after) * n;
+    return {hours: savedSec/3600, fee: val('expense-fee')};
+  }
+
+  function getBank(){
+    if(!elt('enable-bank').checked) return {hours:0, fee: val('bank-fee')};
+    const n = val('bank-n');
+    const base = val('bank-base');
+    const rate = val('bank-rate');
+    let after = val('bank-after');
+    const secByRate = secondsByRate(base, rate);
+    if(secByRate!==null) after = secByRate;
+    const savedSec = (base - after) * n;
+    return {hours: savedSec/3600, fee: val('bank-fee')};
+  }
+
+  function getPayroll(){
+    if(!elt('enable-payroll').checked) return {hours:0, fee: val('payroll-fee')};
+    const n = val('payroll-n');
+    const baseMin = val('payroll-base');
+    const rate = val('payroll-rate');
+    let afterMin = val('payroll-after');
+    if(rate || rate===0){ afterMin = baseMin * (1 - Math.min(Math.max(rate,0),100)/100); }
+    const savedMin = (baseMin - afterMin) * n;
+    return {hours: savedMin/60, fee: val('payroll-fee')};
+  }
+
+  function getSales(){
+    if(!elt('enable-sales').checked) return {hours:0, fee: val('sales-fee')};
+    const n = val('sales-n');
+    const baseMin = val('sales-base');
+    const rate = val('sales-rate');
+    let afterMin = val('sales-after');
+    if(rate || rate===0){ afterMin = baseMin * (1 - Math.min(Math.max(rate,0),100)/100); }
+    const savedMin = (baseMin - afterMin) * n;
+    return {hours: savedMin/60, fee: val('sales-fee')};
+  }
+
+  function val(id){
+    const v = parseFloat(elt(id).value);
+    return isNaN(v) ? 0 : v;
+  }
+
+  function calc(){
+    const unit = elt('displayUnit').value; // month or year
+    const w = val('wage');
+    const mods = [getExpense(), getBank(), getPayroll(), getSales()];
+    let hours = mods.reduce((a,b)=>a+b.hours,0);
+    let fees  = mods.reduce((a,b)=>a+b.fee,0);
+    let noteUnit = '/月';
+    if(unit==='year'){ hours *= 12; fees *= 12; noteUnit = '/年'; }
+    const laborSave = hours * w;
+    const net = laborSave - fees;
+
+    elt('out-hours').textContent = fmtH(hours);
+    elt('out-hours-note').textContent = noteUnit;
+    elt('out-laborsave').textContent = fmtYen(laborSave);
+    elt('out-laborsave-note').textContent = noteUnit;
+    elt('out-fee').textContent = fmtYen(fees);
+    elt('out-net').textContent = fmtYen(net);
+    elt('out-net-note').textContent = net>=0?'（導入効果プラス）':'（要見直し）';
+
+    const lines = [];
+    lines.push(`【効果サマリ${unit==='year'?'（年換算）':'（月次）'}】削減時間: ${hours.toFixed(1)}時間 / 人件費削減額: ${fmtYen(laborSave)} / 費用合計: ${fmtYen(fees)} / 純効果: ${fmtYen(net)}`);
+    const detail = (name, m) => `${name}: 時間${m.hours.toFixed(2)}h, 費用${fmtYen(m.fee)}`;
+    const [e,b,p,s] = [getExpense(),getBank(),getPayroll(),getSales()];
+    const modsText = [
+      detail('証憑保存', e),
+      detail('銀行・信販データ受信', b),
+      detail('給与計算', p),
+      detail('販売管理', s),
+    ].join(' / ');
+    lines.push(modsText);
+    lines.push(`前提：時給 ${fmtYen(w)}、表示単位=${unit==='year'?'年':'月'}。`);
+    elt('out-text').value = lines.join('\n');
+  }
+
+  function copy(){
+    const t = elt('out-text'); t.select(); t.setSelectionRange(0, 99999);
+    document.execCommand('copy');
+  }
+
+  function reset(){ location.reload(); }
+  function printNow(){ window.print(); }
+
+  document.getElementById('btn-calc').addEventListener('click', calc);
+  document.getElementById('btn-copy').addEventListener('click', copy);
+  document.getElementById('btn-reset').addEventListener('click', reset);
+  document.getElementById('btn-print').addEventListener('click', printNow);
+
+  // Auto-calc on load & when any input changes
+  document.querySelectorAll('input,select').forEach(el=>{
+    el.addEventListener('input', ()=>{ calc(); });
+  });
+
+  // init
+  calc();
+  const now = new Date();
+  document.getElementById('tsNow').textContent = new Intl.DateTimeFormat('ja-JP', {dateStyle:'medium', timeStyle:'short'}).format(now);
+</script>
+</body>
+</html>
