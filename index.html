@@ -1,21 +1,15 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC自計化×自動化 効果試算ツール r5</title>
 <style>
   :root { --bg:#f7f7fb; --panel:#ffffff; --ink:#1f2937; --sub:#6b7280; --brand:#578899; --ok:#16a34a; }
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
-  .wrap{max-width:980px;margin:24px auto;padding:0 12px 88px;}
-  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif}
+  .wrap{max-width:980px;margin:24px auto;padding:0 12px 88px}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
   .h1{font-size:clamp(18px,4.6vw,28px);font-weight:800;color:var(--brand)}
   .badge{font-size:12px;background:#e6f3f7;color:#145b6b;border:1px solid #cfe7ee;padding:6px 10px;border-radius:999px}
   .card{background:var(--panel);border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 6px 18px rgba(16,50,94,.06);padding:16px;margin:12px 0}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media (max-width:760px){.grid{grid-template-columns:1fr}}
   label{font-size:13px;color:var(--sub);display:block;margin-bottom:6px}
-  input[type="number"],select,textarea{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font-size:15px}
+  input[type="number"],select,textarea,input[type="text"]{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font-size:15px}
   input:focus,select:focus,textarea:focus{outline:2px solid #cfe7ee;border-color:#9cc9d8}
   .row{display:grid;grid-template-columns:1.6fr .8fr;gap:8px;align-items:end}
   .unit{font-size:12px;color:#9ca3af}
@@ -36,210 +30,213 @@
   .stat .k .v{font-size:22px;font-weight:800}
   .notice{background:#fff8e1;border:1px solid #f1d48c;color:#7a5d00;padding:10px;border-radius:10px}
 </style>
-</head>
-<body>
-  <div class="wrap" id="app">
-    <header>
-      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r5</span></div>
-      <div class="pill" id="tsNow">—</div>
-    </header>
 
-    <!-- 0) 基本情報・共通設定 -->
-    <div class="card">
-      <div class="grid">
-        <div>
-          <label>担当者の時給（社保込の実勢）</label>
-          <input type="number" id="wage" value="2500" min="0" step="100" inputmode="numeric" />
-        </div>
-        <div>
-          <label>表示単位</label>
-          <select id="unit">
-            <option value="month" selected>月次</option>
-            <option value="year">年換算（×12）</option>
-          </select>
-        </div>
+<div class="wrap tkc-root" data-tkc-root>
+  <header>
+    <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r6</span></div>
+    <div class="pill" id="tsNow">—</div>
+  </header>
+
+  <!-- 0) 基本情報・共通設定 -->
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label>担当者の時給（社保込の実勢）</label>
+        <input type="number" id="wage" value="2500" min="0" step="100" inputmode="numeric" />
       </div>
-      <div class="grid" style="margin-top:8px">
-        <div>
-          <label>参考：月間仕訳数（件）※計算には未使用</label>
-          <input type="number" id="journal-n" value="320" min="0" step="10" inputmode="numeric" />
-        </div>
+      <div>
+        <label>表示単位</label>
+        <select id="unit">
+          <option value="month" selected>月次</option>
+          <option value="year">年換算（×12）</option>
+        </select>
       </div>
     </div>
-
-    <!-- 1) FXシリーズ基本料金 -->
-    <div class="card mod">
-      <header>
-        <h3>FXシリーズ基本料金</h3>
-        <span class="pill">月額固定費</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="fx-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-        <div>
-          <label>備考（任意）</label>
-          <input type="text" id="fx-note" placeholder="例：FX2/3/4、導入ID数 など" />
-        </div>
+    <div class="grid" style="margin-top:8px">
+      <div>
+        <label>参考：月間仕訳数（件）※計算には未使用</label>
+        <input type="number" id="journal-n" value="320" min="0" step="10" inputmode="numeric" />
       </div>
     </div>
-
-    <!-- 2) 証憑保存（スマホで経費） -->
-    <div class="card mod">
-      <header>
-        <input type="checkbox" id="exp-on" checked />
-        <h3>証憑保存（スマホで経費）</h3>
-        <span class="pill">撮影→OCR→自動起票</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>対象枚数/月</label>
-          <input type="number" id="exp-n" value="30" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="exp-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>現行：1枚あたり（秒）</label>
-          <input type="number" id="exp-base" value="90" min="0" step="5" inputmode="numeric" />
-          <div class="unit">例：剥がし・貼付・入力・台帳</div>
-        </div>
-        <div>
-          <label>導入後：1枚あたり（秒）</label>
-          <input type="number" id="exp-after" value="30" min="0" step="1" inputmode="numeric" />
-          <div class="unit">例：撮影→自動読取→確認</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3) 銀行・信販データ受信 -->
-    <div class="card mod">
-      <header>
-        <input type="checkbox" id="bank-on" checked />
-        <h3>銀行・信販データ受信</h3>
-        <span class="pill">明細自動取込＋自動仕訳</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>取引件数/月</label>
-          <input type="number" id="bank-n" value="260" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="bank-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>現行：1件あたり（秒）</label>
-          <input type="number" id="bank-base" value="30" min="0" step="5" inputmode="numeric" />
-          <div class="unit">手入力・照合・CSV整形</div>
-        </div>
-        <div>
-          <label>導入後：1件あたり（秒）</label>
-          <input type="number" id="bank-after" value="8" min="0" step="1" inputmode="numeric" />
-          <div class="unit">自動取込＋学習ルール</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4) 給与計算 -->
-    <div class="card mod">
-      <header>
-        <input type="checkbox" id="pay-on" checked />
-        <h3>給与計算</h3>
-        <span class="pill">勤怠連携・控除計算・Web明細</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>従業員数</label>
-          <input type="number" id="pay-n" value="10" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="pay-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>現行：1人あたり（分）</label>
-          <input type="number" id="pay-base" value="20" min="0" step="1" inputmode="numeric" />
-          <div class="unit">勤怠・控除・社保・明細配布</div>
-        </div>
-        <div>
-          <label>導入後：1人あたり（分）</label>
-          <input type="number" id="pay-after" value="8" min="0" step="1" inputmode="numeric" />
-          <div class="unit">自動連携＋一括計算</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 5) 販売管理（受注・請求） -->
-    <div class="card mod">
-      <header>
-        <input type="checkbox" id="sales-on" checked />
-        <h3>販売管理（受注・請求）</h3>
-        <span class="pill">受注→売上→請求→入金消込</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>件数/月（受注・請求の合計）</label>
-          <input type="number" id="sales-n" value="12" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="sales-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>現行：1件あたり（分）</label>
-          <input type="number" id="sales-base" value="6" min="0" step="1" inputmode="numeric" />
-          <div class="unit">受注入力・売上転記・請求発行</div>
-        </div>
-        <div>
-          <label>導入後：1件あたり（分）</label>
-          <input type="number" id="sales-after" value="2" min="0" step="1" inputmode="numeric" />
-          <div class="unit">自動連携・一括処理</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 結果表示 -->
-    <div class="card">
-      <div class="stat" aria-live="polite">
-        <div class="k"><div class="label muted">合計削減時間</div><div class="v" id="out-hours">—</div><div class="muted" id="out-hours-note">/月</div></div>
-        <div class="k"><div class="label muted">人件費削減額</div><div class="v" id="out-laborsave">—</div><div class="muted" id="out-laborsave-note"></div></div>
-        <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（基本＋4モジュール）</div></div>
-        <div class="k"><div class="label muted">純効果（削減−費用）</div><div class="v" id="out-net">—</div><div class="muted" id="out-net-note"></div></div>
-      </div>
-      <div class="notice" style="margin-top:10px">注意：削減時間は0未満にならないよう自動で0に丸めています。</div>
-    </div>
-
-    <div class="card">
-      <details open>
-        <summary>出力テキスト</summary>
-        <textarea id="out-text" style="width:100%;min-height:110px"></textarea>
-      </details>
-    </div>
-
-    <div class="toolbar">
-      <button class="btn primary" id="do-calc" type="button">効果を計算</button>
-      <button class="btn" id="do-copy" type="button">コピー</button>
-      <button class="btn ghost" id="do-reset" type="button">リセット</button>
-      <button class="btn good" id="do-print" type="button">印刷</button>
-    </div>
-
-    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r5（2025-08-25）。</footer>
   </div>
+
+  <!-- 1) FXシリーズ基本料金 -->
+  <div class="card mod">
+    <header>
+      <h3>FXシリーズ基本料金</h3>
+      <span class="pill">月額固定費</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="fx-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+      <div>
+        <label>備考（任意）</label>
+        <input type="text" id="fx-note" placeholder="例：FX2/3/4、導入ID数 など" />
+      </div>
+    </div>
+  </div>
+
+  <!-- 2) 証憑保存（スマホで経費） -->
+  <div class="card mod">
+    <header>
+      <input type="checkbox" id="exp-on" checked />
+      <h3>証憑保存（スマホで経費）</h3>
+      <span class="pill">撮影→OCR→自動起票</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>対象枚数/月</label>
+        <input type="number" id="exp-n" value="30" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="exp-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>現行：1枚あたり（秒）</label>
+        <input type="number" id="exp-base" value="90" min="0" step="5" inputmode="numeric" />
+        <div class="unit">例：剥がし・貼付・入力・台帳</div>
+      </div>
+      <div>
+        <label>導入後：1枚あたり（秒）</label>
+        <input type="number" id="exp-after" value="30" min="0" step="1" inputmode="numeric" />
+        <div class="unit">例：撮影→自動読取→確認</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3) 銀行・信販データ受信 -->
+  <div class="card mod">
+    <header>
+      <input type="checkbox" id="bank-on" checked />
+      <h3>銀行・信販データ受信</h3>
+      <span class="pill">明細自動取込＋自動仕訳</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>取引件数/月</label>
+        <input type="number" id="bank-n" value="260" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="bank-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>現行：1件あたり（秒）</label>
+        <input type="number" id="bank-base" value="30" min="0" step="5" inputmode="numeric" />
+        <div class="unit">手入力・照合・CSV整形</div>
+      </div>
+      <div>
+        <label>導入後：1件あたり（秒）</label>
+        <input type="number" id="bank-after" value="8" min="0" step="1" inputmode="numeric" />
+        <div class="unit">自動取込＋学習ルール</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4) 給与計算 -->
+  <div class="card mod">
+    <header>
+      <input type="checkbox" id="pay-on" checked />
+      <h3>給与計算</h3>
+      <span class="pill">勤怠連携・控除計算・Web明細</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>従業員数</label>
+        <input type="number" id="pay-n" value="10" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="pay-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>現行：1人あたり（分）</label>
+        <input type="number" id="pay-base" value="20" min="0" step="1" inputmode="numeric" />
+        <div class="unit">勤怠・控除・社保・明細配布</div>
+      </div>
+      <div>
+        <label>導入後：1人あたり（分）</label>
+        <input type="number" id="pay-after" value="8" min="0" step="1" inputmode="numeric" />
+        <div class="unit">自動連携＋一括計算</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5) 販売管理（受注・請求） -->
+  <div class="card mod">
+    <header>
+      <input type="checkbox" id="sales-on" checked />
+      <h3>販売管理（受注・請求）</h3>
+      <span class="pill">受注→売上→請求→入金消込</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>件数/月（受注・請求の合計）</label>
+        <input type="number" id="sales-n" value="12" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="sales-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>現行：1件あたり（分）</label>
+        <input type="number" id="sales-base" value="6" min="0" step="1" inputmode="numeric" />
+        <div class="unit">受注入力・売上転記・請求発行</div>
+      </div>
+      <div>
+        <label>導入後：1件あたり（分）</label>
+        <input type="number" id="sales-after" value="2" min="0" step="1" inputmode="numeric" />
+        <div class="unit">自動連携・一括処理</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果表示 -->
+  <div class="card">
+    <div class="stat" aria-live="polite">
+      <div class="k"><div class="label muted">合計削減時間</div><div class="v" id="out-hours">—</div><div class="muted" id="out-hours-note">/月</div></div>
+      <div class="k"><div class="label muted">人件費削減額</div><div class="v" id="out-laborsave">—</div><div class="muted" id="out-laborsave-note"></div></div>
+      <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（基本＋4モジュール）</div></div>
+      <div class="k"><div class="label muted">純効果（削減−費用）</div><div class="v" id="out-net">—</div><div class="muted" id="out-net-note"></div></div>
+    </div>
+    <div class="notice" style="margin-top:10px">注意：削減時間は0未満にならないよう自動で0に丸めています。</div>
+  </div>
+
+  <div class="card">
+    <details open>
+      <summary>出力テキスト</summary>
+      <textarea id="out-text" style="width:100%;min-height:110px"></textarea>
+    </details>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn primary" id="do-calc" type="button">効果を計算</button>
+    <button class="btn" id="do-copy" type="button">コピー</button>
+    <button class="btn ghost" id="do-reset" type="button">リセット</button>
+    <button class="btn good" id="do-print" type="button">印刷</button>
+  </div>
+
+  <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r6（2025-08-25）。</footer>
+</div>
 
 <script>
 (()=>{
   'use strict';
+  // --- 重複根の掃除（もし同一UIが二重描画された場合は後者を削除） ---
+  const roots = document.querySelectorAll('.tkc-root');
+  if(roots.length>1){ roots.forEach((el,i)=>{ if(i>0) el.remove(); }); }
+
   const $ = id => document.getElementById(id);
   const N = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
   const fmtYen = n => Number.isFinite(n) ? '¥'+Math.round(n).toLocaleString() : '—';
@@ -305,48 +302,37 @@
   function schedule(){ if(rafId) cancelAnimationFrame(rafId); rafId=requestAnimationFrame(recalc); }
 
   function bind(){
-    const app=$('app');
+    const app = document.querySelector('.tkc-root');
     app.addEventListener('input', schedule, {passive:true});
     app.addEventListener('change', schedule, {passive:true});
-    $('do-calc').addEventListener('click', recalc);
-    $('do-print').addEventListener('click', ()=>window.print());
-    $('do-reset').addEventListener('click', ()=>location.reload());
-    $('do-copy').addEventListener('click', ()=>{ try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}});
+    document.getElementById('do-calc').addEventListener('click', recalc);
+    document.getElementById('do-print').addEventListener('click', ()=>window.print());
+    document.getElementById('do-reset').addEventListener('click', ()=>location.reload());
+    document.getElementById('do-copy').addEventListener('click', ()=>{ try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}});
   }
 
   function init(){
     bind();
     recalc();
-    const ts=$('tsNow'); if(ts) ts.textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
+    const ts=document.getElementById('tsNow'); if(ts) ts.textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', init, {once:true});
-  } else {
-    setTimeout(init, 0);
-  }
+  // 即時初期化（埋め込み環境でも確実に動作）
+  init();
 })();
 </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC自計化×自動化 効果試算ツール r5</title>
 <style>
   :root { --bg:#f7f7fb; --panel:#ffffff; --ink:#1f2937; --sub:#6b7280; --brand:#578899; --ok:#16a34a; }
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
-  .wrap{max-width:980px;margin:24px auto;padding:0 12px 88px;}
-  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif}
+  .wrap{max-width:980px;margin:24px auto;padding:0 12px 88px}
+  header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
   .h1{font-size:clamp(18px,4.6vw,28px);font-weight:800;color:var(--brand)}
   .badge{font-size:12px;background:#e6f3f7;color:#145b6b;border:1px solid #cfe7ee;padding:6px 10px;border-radius:999px}
   .card{background:var(--panel);border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 6px 18px rgba(16,50,94,.06);padding:16px;margin:12px 0}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media (max-width:760px){.grid{grid-template-columns:1fr}}
   label{font-size:13px;color:var(--sub);display:block;margin-bottom:6px}
-  input[type="number"],select,textarea{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font-size:15px}
+  input[type="number"],select,textarea,input[type="text"]{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;font-size:15px}
   input:focus,select:focus,textarea:focus{outline:2px solid #cfe7ee;border-color:#9cc9d8}
   .row{display:grid;grid-template-columns:1.6fr .8fr;gap:8px;align-items:end}
   .unit{font-size:12px;color:#9ca3af}
@@ -367,210 +353,213 @@
   .stat .k .v{font-size:22px;font-weight:800}
   .notice{background:#fff8e1;border:1px solid #f1d48c;color:#7a5d00;padding:10px;border-radius:10px}
 </style>
-</head>
-<body>
-  <div class="wrap" id="app">
-    <header>
-      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r5</span></div>
-      <div class="pill" id="tsNow">—</div>
-    </header>
 
-    <!-- 0) 基本情報・共通設定 -->
-    <div class="card">
-      <div class="grid">
-        <div>
-          <label>担当者の時給（社保込の実勢）</label>
-          <input type="number" id="wage" value="2500" min="0" step="100" inputmode="numeric" />
-        </div>
-        <div>
-          <label>表示単位</label>
-          <select id="unit">
-            <option value="month" selected>月次</option>
-            <option value="year">年換算（×12）</option>
-          </select>
-        </div>
+<div class="wrap tkc-root" data-tkc-root>
+  <header>
+    <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r6</span></div>
+    <div class="pill" id="tsNow">—</div>
+  </header>
+
+  <!-- 0) 基本情報・共通設定 -->
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label>担当者の時給（社保込の実勢）</label>
+        <input type="number" id="wage" value="2500" min="0" step="100" inputmode="numeric" />
       </div>
-      <div class="grid" style="margin-top:8px">
-        <div>
-          <label>参考：月間仕訳数（件）※計算には未使用</label>
-          <input type="number" id="journal-n" value="320" min="0" step="10" inputmode="numeric" />
-        </div>
+      <div>
+        <label>表示単位</label>
+        <select id="unit">
+          <option value="month" selected>月次</option>
+          <option value="year">年換算（×12）</option>
+        </select>
       </div>
     </div>
-
-    <!-- 1) FXシリーズ基本料金 -->
-    <div class="card mod">
-      <header>
-        <h3>FXシリーズ基本料金</h3>
-        <span class="pill">月額固定費</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="fx-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-        <div>
-          <label>備考（任意）</label>
-          <input type="text" id="fx-note" placeholder="例：FX2/3/4、導入ID数 など" />
-        </div>
+    <div class="grid" style="margin-top:8px">
+      <div>
+        <label>参考：月間仕訳数（件）※計算には未使用</label>
+        <input type="number" id="journal-n" value="320" min="0" step="10" inputmode="numeric" />
       </div>
     </div>
-
-    <!-- 2) 証憑保存（スマホで経費） -->
-    <div class="card mod">
-      <header>
-        <input type="checkbox" id="exp-on" checked />
-        <h3>証憑保存（スマホで経費）</h3>
-        <span class="pill">撮影→OCR→自動起票</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>対象枚数/月</label>
-          <input type="number" id="exp-n" value="30" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="exp-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>現行：1枚あたり（秒）</label>
-          <input type="number" id="exp-base" value="90" min="0" step="5" inputmode="numeric" />
-          <div class="unit">例：剥がし・貼付・入力・台帳</div>
-        </div>
-        <div>
-          <label>導入後：1枚あたり（秒）</label>
-          <input type="number" id="exp-after" value="30" min="0" step="1" inputmode="numeric" />
-          <div class="unit">例：撮影→自動読取→確認</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3) 銀行・信販データ受信 -->
-    <div class="card mod">
-      <header>
-        <input type="checkbox" id="bank-on" checked />
-        <h3>銀行・信販データ受信</h3>
-        <span class="pill">明細自動取込＋自動仕訳</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>取引件数/月</label>
-          <input type="number" id="bank-n" value="260" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="bank-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>現行：1件あたり（秒）</label>
-          <input type="number" id="bank-base" value="30" min="0" step="5" inputmode="numeric" />
-          <div class="unit">手入力・照合・CSV整形</div>
-        </div>
-        <div>
-          <label>導入後：1件あたり（秒）</label>
-          <input type="number" id="bank-after" value="8" min="0" step="1" inputmode="numeric" />
-          <div class="unit">自動取込＋学習ルール</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 4) 給与計算 -->
-    <div class="card mod">
-      <header>
-        <input type="checkbox" id="pay-on" checked />
-        <h3>給与計算</h3>
-        <span class="pill">勤怠連携・控除計算・Web明細</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>従業員数</label>
-          <input type="number" id="pay-n" value="10" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="pay-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>現行：1人あたり（分）</label>
-          <input type="number" id="pay-base" value="20" min="0" step="1" inputmode="numeric" />
-          <div class="unit">勤怠・控除・社保・明細配布</div>
-        </div>
-        <div>
-          <label>導入後：1人あたり（分）</label>
-          <input type="number" id="pay-after" value="8" min="0" step="1" inputmode="numeric" />
-          <div class="unit">自動連携＋一括計算</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 5) 販売管理（受注・請求） -->
-    <div class="card mod">
-      <header>
-        <input type="checkbox" id="sales-on" checked />
-        <h3>販売管理（受注・請求）</h3>
-        <span class="pill">受注→売上→請求→入金消込</span>
-      </header>
-      <div class="grid">
-        <div>
-          <label>件数/月（受注・請求の合計）</label>
-          <input type="number" id="sales-n" value="12" min="0" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label>月額費用（円）</label>
-          <input type="number" id="sales-fee" value="0" min="0" step="100" inputmode="numeric" />
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <div>
-          <label>現行：1件あたり（分）</label>
-          <input type="number" id="sales-base" value="6" min="0" step="1" inputmode="numeric" />
-          <div class="unit">受注入力・売上転記・請求発行</div>
-        </div>
-        <div>
-          <label>導入後：1件あたり（分）</label>
-          <input type="number" id="sales-after" value="2" min="0" step="1" inputmode="numeric" />
-          <div class="unit">自動連携・一括処理</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 結果表示 -->
-    <div class="card">
-      <div class="stat" aria-live="polite">
-        <div class="k"><div class="label muted">合計削減時間</div><div class="v" id="out-hours">—</div><div class="muted" id="out-hours-note">/月</div></div>
-        <div class="k"><div class="label muted">人件費削減額</div><div class="v" id="out-laborsave">—</div><div class="muted" id="out-laborsave-note"></div></div>
-        <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（基本＋4モジュール）</div></div>
-        <div class="k"><div class="label muted">純効果（削減−費用）</div><div class="v" id="out-net">—</div><div class="muted" id="out-net-note"></div></div>
-      </div>
-      <div class="notice" style="margin-top:10px">注意：削減時間は0未満にならないよう自動で0に丸めています。</div>
-    </div>
-
-    <div class="card">
-      <details open>
-        <summary>出力テキスト</summary>
-        <textarea id="out-text" style="width:100%;min-height:110px"></textarea>
-      </details>
-    </div>
-
-    <div class="toolbar">
-      <button class="btn primary" id="do-calc" type="button">効果を計算</button>
-      <button class="btn" id="do-copy" type="button">コピー</button>
-      <button class="btn ghost" id="do-reset" type="button">リセット</button>
-      <button class="btn good" id="do-print" type="button">印刷</button>
-    </div>
-
-    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r5（2025-08-25）。</footer>
   </div>
+
+  <!-- 1) FXシリーズ基本料金 -->
+  <div class="card mod">
+    <header>
+      <h3>FXシリーズ基本料金</h3>
+      <span class="pill">月額固定費</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="fx-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+      <div>
+        <label>備考（任意）</label>
+        <input type="text" id="fx-note" placeholder="例：FX2/3/4、導入ID数 など" />
+      </div>
+    </div>
+  </div>
+
+  <!-- 2) 証憑保存（スマホで経費） -->
+  <div class="card mod">
+    <header>
+      <input type="checkbox" id="exp-on" checked />
+      <h3>証憑保存（スマホで経費）</h3>
+      <span class="pill">撮影→OCR→自動起票</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>対象枚数/月</label>
+        <input type="number" id="exp-n" value="30" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="exp-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>現行：1枚あたり（秒）</label>
+        <input type="number" id="exp-base" value="90" min="0" step="5" inputmode="numeric" />
+        <div class="unit">例：剥がし・貼付・入力・台帳</div>
+      </div>
+      <div>
+        <label>導入後：1枚あたり（秒）</label>
+        <input type="number" id="exp-after" value="30" min="0" step="1" inputmode="numeric" />
+        <div class="unit">例：撮影→自動読取→確認</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3) 銀行・信販データ受信 -->
+  <div class="card mod">
+    <header>
+      <input type="checkbox" id="bank-on" checked />
+      <h3>銀行・信販データ受信</h3>
+      <span class="pill">明細自動取込＋自動仕訳</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>取引件数/月</label>
+        <input type="number" id="bank-n" value="260" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="bank-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>現行：1件あたり（秒）</label>
+        <input type="number" id="bank-base" value="30" min="0" step="5" inputmode="numeric" />
+        <div class="unit">手入力・照合・CSV整形</div>
+      </div>
+      <div>
+        <label>導入後：1件あたり（秒）</label>
+        <input type="number" id="bank-after" value="8" min="0" step="1" inputmode="numeric" />
+        <div class="unit">自動取込＋学習ルール</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4) 給与計算 -->
+  <div class="card mod">
+    <header>
+      <input type="checkbox" id="pay-on" checked />
+      <h3>給与計算</h3>
+      <span class="pill">勤怠連携・控除計算・Web明細</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>従業員数</label>
+        <input type="number" id="pay-n" value="10" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="pay-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>現行：1人あたり（分）</label>
+        <input type="number" id="pay-base" value="20" min="0" step="1" inputmode="numeric" />
+        <div class="unit">勤怠・控除・社保・明細配布</div>
+      </div>
+      <div>
+        <label>導入後：1人あたり（分）</label>
+        <input type="number" id="pay-after" value="8" min="0" step="1" inputmode="numeric" />
+        <div class="unit">自動連携＋一括計算</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5) 販売管理（受注・請求） -->
+  <div class="card mod">
+    <header>
+      <input type="checkbox" id="sales-on" checked />
+      <h3>販売管理（受注・請求）</h3>
+      <span class="pill">受注→売上→請求→入金消込</span>
+    </header>
+    <div class="grid">
+      <div>
+        <label>件数/月（受注・請求の合計）</label>
+        <input type="number" id="sales-n" value="12" min="0" step="1" inputmode="numeric" />
+      </div>
+      <div>
+        <label>月額費用（円）</label>
+        <input type="number" id="sales-fee" value="0" min="0" step="100" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div>
+        <label>現行：1件あたり（分）</label>
+        <input type="number" id="sales-base" value="6" min="0" step="1" inputmode="numeric" />
+        <div class="unit">受注入力・売上転記・請求発行</div>
+      </div>
+      <div>
+        <label>導入後：1件あたり（分）</label>
+        <input type="number" id="sales-after" value="2" min="0" step="1" inputmode="numeric" />
+        <div class="unit">自動連携・一括処理</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果表示 -->
+  <div class="card">
+    <div class="stat" aria-live="polite">
+      <div class="k"><div class="label muted">合計削減時間</div><div class="v" id="out-hours">—</div><div class="muted" id="out-hours-note">/月</div></div>
+      <div class="k"><div class="label muted">人件費削減額</div><div class="v" id="out-laborsave">—</div><div class="muted" id="out-laborsave-note"></div></div>
+      <div class="k"><div class="label muted">月額費用合計</div><div class="v" id="out-fee">—</div><div class="muted">（基本＋4モジュール）</div></div>
+      <div class="k"><div class="label muted">純効果（削減−費用）</div><div class="v" id="out-net">—</div><div class="muted" id="out-net-note"></div></div>
+    </div>
+    <div class="notice" style="margin-top:10px">注意：削減時間は0未満にならないよう自動で0に丸めています。</div>
+  </div>
+
+  <div class="card">
+    <details open>
+      <summary>出力テキスト</summary>
+      <textarea id="out-text" style="width:100%;min-height:110px"></textarea>
+    </details>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn primary" id="do-calc" type="button">効果を計算</button>
+    <button class="btn" id="do-copy" type="button">コピー</button>
+    <button class="btn ghost" id="do-reset" type="button">リセット</button>
+    <button class="btn good" id="do-print" type="button">印刷</button>
+  </div>
+
+  <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r6（2025-08-25）。</footer>
+</div>
 
 <script>
 (()=>{
   'use strict';
+  // --- 重複根の掃除（もし同一UIが二重描画された場合は後者を削除） ---
+  const roots = document.querySelectorAll('.tkc-root');
+  if(roots.length>1){ roots.forEach((el,i)=>{ if(i>0) el.remove(); }); }
+
   const $ = id => document.getElementById(id);
   const N = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
   const fmtYen = n => Number.isFinite(n) ? '¥'+Math.round(n).toLocaleString() : '—';
@@ -636,27 +625,22 @@
   function schedule(){ if(rafId) cancelAnimationFrame(rafId); rafId=requestAnimationFrame(recalc); }
 
   function bind(){
-    const app=$('app');
+    const app = document.querySelector('.tkc-root');
     app.addEventListener('input', schedule, {passive:true});
     app.addEventListener('change', schedule, {passive:true});
-    $('do-calc').addEventListener('click', recalc);
-    $('do-print').addEventListener('click', ()=>window.print());
-    $('do-reset').addEventListener('click', ()=>location.reload());
-    $('do-copy').addEventListener('click', ()=>{ try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}});
+    document.getElementById('do-calc').addEventListener('click', recalc);
+    document.getElementById('do-print').addEventListener('click', ()=>window.print());
+    document.getElementById('do-reset').addEventListener('click', ()=>location.reload());
+    document.getElementById('do-copy').addEventListener('click', ()=>{ try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}});
   }
 
   function init(){
     bind();
     recalc();
-    const ts=$('tsNow'); if(ts) ts.textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
+    const ts=document.getElementById('tsNow'); if(ts) ts.textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
   }
 
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', init, {once:true});
-  } else {
-    setTimeout(init, 0);
-  }
+  // 即時初期化（埋め込み環境でも確実に動作）
+  init();
 })();
 </script>
-</body>
-</html>
