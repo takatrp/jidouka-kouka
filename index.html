@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC自計化×自動化 効果試算ツール r3</title>
+<title>TKC自計化×自動化 効果試算ツール r4</title>
 <style>
   :root { --bg:#f7f7fb; --panel:#ffffff; --ink:#1f2937; --sub:#6b7280; --brand:#578899; --ok:#16a34a; }
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
@@ -40,7 +40,7 @@
 <body>
   <div class="wrap" id="app">
     <header>
-      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r3</span></div>
+      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r4</span></div>
       <div class="pill" id="tsNow">—</div>
     </header>
 
@@ -220,13 +220,13 @@
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" id="do-calc">効果を計算</button>
-      <button class="btn" id="do-copy">コピー</button>
-      <button class="btn ghost" id="do-reset">リセット</button>
-      <button class="btn good" id="do-print">印刷</button>
+      <button class="btn primary" id="do-calc" type="button">効果を計算</button>
+      <button class="btn" id="do-copy" type="button">コピー</button>
+      <button class="btn ghost" id="do-reset" type="button">リセット</button>
+      <button class="btn good" id="do-print" type="button">印刷</button>
     </div>
 
-    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r3（2025-08-25）。</footer>
+    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r4（2025-08-25）。</footer>
   </div>
 
 <script>
@@ -299,40 +299,53 @@
     const lines=[`【効果サマリ${unit==='year'?'（年換算）':'（月次）'}】削減時間: ${hours.toFixed(1)}時間 / 人件費削減額: ${fmtYen(laborSave)} / 費用合計: ${fmtYen(fees)} / 純効果: ${fmtYen(net)}`,
                  [detail('証憑保存',e),detail('銀行・信販データ受信',b),detail('給与計算',p),detail('販売管理',s)].join(' / '),
                  `前提：時給 ${fmtYen(wage)}、表示単位=${unit==='year'?'年':'月'}。`];
-    $('out-text').value=lines.join('
-');
+    $('out-text').value=lines.join('\n');
   }
 
   function schedule(){ if(rafId) cancelAnimationFrame(rafId); rafId=requestAnimationFrame(recalc); }
 
+  function bindOnce(el, ev, handler){
+    if(!el) return; if(el.dataset.bound==='1') return; el.addEventListener(ev, handler); el.dataset.bound='1';
+  }
   function bind(){
     const app=$('app');
-    app.addEventListener('input', schedule, {passive:true});
-    app.addEventListener('change', schedule, {passive:true});
-    $('do-calc').addEventListener('click', recalc);
-    $('do-print').addEventListener('click', ()=>window.print());
-    $('do-reset').addEventListener('click', ()=>location.reload());
-    $('do-copy').addEventListener('click', async()=>{
-      try{ await navigator.clipboard.writeText($('out-text').value); alert('コピーしました'); }
-      catch(_){ const t=$('out-text'); t.select(); document.execCommand('copy'); alert('コピーしました（互換）'); }
+    if(app && app.dataset.bound!=='1'){
+      app.addEventListener('input', schedule, {passive:true});
+      app.addEventListener('change', schedule, {passive:true});
+      app.dataset.bound='1';
+    }
+    bindOnce($('do-calc'),'click', recalc);
+    bindOnce($('do-print'),'click', ()=>window.print());
+    bindOnce($('do-reset'),'click', ()=>location.reload());
+    bindOnce($('do-copy'),'click', ()=>{
+      try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}
     });
   }
 
-  document.addEventListener('DOMContentLoaded', ()=>{
+  function init(){
     bind();
     recalc();
-    $('tsNow').textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
-  });
+    const ts=$('tsNow'); if(ts) ts.textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
+  }
+
+  // DOM準備の有無に依存しない初期化（キャンバス対策）
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', init, {once:true});
+  } else {
+    // すでに読み込み済みの場合でも確実に初期化
+    setTimeout(init, 0);
+  }
+  // 念のための再バインド（埋め込み環境での遅延対策）
+  setTimeout(bind, 300);
 })();
 </script>
 </body>
-</html>
-<!DOCTYPE html>
+</html><!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC自計化×自動化 効果試算ツール r3</title>
+<title>TKC自計化×自動化 効果試算ツール r4</title>
 <style>
   :root { --bg:#f7f7fb; --panel:#ffffff; --ink:#1f2937; --sub:#6b7280; --brand:#578899; --ok:#16a34a; }
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
@@ -369,7 +382,7 @@
 <body>
   <div class="wrap" id="app">
     <header>
-      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r3</span></div>
+      <div class="h1">TKC方式｜自計化×自動化 効果試算ツール <span class="badge">r4</span></div>
       <div class="pill" id="tsNow">—</div>
     </header>
 
@@ -549,13 +562,13 @@
     </div>
 
     <div class="toolbar">
-      <button class="btn primary" id="do-calc">効果を計算</button>
-      <button class="btn" id="do-copy">コピー</button>
-      <button class="btn ghost" id="do-reset">リセット</button>
-      <button class="btn good" id="do-print">印刷</button>
+      <button class="btn primary" id="do-calc" type="button">効果を計算</button>
+      <button class="btn" id="do-copy" type="button">コピー</button>
+      <button class="btn ghost" id="do-reset" type="button">リセット</button>
+      <button class="btn good" id="do-print" type="button">印刷</button>
     </div>
 
-    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r3（2025-08-25）。</footer>
+    <footer class="muted" style="margin-top:10px">© 松本会計｜試算アプリ r4（2025-08-25）。</footer>
   </div>
 
 <script>
@@ -628,30 +641,44 @@
     const lines=[`【効果サマリ${unit==='year'?'（年換算）':'（月次）'}】削減時間: ${hours.toFixed(1)}時間 / 人件費削減額: ${fmtYen(laborSave)} / 費用合計: ${fmtYen(fees)} / 純効果: ${fmtYen(net)}`,
                  [detail('証憑保存',e),detail('銀行・信販データ受信',b),detail('給与計算',p),detail('販売管理',s)].join(' / '),
                  `前提：時給 ${fmtYen(wage)}、表示単位=${unit==='year'?'年':'月'}。`];
-    $('out-text').value=lines.join('
-');
+    $('out-text').value=lines.join('\n');
   }
 
   function schedule(){ if(rafId) cancelAnimationFrame(rafId); rafId=requestAnimationFrame(recalc); }
 
+  function bindOnce(el, ev, handler){
+    if(!el) return; if(el.dataset.bound==='1') return; el.addEventListener(ev, handler); el.dataset.bound='1';
+  }
   function bind(){
     const app=$('app');
-    app.addEventListener('input', schedule, {passive:true});
-    app.addEventListener('change', schedule, {passive:true});
-    $('do-calc').addEventListener('click', recalc);
-    $('do-print').addEventListener('click', ()=>window.print());
-    $('do-reset').addEventListener('click', ()=>location.reload());
-    $('do-copy').addEventListener('click', async()=>{
-      try{ await navigator.clipboard.writeText($('out-text').value); alert('コピーしました'); }
-      catch(_){ const t=$('out-text'); t.select(); document.execCommand('copy'); alert('コピーしました（互換）'); }
+    if(app && app.dataset.bound!=='1'){
+      app.addEventListener('input', schedule, {passive:true});
+      app.addEventListener('change', schedule, {passive:true});
+      app.dataset.bound='1';
+    }
+    bindOnce($('do-calc'),'click', recalc);
+    bindOnce($('do-print'),'click', ()=>window.print());
+    bindOnce($('do-reset'),'click', ()=>location.reload());
+    bindOnce($('do-copy'),'click', ()=>{
+      try{ const t=$('out-text'); t.select(); document.execCommand('copy'); }catch(_){}
     });
   }
 
-  document.addEventListener('DOMContentLoaded', ()=>{
+  function init(){
     bind();
     recalc();
-    $('tsNow').textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
-  });
+    const ts=$('tsNow'); if(ts) ts.textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
+  }
+
+  // DOM準備の有無に依存しない初期化（キャンバス対策）
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', init, {once:true});
+  } else {
+    // すでに読み込み済みの場合でも確実に初期化
+    setTimeout(init, 0);
+  }
+  // 念のための再バインド（埋め込み環境での遅延対策）
+  setTimeout(bind, 300);
 })();
 </script>
 </body>
