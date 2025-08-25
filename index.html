@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自計化×自動化 効果試算アプリ（r5）</title>
+  <title>TKC方式 | 自計化×自動化 効果試算アプリ（r6）</title>
   <style>
     :root {
       --bg: #f7f9fc;
@@ -30,38 +30,32 @@
     label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; }
     input[type="number"], input[type="text"] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fff; font-size: 14px; outline: none; }
     input[type="number"]:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--ring); }
+    input[readonly] { background: #f8fafc; color: #334155; }
 
-    .row { display: contents; }
     .th, .td { padding: 10px 8px; }
     .thead { color: var(--muted); font-size: 12px; font-weight: 600; border-bottom: 1px solid #eef2f7; }
     .td.res { text-align: right; font-variant-numeric: tabular-nums; }
 
     .note { font-size: 12px; color: var(--muted); }
-    .muted { color: var(--muted); }
 
     .btns { display: flex; gap: 10px; flex-wrap: wrap; }
     button { cursor: pointer; border: none; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
     .primary { background: var(--accent); color: #fff; }
-    .ghost { background: #eef2ff; color: #1e3a8a; }
     .outline { background: #fff; border: 1px solid #e5e7eb; }
 
     .kpi { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .kpi .item { background: #fff; border: 1px dashed #e2e8f0; border-radius: 12px; padding: 14px; }
     .kpi h3 { margin: 0 0 6px; font-size: 12px; color: var(--muted); }
     .kpi .val { font-size: clamp(18px, 3.2vw, 24px); font-variant-numeric: tabular-nums; }
-    .pos { color: var(--good); }
-    .warn { color: var(--warn); }
 
-    .sumline { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f1f5f9; border-radius: 10px; font-size: 13px; }
+    .sumline { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; background: #f1f5f9; border-radius: 10px; font-size: 13px; }
+    .ok { color: var(--good); }
+    .warn { color: var(--warn); }
 
     footer { margin-top: 20px; color: var(--muted); font-size: 12px; }
 
     @media (max-width: 720px) {
-      .grid { gap: 8px; }
       .kpi { grid-template-columns: 1fr; }
-      .thead { display: none; }
-      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px 8px; border-bottom: 1px solid #eef2f7; }
-      .row .td.res { grid-column: 1 / -1; text-align: right; }
     }
   </style>
 </head>
@@ -69,23 +63,23 @@
   <div class="wrap" id="app">
     <header>
       <h1>自計化×自動化の効果試算（TKC方式）</h1>
-      <div class="sub">前提を入力すると、<strong>月間の時間短縮・人件費削減</strong>、および<strong>FXシリーズ基本料金</strong>を考慮したネット効果を算出します。削減率は使わず、<strong>1件あたりの作業時間（分）</strong>を前後で直接入力します。</div>
+      <div class="sub">前提を入力すると、<strong>月間の時間短縮・人件費削減</strong>、および<strong>FXシリーズ基本料金</strong>を考慮したネット効果を算出します。各機能の合計と月間仕訳数の差は<strong>「その他」</strong>として自動調整し、常に総数と一致させます。</div>
     </header>
 
     <!-- 0) グローバル前提  -->
     <section class="card">
       <div class="grid" style="grid-template-columns: repeat(12, 1fr);">
-        <div class="th thead" style="grid-column: span 12;">試算前提</div>
+        <div class="thead th" style="grid-column: span 12;">試算前提</div>
         <div class="td" style="grid-column: span 4;">
-          <label>FXシリーズ基本料金（<span class="muted">月額・円</span>）</label>
+          <label>FXシリーズ基本料金（<span class="note">月額・円</span>）</label>
           <input id="fxFee" type="number" inputmode="decimal" placeholder="例：15000" min="0" />
         </div>
         <div class="td" style="grid-column: span 4;">
-          <label>人件費単価（<span class="muted">円/時・社保等込み</span>）</label>
+          <label>人件費単価（<span class="note">円/時・社保等込み</span>）</label>
           <input id="wage" type="number" inputmode="decimal" placeholder="例：3000" min="0" />
         </div>
         <div class="td" style="grid-column: span 4;">
-          <label>月間仕訳数（<span class="muted">総数</span>）</label>
+          <label>月間仕訳数（<span class="note">総数</span>）</label>
           <input id="totalJournals" type="number" inputmode="numeric" value="320" min="0" />
         </div>
       </div>
@@ -94,7 +88,8 @@
 
     <!-- 1) 機能別入力 -->
     <section class="card">
-      <div class="thead grid" style="grid-template-columns: 3fr 2fr 3fr 3fr 1fr;">
+      <div class="thead" style="margin-bottom:8px;">機能別の件数と1件あたり時間</div>
+      <div class="grid" style="grid-template-columns: 3fr 2fr 3fr 3fr 1fr; font-weight:600; color:var(--muted);">
         <div class="th">機能</div>
         <div class="th">件数（/月）</div>
         <div class="th">1件あたり 手作業（分）</div>
@@ -106,35 +101,44 @@
         <!-- 証憑保存 -->
         <div class="td">証憑保存（スマホで経費）</div>
         <div class="td"><input id="n_receipts" type="number" value="30" min="0"/></div>
-        <div class="td"><input id="t_receipts_before" type="number" placeholder="例：3" min="0"/></div>
-        <div class="td"><input id="t_receipts_after" type="number" placeholder="例：1" min="0"/></div>
+        <div class="td"><input id="t_receipts_before" type="number" value="3" min="0"/></div>
+        <div class="td"><input id="t_receipts_after" type="number" value="1" min="0"/></div>
         <div class="td res" id="h_receipts">0.00</div>
 
-        <!-- 銀行・信販データ受信 -->
-        <div class="td">銀行・信販データ受信</div>
+        <!-- 銀行信販データ受信機能 -->
+        <div class="td">銀行信販データ受信機能</div>
         <div class="td"><input id="n_bank" type="number" value="260" min="0"/></div>
-        <div class="td"><input id="t_bank_before" type="number" placeholder="例：2" min="0"/></div>
-        <div class="td"><input id="t_bank_after" type="number" placeholder="例：0.5" min="0"/></div>
+        <div class="td"><input id="t_bank_before" type="number" value="2" min="0"/></div>
+        <div class="td"><input id="t_bank_after" type="number" value="0.5" min="0" step="0.1"/></div>
         <div class="td res" id="h_bank">0.00</div>
 
-        <!-- 給与計算 -->
-        <div class="td">給与計算（仕訳含む）</div>
+        <!-- 給与計算機能（仕訳含む） -->
+        <div class="td">給与計算機能（仕訳含む）</div>
         <div class="td"><input id="n_payroll" type="number" value="10" min="0"/></div>
-        <div class="td"><input id="t_payroll_before" type="number" placeholder="例：8" min="0"/></div>
-        <div class="td"><input id="t_payroll_after" type="number" placeholder="例：3" min="0"/></div>
+        <div class="td"><input id="t_payroll_before" type="number" value="8" min="0"/></div>
+        <div class="td"><input id="t_payroll_after" type="number" value="3" min="0"/></div>
         <div class="td res" id="h_payroll">0.00</div>
 
-        <!-- 販売管理 -->
-        <div class="td">販売管理（売上計上・請求）</div>
+        <!-- 販売管理機能（売上計上・請求） -->
+        <div class="td">販売管理機能（売上計上・請求）</div>
         <div class="td"><input id="n_sales" type="number" value="12" min="0"/></div>
-        <div class="td"><input id="t_sales_before" type="number" placeholder="例：10" min="0"/></div>
-        <div class="td"><input id="t_sales_after" type="number" placeholder="例：4" min="0"/></div>
+        <div class="td"><input id="t_sales_before" type="number" value="10" min="0"/></div>
+        <div class="td"><input id="t_sales_after" type="number" value="4" min="0"/></div>
         <div class="td res" id="h_sales">0.00</div>
+
+        <!-- その他（自動調整） -->
+        <div class="td">その他（自動調整）</div>
+        <div class="td"><input id="n_other" type="number" value="0" readonly /></div>
+        <div class="td"><input id="t_other_before" type="number" value="1.5" min="0"/></div>
+        <div class="td"><input id="t_other_after" type="number" value="1.5" min="0"/></div>
+        <div class="td res" id="h_other">0.00</div>
       </div>
 
       <div class="sumline" id="sumline">
-        <div>モジュール件数合計：<strong id="sumCount">312</strong>（目標：<span id="targetCount">320</span>）</div>
-        <div id="deltaMsg" class="muted"></div>
+        <div>
+          入力合計（4機能）＝ <strong id="sumFour">312</strong> 件 ／ その他＝ <strong id="sumOther">8</strong> 件 ／ 総合計＝ <strong id="sumTotal">320</strong> 件
+        </div>
+        <div id="deltaMsg" class="ok">その他は自動調整されます。合計は常に総数と一致します。</div>
       </div>
 
       <div class="btns" style="margin-top:12px;">
@@ -149,20 +153,20 @@
         <div class="item">
           <h3>時間短縮（合計・月間）</h3>
           <div class="val" id="kpiHours">0.00 時間</div>
-          <div class="note">※ （手作業−自動化）×件数 の合計（/60）</div>
+          <div class="note">※ （手作業−自動化）×件数 の合計（/60）。その他が負値の場合、削減時間には算入しません。</div>
         </div>
         <div class="item">
           <h3>人件費削減（合計・月間）</h3>
-          <div class="val pos" id="kpiYen">¥0</div>
+          <div class="val" id="kpiYen">¥0</div>
           <div class="note">時給 × 時間短縮</div>
         </div>
         <div class="item">
-          <h3>ネット効果（<span class="muted">月間</span>）</h3>
+          <h3>ネット効果（<span class="note">月間</span>）</h3>
           <div class="val" id="kpiNet">¥0</div>
           <div class="note">人件費削減 − FX基本料金</div>
         </div>
         <div class="item">
-          <h3>ネット効果（<span class="muted">年間</span>）</h3>
+          <h3>ネット効果（<span class="note">年間</span>）</h3>
           <div class="val" id="kpiNetYear">¥0</div>
           <div class="note">ネット効果（月間）×12</div>
         </div>
@@ -173,7 +177,7 @@
     <section class="card">
       <strong>ステップバック・クエスチョン（前提の確認）</strong>
       <ul class="note" style="margin:8px 0 0 16px; line-height:1.8;">
-        <li>人件費単価は<span class="muted">法定福利費・賞与按分・間接時間</span>を含む「実効時給」ですか？（含まない場合、実効時給に引き上げ推奨）</li>
+        <li>人件費単価は<strong>法定福利費・賞与按分・間接時間</strong>を含む「実効時給」ですか？（含まない場合、実効時給に引き上げ推奨）</li>
         <li>時間は誰の作業時間ですか？（所内/顧問先）双方の削減を分けて評価する必要はありませんか？</li>
         <li>自動化後の残作業（例：例外仕訳、承認、チェック）は反映されていますか？</li>
         <li>販売管理・給与は「件数」よりも「締め回数×担当者数」で表した方が正確ではありませんか？</li>
@@ -182,7 +186,7 @@
     </section>
 
     <footer>
-      v r5 · 作成: ChatGPT（TKC方式 内部試算用） · このツールは社内実測値の入力を前提としています。
+      v r6 · 作成: ChatGPT（TKC方式 内部試算用） · このツールは社内実測値の入力を前提としています。
     </footer>
   </div>
 
@@ -195,7 +199,8 @@
       n_receipts: 'n_receipts', t_receipts_before: 't_receipts_before', t_receipts_after: 't_receipts_after',
       n_bank: 'n_bank', t_bank_before: 't_bank_before', t_bank_after: 't_bank_after',
       n_payroll: 'n_payroll', t_payroll_before: 't_payroll_before', t_payroll_after: 't_payroll_after',
-      n_sales: 'n_sales', t_sales_before: 't_sales_before', t_sales_after: 't_sales_after'
+      n_sales: 'n_sales', t_sales_before: 't_sales_before', t_sales_after: 't_sales_after',
+      n_other: 'n_other', t_other_before: 't_other_before', t_other_after: 't_other_after'
     };
 
     function getNum(id) {
@@ -204,20 +209,29 @@
     }
 
     function rowHours(n, tBefore, tAfter) {
+      const count = Math.max(0, n); // 負の件数は削減計算に含めない
       const diffMin = Math.max(0, (tBefore - tAfter));
-      return (diffMin * n) / 60; // hours
+      return (diffMin * count) / 60; // hours
     }
 
-    function sumCounts() {
-      const sum = getNum(ids.n_receipts) + getNum(ids.n_bank) + getNum(ids.n_payroll) + getNum(ids.n_sales);
-      $('sumCount').textContent = sum.toString();
-      const target = getNum(ids.totalJournals);
-      $('targetCount').textContent = target.toString();
-      const delta = sum - target;
-      const msg = delta === 0 ? 'OK：件数は総数と一致しています。' : (delta > 0 ? `注意：総数を ${delta} 件超過` : `注意：総数に ${Math.abs(delta)} 件不足`);
+    function recalcOther() {
+      const total = getNum(ids.totalJournals);
+      const sumFour = getNum(ids.n_receipts) + getNum(ids.n_bank) + getNum(ids.n_payroll) + getNum(ids.n_sales);
+      const other = total - sumFour; // 負も許容（過剰カウントの見える化）
+      $(ids.n_other).value = other;
+
+      $('sumFour').textContent = sumFour.toString();
+      $('sumOther').textContent = other.toString();
+      $('sumTotal').textContent = (sumFour + other).toString();
+
       const deltaMsg = $('deltaMsg');
-      deltaMsg.textContent = msg;
-      deltaMsg.style.color = delta === 0 ? 'var(--good)' : 'var(--warn)';
+      if (other < 0) {
+        deltaMsg.textContent = '合計が総数を超過しています（その他が負値）。件数配分を見直してください。';
+        deltaMsg.className = 'warn';
+      } else {
+        deltaMsg.textContent = 'その他は自動調整されます。合計は常に総数と一致します。';
+        deltaMsg.className = 'ok';
+      }
     }
 
     function calc() {
@@ -226,13 +240,15 @@
       const h_bank     = rowHours(getNum(ids.n_bank),     getNum(ids.t_bank_before),     getNum(ids.t_bank_after));
       const h_payroll  = rowHours(getNum(ids.n_payroll),  getNum(ids.t_payroll_before),  getNum(ids.t_payroll_after));
       const h_sales    = rowHours(getNum(ids.n_sales),    getNum(ids.t_sales_before),    getNum(ids.t_sales_after));
+      const h_other    = rowHours(getNum(ids.n_other),    getNum(ids.t_other_before),    getNum(ids.t_other_after));
 
       $('h_receipts').textContent = h_receipts.toFixed(2);
       $('h_bank').textContent     = h_bank.toFixed(2);
       $('h_payroll').textContent  = h_payroll.toFixed(2);
       $('h_sales').textContent    = h_sales.toFixed(2);
+      $('h_other').textContent    = h_other.toFixed(2);
 
-      const totalH = h_receipts + h_bank + h_payroll + h_sales;
+      const totalH = h_receipts + h_bank + h_payroll + h_sales + h_other;
       $('kpiHours').textContent = `${totalH.toFixed(2)} 時間`;
 
       const wage = getNum(ids.wage);
@@ -248,51 +264,56 @@
       const netYear = net * 12;
       $('kpiNetYear').textContent = yen(netYear);
 
-      sumCounts();
+      recalcOther();
     }
 
     function reset() {
-      // Keep default counts; clear the rest
+      // Keep default counts; clear globals
       $(ids.fxFee).value = '';
       $(ids.wage).value = '';
       $(ids.totalJournals).value = 320;
 
+      // counts with defaults
       $(ids.n_receipts).value = 30;
-      $(ids.t_receipts_before).value = '';
-      $(ids.t_receipts_after).value = '';
+      $(ids.t_receipts_before).value = 3;
+      $(ids.t_receipts_after).value = 1;
 
       $(ids.n_bank).value = 260;
-      $(ids.t_bank_before).value = '';
-      $(ids.t_bank_after).value = '';
+      $(ids.t_bank_before).value = 2;
+      $(ids.t_bank_after).value = 0.5;
 
       $(ids.n_payroll).value = 10;
-      $(ids.t_payroll_before).value = '';
-      $(ids.t_payroll_after).value = '';
+      $(ids.t_payroll_before).value = 8;
+      $(ids.t_payroll_after).value = 3;
 
       $(ids.n_sales).value = 12;
-      $(ids.t_sales_before).value = '';
-      $(ids.t_sales_after).value = '';
+      $(ids.t_sales_before).value = 10;
+      $(ids.t_sales_after).value = 4;
 
-      ['h_receipts','h_bank','h_payroll','h_sales'].forEach(id => $(id).textContent = '0.00');
+      $(ids.t_other_before).value = 1.5;
+      $(ids.t_other_after).value = 1.5;
+
+      ['h_receipts','h_bank','h_payroll','h_sales','h_other'].forEach(id => $(id).textContent = '0.00');
       $('kpiHours').textContent = '0.00 時間';
       $('kpiYen').textContent = '¥0';
       $('kpiNet').textContent = '¥0';
       $('kpiNet').style.color = 'inherit';
       $('kpiNetYear').textContent = '¥0';
-      sumCounts();
+
+      recalcOther();
     }
 
     // Wire up
     $('calcBtn').addEventListener('click', calc);
     $('resetBtn').addEventListener('click', reset);
 
-    // live updates for counts/targets
+    // live updates for counts/targets to keep "その他" in sync
     [ids.n_receipts, ids.n_bank, ids.n_payroll, ids.n_sales, ids.totalJournals].forEach(id => {
-      $(id).addEventListener('input', sumCounts);
+      $(id).addEventListener('input', recalcOther);
     });
 
     // first run
-    sumCounts();
+    reset();
   </script>
 </body>
 </html>
