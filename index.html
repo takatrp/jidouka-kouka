@@ -3,27 +3,37 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自動化メリット試算（HTML版 r19）</title>
+  <title>TKC方式 | 自動化メリット試算（HTML版 r20）</title>
   <style>
     :root{
-      --bg:#f7f9fc; --card:#ffffff; --ink:#0f172a; --muted:#64748b;
-      --accent:#2563eb; --good:#059669; --warn:#b45309; --ring:rgba(37,99,235,.15);
+      /* ▼ 色：人件費見える化ツールに近い青緑系 */
+      --bg:#eef5f9;           /* 画面の薄い水色グレー背景 */
+      --card:#ffffff;         /* カード白 */
+      --ink:#0f172a;          /* 文字色 */
+      --muted:#64748b;        /* 補助文字 */
+      --accent:#2084A8;       /* 主ボタン・リンクの青緑 */
+      --accent-600:#1b7899;   /* ホバー時 */
+      --accent-700:#166b8a;   /* アクティブ時 */
+      --ring:rgba(32,132,168,.18); /* フォーカスリング */
+      --good:#059669;         /* 削減などのグリーン（据置き） */
+      --warn:#b45309;
       --radius:14px;
     }
     *{box-sizing:border-box;}
     body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;margin:0;color:var(--ink);background:var(--bg);}
-    .wrap{max-width:1000px;margin:24px auto 80px;padding:0 16px;}
+    .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
     header{margin-bottom:16px;}
     h1{font-size:clamp(20px,3.5vw,28px);margin:0 0 6px;}
     .sub{color:var(--muted);font-size:13px;}
-    .card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 2px rgba(15,23,42,.06), 0 8px 24px rgba(2,6,23,.08);padding:16px;margin:12px 0;}
+
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(2,6,23,.08);padding:16px;margin:12px 0;}
     .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr);align-items:end;}
     label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;}
-    input[type="number"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-size:14px;outline:none;transition:border-color .15s, box-shadow .15s;}
+    input[type="number"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;}
     input[type="number"]:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring);}
     input[readonly]{background:#f8fafc;color:#334155;}
     .th,.td{padding:10px 8px;}
-    .thead{color:var(--muted);font-size:12px;font-weight:600;border-bottom:1px solid #eef2f7;}
+    .thead{color:var(--muted);font-size:12px;font-weight:600;border-bottom:1px solid #e3edf4;}
     .td.res{text-align:right;font-variant-numeric:tabular-nums;}
     .note{font-size:12px;color:var(--muted);}
 
@@ -33,47 +43,43 @@
       transition:transform .08s ease, box-shadow .15s ease, background-color .15s ease, filter .15s ease;
       will-change: transform;
     }
-    .primary{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(37,99,235,.18);}
-    .primary:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(37,99,235,.28);filter:brightness(0.98);}
-    .primary:active{transform:translateY(0);filter:brightness(0.96);}
-    .primary:focus{box-shadow:0 0 0 4px var(--ring), 0 2px 10px rgba(37,99,235,.18);}
-    .outline{background:#fff;border:1px solid rgba(37,99,235,.35);color:var(--accent);box-shadow:0 1px 6px rgba(2,6,23,.05);}
-    .outline:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(37,99,235,.18);background:#f8fafc;}
-    .outline:active{transform:translateY(0);}
-    .outline:focus{box-shadow:0 0 0 4px var(--ring), 0 1px 6px rgba(2,6,23,.05);}
+    .primary{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(32,132,168,.18);}
+    .primary:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(32,132,168,.28);background:var(--accent-600);}
+    .primary:active{transform:translateY(0);filter:brightness(0.96);background:var(--accent-700);}
+    .primary:focus{box-shadow:0 0 0 4px var(--ring),0 2px 10px rgba(32,132,168,.18);}
+    .outline{background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);box-shadow:0 1px 6px rgba(2,6,23,.05);}
+    .outline:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(32,132,168,.18);background:#f3f9fc;}
+    .outline:active{transform:translateY(0);background:#eef7fb;}
+    .outline:focus{box-shadow:0 0 0 4px var(--ring),0 1px 6px rgba(2,6,23,.05);}
 
     .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
     .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:14px;}
     .kpi h3{margin:0 0 6px;font-size:12px;color:var(--muted);}
     .kpi .val{font-size:clamp(18px,3.2vw,24px);font-variant-numeric:tabular-nums;}
 
+    /* 人件費削減（通常サイズ・月/年併記） */
     .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
     .savings .val-main{font-size:clamp(20px,3.2vw,28px);font-weight:700;color:var(--good);line-height:1;}
     .savings .aside{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
     .savings .aside .label{font-size:11px;color:var(--muted);}
     .savings .aside .val{font-size:clamp(16px,2.5vw,20px);font-variant-numeric:tabular-nums;color:#0f5132;}
 
-    .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#f1f5f9;border-radius:10px;font-size:13px;}
+    .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
     .ok{color:var(--good);} .warn{color:var(--warn);}
 
-    /* フッター（クレジット） */
-    footer{position:relative;margin:24px 0 0;color:var(--muted);font-size:12px;}
-    .creditbar{
-      position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #e5e7eb;
-      padding:10px 16px;display:flex;gap:8px;justify-content:center;align-items:center;
-      color:#334155; font-size:12px;
-    }
-    .creditbar .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;margin:0 6px;opacity:.7;}
+    /* クレジット（スクリーン下部・中央寄せ） */
+    .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
+    .credit small{opacity:.9;}
     @media (max-width:720px){
       .kpi{grid-template-columns:1fr;}
       .thead{display:none;}
-      .wrap{margin-bottom:96px;} /* クレジットバー分の余白 */
     }
   </style>
   <style media="print">
-    .btns,#copyBtn,#csvBtn,#printBtn,.creditbar{display:none!important;}
+    .btns,#copyBtn,#csvBtn,#printBtn{display:none!important;}
     body{background:#fff;}
     .card{box-shadow:none;border:1px solid #e5e7eb;}
+    .credit{display:none;}
   </style>
 </head>
 <body>
@@ -136,7 +142,7 @@
         <div class="td"><input id="ta_payroll" type="number" value="3" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_payroll">0.00</div>
 
-        <!-- 販売管理機能（売上計上・請求） → 自動化後=5分 -->
+        <!-- 販売管理機能（売上計上・請求） → 自動化後=5分（既定） -->
         <div class="td"><input id="cb_sales" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">販売管理機能（売上計上・請求）</div>
         <div class="td"><input id="n_sales" type="number" value="12" min="0" oninput="calc()" /></div>
@@ -216,14 +222,16 @@
       </div>
     </section>
 
-    <footer>
-      <div id="toast" style="position:fixed;left:50%;bottom:56px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
-      <div class="creditbar" aria-label="credit">
-        <span>v r19</span><span class="dot"></span>
-        <span>作成: ChatGPT（TKC方式 内部試算用）</span><span class="dot"></span>
-        <span>このツールは社内実測値の入力を前提としています。</span>
-      </div>
-    </footer>
+    <!-- クレジット（同形式） -->
+    <div class="credit">
+      <small>
+        Copyright (c) <span id="creditYear"></span>
+        <span id="creditCompany">税理士法人松本会計事務所</span>
+        All Rights Reserved. / <span id="creditRev">r20</span>
+      </small>
+    </div>
+
+    <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
   </div>
 
   <script>
@@ -232,6 +240,14 @@
   function yen(n){ return isNaN(n)?'¥0':n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}); }
   function toast(msg){ var t=$('toast'); t.textContent=msg; t.style.opacity=1; setTimeout(function(){t.style.opacity=0;},1600); }
   function num(id){ var v=parseFloat($(id).value); return isNaN(v)?0:v; }
+
+  // クレジット（年と社名）
+  const CREDIT_COMPANY = '税理士法人松本会計事務所'; // 必要に応じて編集
+  (function(){
+    var y=new Date().getFullYear();
+    $('creditYear').textContent=y;
+    $('creditCompany').textContent=CREDIT_COMPANY;
+  })();
 
   // ===== 入力ID =====
   var ids = {
@@ -402,8 +418,8 @@
     $('n_bank').value=260;    $('tb_bank').value=2;      $('ta_bank').value=0.5;
     $('n_payroll').value=10;  $('tb_payroll').value=8;   $('ta_payroll').value=3;
     $('n_sales').value=12;    $('tb_sales').value=10;    $('ta_sales').value=5;  /* 5分 */
+    $('tb_other').value=1.5;  $('ta_other').value=1.5;
 
-    $('tb_other').value=1.5; $('ta_other').value=1.5;
     ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_other'].forEach(function(id){ $(id).textContent='0.00'; });
   }
 
