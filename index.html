@@ -3,21 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自動化メリット試算（HTML版 r20）</title>
+  <title>TKC方式 | 自動化メリット試算（HTML版 r21）</title>
   <style>
     :root{
-      /* ▼ 色：人件費見える化ツールに近い青緑系 */
-      --bg:#eef5f9;           /* 画面の薄い水色グレー背景 */
-      --card:#ffffff;         /* カード白 */
-      --ink:#0f172a;          /* 文字色 */
-      --muted:#64748b;        /* 補助文字 */
-      --accent:#2084A8;       /* 主ボタン・リンクの青緑 */
-      --accent-600:#1b7899;   /* ホバー時 */
-      --accent-700:#166b8a;   /* アクティブ時 */
-      --ring:rgba(32,132,168,.18); /* フォーカスリング */
-      --good:#059669;         /* 削減などのグリーン（据置き） */
-      --warn:#b45309;
+      /* ベース配色（人件費見える化ツール寄せ） */
+      --bg:#eef5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b;
+      --accent:#2084A8; --accent-600:#1b7899; --accent-700:#166b8a;
+      --ring:rgba(32,132,168,.18);
+      --good:#059669; --warn:#b45309;
       --radius:14px;
+
+      /* 強調カード用（淡い青背景と枠） */
+      --emph-bg:#eaf6fb;                 /* 淡いシアン寄り */
+      --emph-border:rgba(32,132,168,.55);/* アクセント色の半透明 */
+      --emph-shadow:0 8px 20px rgba(32,132,168,.18);
     }
     *{box-sizing:border-box;}
     body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;margin:0;color:var(--ink);background:var(--bg);}
@@ -53,11 +52,20 @@
     .outline:focus{box-shadow:0 0 0 4px var(--ring),0 1px 6px rgba(2,6,23,.05);}
 
     .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-    .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:14px;}
+    .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:14px;transition:box-shadow .15s ease, transform .08s ease;}
     .kpi h3{margin:0 0 6px;font-size:12px;color:var(--muted);}
     .kpi .val{font-size:clamp(18px,3.2vw,24px);font-variant-numeric:tabular-nums;}
 
-    /* 人件費削減（通常サイズ・月/年併記） */
+    /* ▼ 人件費削減カードを強調（別アプリの見た目を再現） */
+    .kpi .item--emph{
+      background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);
+      border:2px solid var(--emph-border);
+      box-shadow: var(--emph-shadow);
+    }
+    .kpi .item--emph:hover{ transform:translateY(-1px); box-shadow:0 12px 26px rgba(32,132,168,.26); }
+    .kpi .item--emph h3{ color:var(--accent-700); }
+
+    /* 金額表示（緑は据置き） */
     .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
     .savings .val-main{font-size:clamp(20px,3.2vw,28px);font-weight:700;color:var(--good);line-height:1;}
     .savings .aside{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
@@ -67,7 +75,6 @@
     .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
     .ok{color:var(--good);} .warn{color:var(--warn);}
 
-    /* クレジット（スクリーン下部・中央寄せ） */
     .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
     .credit small{opacity:.9;}
     @media (max-width:720px){
@@ -105,7 +112,7 @@
       <div class="note" style="margin-top:8px;">※ 各分数は社内の実測で置換してください。</div>
     </section>
 
-    <!-- 1) 機能別（チェック＝自動化後、未チェック＝手作業） -->
+    <!-- 1) 機能別 -->
     <section class="card">
       <div class="thead" style="margin-bottom:8px;">機能別（チェックで導入状態を切替）</div>
       <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.7fr 1.7fr 1fr;font-weight:600;color:var(--muted);">
@@ -142,7 +149,7 @@
         <div class="td"><input id="ta_payroll" type="number" value="3" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_payroll">0.00</div>
 
-        <!-- 販売管理機能（売上計上・請求） → 自動化後=5分（既定） -->
+        <!-- 販売管理機能（売上計上・請求） -->
         <div class="td"><input id="cb_sales" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">販売管理機能（売上計上・請求）</div>
         <div class="td"><input id="n_sales" type="number" value="12" min="0" oninput="calc()" /></div>
@@ -150,7 +157,7 @@
         <div class="td"><input id="ta_sales" type="number" value="5" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_sales">0.00</div>
 
-        <!-- その他（自動調整・対象外） → チェックなし -->
+        <!-- その他（自動調整・対象外） -->
         <div class="td"><span class="note">—</span></div>
         <div class="td">その他（自動調整・対象外）</div>
         <div class="td"><input id="n_other" type="number" value="0" readonly /></div>
@@ -191,8 +198,8 @@
           <div class="note">（導入なし − 導入あり）</div>
         </div>
 
-        <!-- 人件費削減：月・年 -->
-        <div class="item savings">
+        <!-- 人件費削減（強調タイル） -->
+        <div class="item item--emph savings">
           <h3>人件費削減</h3>
           <div class="row">
             <div class="val-main" id="kpiYen">¥0</div>
@@ -222,12 +229,12 @@
       </div>
     </section>
 
-    <!-- クレジット（同形式） -->
+    <!-- クレジット -->
     <div class="credit">
       <small>
         Copyright (c) <span id="creditYear"></span>
         <span id="creditCompany">税理士法人松本会計事務所</span>
-        All Rights Reserved. / <span id="creditRev">r20</span>
+        All Rights Reserved. / <span id="creditRev">r21</span>
       </small>
     </div>
 
@@ -241,17 +248,12 @@
   function toast(msg){ var t=$('toast'); t.textContent=msg; t.style.opacity=1; setTimeout(function(){t.style.opacity=0;},1600); }
   function num(id){ var v=parseFloat($(id).value); return isNaN(v)?0:v; }
 
-  // クレジット（年と社名）
-  const CREDIT_COMPANY = '税理士法人松本会計事務所'; // 必要に応じて編集
-  (function(){
-    var y=new Date().getFullYear();
-    $('creditYear').textContent=y;
-    $('creditCompany').textContent=CREDIT_COMPANY;
-  })();
+  // クレジット
+  const CREDIT_COMPANY='税理士法人松本会計事務所';
+  (function(){ var y=new Date().getFullYear(); $('creditYear').textContent=y; $('creditCompany').textContent=CREDIT_COMPANY; })();
 
-  // ===== 入力ID =====
-  var ids = {
-    wage:'wage', total:'totalJournals',
+  // 入力ID
+  var ids={ wage:'wage', total:'totalJournals',
     cb_receipts:'cb_receipts', n_receipts:'n_receipts', tb_receipts:'tb_receipts', ta_receipts:'ta_receipts',
     cb_bank:'cb_bank', n_bank:'n_bank', tb_bank:'tb_bank', ta_bank:'ta_bank',
     cb_payroll:'cb_payroll', n_payroll:'n_payroll', tb_payroll:'tb_payroll', ta_payroll:'ta_payroll',
@@ -259,7 +261,7 @@
     n_other:'n_other', tb_other:'tb_other', ta_other:'ta_other'
   };
 
-  // ===== その他の自動調整 =====
+  // その他の自動調整
   function recalcOther(){
     var total=num(ids.total);
     var sumFour=num(ids.n_receipts)+num(ids.n_bank)+num(ids.n_payroll)+num(ids.n_sales);
@@ -273,18 +275,14 @@
     else{ msg.textContent='その他は自動調整されます。合計は常に総数と一致します。'; msg.className='ok'; }
   }
 
-  // ===== モジュール計算 =====
+  // モジュール計算
   function mod(label, checked, n, tb, ta, wage){
     var cnt=Math.max(0,n);
     var hBefore=(tb*cnt)/60;
     var hAfter=(ta*cnt)/60;
     var hChosen=checked?hAfter:hBefore;
     var hSaved=Math.max(0,hBefore-hChosen);
-    return {
-      label:label, cnt:cnt, tb:tb, ta:ta,
-      hBefore:hBefore, hAfter:hAfter, hChosen:hChosen, hSaved:hSaved,
-      cBefore:hBefore*wage, cChosen:hChosen*wage
-    };
+    return { label, cnt, tb, ta, hBefore, hAfter, hChosen, hSaved, cBefore:hBefore*wage, cChosen:hChosen*wage };
   }
 
   function compute(){
@@ -300,8 +298,8 @@
 
     var mods=[m_receipts,m_bank,m_payroll,m_sales];
 
-    var hBefore=mods.reduce(function(s,m){return s+m.hBefore;},0)+hOther;
-    var hChosen=mods.reduce(function(s,m){return s+m.hChosen;},0)+hOther;
+    var hBefore=mods.reduce((s,m)=>s+m.hBefore,0)+hOther;
+    var hChosen=mods.reduce((s,m)=>s+m.hChosen,0)+hOther;
     var hSaved=Math.max(0,hBefore-hChosen);
 
     var costBefore=hBefore*wage;
@@ -309,16 +307,11 @@
     var monthlySaving=costBefore-costChosen;
     var monthlySavingYear=monthlySaving*12;
 
-    return {
-      wage:wage, mods:mods, hOther:hOther,
-      hBefore:hBefore, hChosen:hChosen, hSaved:hSaved,
-      costBefore:costBefore, costChosen:costChosen,
-      monthlySaving:monthlySaving, monthlySavingYear:monthlySavingYear,
-      adopted:mods.filter(function(m){return m.hChosen===m.hAfter;}).length
-    };
+    return { wage, mods, hOther, hBefore, hChosen, hSaved, costBefore, costChosen, monthlySaving, monthlySavingYear,
+             adopted:mods.filter(m=>m.hChosen===m.hAfter).length };
   }
 
-  // ===== UI更新 =====
+  // UI更新
   function updateUI(r){
     $('sv_receipts').textContent=r.mods[0].hSaved.toFixed(2);
     $('sv_bank').textContent=r.mods[1].hSaved.toFixed(2);
@@ -334,11 +327,11 @@
     $('kpiYenYear').textContent=yen(r.monthlySavingYear);
 
     $('kpiAdopt').textContent=r.adopted+' / 4';
-    var b=r.mods.map(function(m){return m.label+':'+m.hSaved.toFixed(2)+'h';}).join(' / ');
+    var b=r.mods.map(m=>m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ');
     $('kpiBreakdown').textContent=b||'—';
   }
 
-  // ===== 書き出し =====
+  // 書き出し
   async function copySummary(){
     var r=compute();
     var lines=[];
@@ -381,17 +374,15 @@
     rows.push(['人件費削減(円/月)',Math.round(r.monthlySaving)]);
     rows.push(['人件費削減(円/年)',Math.round(r.monthlySaving*12)]);
 
-    var csv=rows.map(function(a){
-      return a.map(function(v){
-        v=(v===undefined||v===null)?'':String(v).replace(/\"/g,'\"\"');
-        return /[,\n\r]/.test(v)?'"'+v+'"' : v;
-      }).join(',');
-    }).join('\n');
+    var csv=rows.map(a=>a.map(v=>{
+      v=(v===undefined||v===null)?'':String(v).replace(/\"/g,'\"\"');
+      return /[,\n\r]/.test(v)?'"'+v+'"' : v;
+    }).join(',')).join('\n');
 
     try{
       var blob=new Blob([csv],{type:'text/csv'});
       var a=document.createElement('a');
-      var now=new Date(); var pad=function(n){return String(n).padStart(2,'0');};
+      var now=new Date(); var pad=n=>String(n).padStart(2,'0');
       a.href=URL.createObjectURL(blob);
       a.download='tkc_auto_benefit_'+now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+'_'+pad(now.getHours())+pad(now.getMinutes())+'.csv';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -409,8 +400,8 @@
   function printPage(){ try{ window.print(); toast('印刷ダイアログを開きます'); }catch(e){ toast('印刷がブロックされました'); } }
 
   function resetAll(){
-    $(ids.wage).value='';
-    $(ids.total).value=320;
+    $('wage').value='';
+    $('totalJournals').value=320;
 
     $('cb_receipts').checked=true; $('cb_bank').checked=true; $('cb_payroll').checked=true; $('cb_sales').checked=true;
 
@@ -420,10 +411,10 @@
     $('n_sales').value=12;    $('tb_sales').value=10;    $('ta_sales').value=5;  /* 5分 */
     $('tb_other').value=1.5;  $('ta_other').value=1.5;
 
-    ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_other'].forEach(function(id){ $(id).textContent='0.00'; });
+    ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_other'].forEach(id=>{ $(id).textContent='0.00'; });
   }
 
-  // ===== 集計トリガ =====
+  // 集計トリガ
   function calc(){ recalcOther(); var r=compute(); updateUI(r); }
 
   // 初期表示
