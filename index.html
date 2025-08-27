@@ -3,19 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自動化メリット試算（HTML版 r21）</title>
+  <title>TKC方式 | 自動化メリット試算（HTML版 r22）</title>
   <style>
     :root{
-      /* ベース配色（人件費見える化ツール寄せ） */
       --bg:#eef5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b;
       --accent:#2084A8; --accent-600:#1b7899; --accent-700:#166b8a;
       --ring:rgba(32,132,168,.18);
       --good:#059669; --warn:#b45309;
       --radius:14px;
 
-      /* 強調カード用（淡い青背景と枠） */
-      --emph-bg:#eaf6fb;                 /* 淡いシアン寄り */
-      --emph-border:rgba(32,132,168,.55);/* アクセント色の半透明 */
+      --emph-bg:#eaf6fb; --emph-border:rgba(32,132,168,.55);
       --emph-shadow:0 8px 20px rgba(32,132,168,.18);
     }
     *{box-sizing:border-box;}
@@ -56,7 +53,7 @@
     .kpi h3{margin:0 0 6px;font-size:12px;color:var(--muted);}
     .kpi .val{font-size:clamp(18px,3.2vw,24px);font-variant-numeric:tabular-nums;}
 
-    /* ▼ 人件費削減カードを強調（別アプリの見た目を再現） */
+    /* 強調カード（人件費削減） */
     .kpi .item--emph{
       background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);
       border:2px solid var(--emph-border);
@@ -65,7 +62,6 @@
     .kpi .item--emph:hover{ transform:translateY(-1px); box-shadow:0 12px 26px rgba(32,132,168,.26); }
     .kpi .item--emph h3{ color:var(--accent-700); }
 
-    /* 金額表示（緑は据置き） */
     .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
     .savings .val-main{font-size:clamp(20px,3.2vw,28px);font-weight:700;color:var(--good);line-height:1;}
     .savings .aside{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
@@ -74,6 +70,13 @@
 
     .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
     .ok{color:var(--good);} .warn{color:var(--warn);}
+
+    /* ▼ ここから “上下を詰める” 専用のコンパクトスタイル（機能別セクションのみ適用） */
+    .compact-table .thead{margin-bottom:6px;}
+    .compact-table .grid{row-gap:6px;align-items:center;}               /* 行間を詰める */
+    .compact-table .th,.compact-table .td{padding:6px 6px;}             /* セル余白を縮小 */
+    .compact-table input[type="number"]{padding:6px 8px;font-size:13px;border-radius:8px;} /* 入力の高さを低く */
+    .compact-table .btns{margin-top:8px;}                               /* ボタン周りも詰める */
 
     .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
     .credit small{opacity:.9;}
@@ -112,8 +115,8 @@
       <div class="note" style="margin-top:8px;">※ 各分数は社内の実測で置換してください。</div>
     </section>
 
-    <!-- 1) 機能別 -->
-    <section class="card">
+    <!-- 1) 機能別（コンパクト化） -->
+    <section class="card compact-table">
       <div class="thead" style="margin-bottom:8px;">機能別（チェックで導入状態を切替）</div>
       <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.7fr 1.7fr 1fr;font-weight:600;color:var(--muted);">
         <div class="th">導入</div>
@@ -125,7 +128,6 @@
       </div>
 
       <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.7fr 1.7fr 1fr;">
-        <!-- 証憑保存 -->
         <div class="td"><input id="cb_receipts" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">証憑保存（スマホで経費）</div>
         <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()" /></div>
@@ -133,7 +135,6 @@
         <div class="td"><input id="ta_receipts" type="number" value="1" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_receipts">0.00</div>
 
-        <!-- 銀行信販データ受信機能 -->
         <div class="td"><input id="cb_bank" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">銀行信販データ受信機能</div>
         <div class="td"><input id="n_bank" type="number" value="260" min="0" oninput="calc()" /></div>
@@ -141,7 +142,6 @@
         <div class="td"><input id="ta_bank" type="number" value="0.5" min="0" step="0.1" oninput="calc()" /></div>
         <div class="td res" id="sv_bank">0.00</div>
 
-        <!-- 給与計算機能（仕訳含む） -->
         <div class="td"><input id="cb_payroll" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">給与計算機能（仕訳含む）</div>
         <div class="td"><input id="n_payroll" type="number" value="10" min="0" oninput="calc()" /></div>
@@ -149,7 +149,6 @@
         <div class="td"><input id="ta_payroll" type="number" value="3" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_payroll">0.00</div>
 
-        <!-- 販売管理機能（売上計上・請求） -->
         <div class="td"><input id="cb_sales" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">販売管理機能（売上計上・請求）</div>
         <div class="td"><input id="n_sales" type="number" value="12" min="0" oninput="calc()" /></div>
@@ -157,7 +156,6 @@
         <div class="td"><input id="ta_sales" type="number" value="5" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_sales">0.00</div>
 
-        <!-- その他（自動調整・対象外） -->
         <div class="td"><span class="note">—</span></div>
         <div class="td">その他（自動調整・対象外）</div>
         <div class="td"><input id="n_other" type="number" value="0" readonly /></div>
@@ -173,7 +171,7 @@
         <div id="deltaMsg" class="ok">その他は自動調整されます。合計は常に総数と一致します。</div>
       </div>
 
-      <div class="btns" style="margin-top:12px;">
+      <div class="btns">
         <button class="primary" onclick="calc(); toast('計算を更新しました');">効果を計算</button>
         <button class="outline" onclick="resetAll(); calc(); toast('初期値にリセットしました');">リセット</button>
       </div>
@@ -198,7 +196,6 @@
           <div class="note">（導入なし − 導入あり）</div>
         </div>
 
-        <!-- 人件費削減（強調タイル） -->
         <div class="item item--emph savings">
           <h3>人件費削減</h3>
           <div class="row">
@@ -234,7 +231,7 @@
       <small>
         Copyright (c) <span id="creditYear"></span>
         <span id="creditCompany">税理士法人松本会計事務所</span>
-        All Rights Reserved. / <span id="creditRev">r21</span>
+        All Rights Reserved. / <span id="creditRev">r22</span>
       </small>
     </div>
 
@@ -242,17 +239,14 @@
   </div>
 
   <script>
-  // ===== ユーティリティ =====
   function $(id){ return document.getElementById(id); }
   function yen(n){ return isNaN(n)?'¥0':n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}); }
   function toast(msg){ var t=$('toast'); t.textContent=msg; t.style.opacity=1; setTimeout(function(){t.style.opacity=0;},1600); }
   function num(id){ var v=parseFloat($(id).value); return isNaN(v)?0:v; }
 
-  // クレジット
   const CREDIT_COMPANY='税理士法人松本会計事務所';
   (function(){ var y=new Date().getFullYear(); $('creditYear').textContent=y; $('creditCompany').textContent=CREDIT_COMPANY; })();
 
-  // 入力ID
   var ids={ wage:'wage', total:'totalJournals',
     cb_receipts:'cb_receipts', n_receipts:'n_receipts', tb_receipts:'tb_receipts', ta_receipts:'ta_receipts',
     cb_bank:'cb_bank', n_bank:'n_bank', tb_bank:'tb_bank', ta_bank:'ta_bank',
@@ -261,7 +255,6 @@
     n_other:'n_other', tb_other:'tb_other', ta_other:'ta_other'
   };
 
-  // その他の自動調整
   function recalcOther(){
     var total=num(ids.total);
     var sumFour=num(ids.n_receipts)+num(ids.n_bank)+num(ids.n_payroll)+num(ids.n_sales);
@@ -275,7 +268,6 @@
     else{ msg.textContent='その他は自動調整されます。合計は常に総数と一致します。'; msg.className='ok'; }
   }
 
-  // モジュール計算
   function mod(label, checked, n, tb, ta, wage){
     var cnt=Math.max(0,n);
     var hBefore=(tb*cnt)/60;
@@ -292,7 +284,6 @@
     var m_payroll=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num(ids.n_payroll),num(ids.tb_payroll),num(ids.ta_payroll),wage);
     var m_sales=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num(ids.n_sales),num(ids.tb_sales),num(ids.ta_sales),wage);
 
-    // その他は対象外（変化なし）
     var nOther=num(ids.n_other), tOther=num(ids.tb_other);
     var hOther=(tOther*Math.max(0,nOther))/60;
 
@@ -311,7 +302,6 @@
              adopted:mods.filter(m=>m.hChosen===m.hAfter).length };
   }
 
-  // UI更新
   function updateUI(r){
     $('sv_receipts').textContent=r.mods[0].hSaved.toFixed(2);
     $('sv_bank').textContent=r.mods[1].hSaved.toFixed(2);
@@ -331,7 +321,6 @@
     $('kpiBreakdown').textContent=b||'—';
   }
 
-  // 書き出し
   async function copySummary(){
     var r=compute();
     var lines=[];
@@ -400,26 +389,19 @@
   function printPage(){ try{ window.print(); toast('印刷ダイアログを開きます'); }catch(e){ toast('印刷がブロックされました'); } }
 
   function resetAll(){
-    $('wage').value='';
-    $('totalJournals').value=320;
-
+    $('wage').value=''; $('totalJournals').value=320;
     $('cb_receipts').checked=true; $('cb_bank').checked=true; $('cb_payroll').checked=true; $('cb_sales').checked=true;
-
     $('n_receipts').value=30; $('tb_receipts').value=3;  $('ta_receipts').value=1;
     $('n_bank').value=260;    $('tb_bank').value=2;      $('ta_bank').value=0.5;
     $('n_payroll').value=10;  $('tb_payroll').value=8;   $('ta_payroll').value=3;
-    $('n_sales').value=12;    $('tb_sales').value=10;    $('ta_sales').value=5;  /* 5分 */
+    $('n_sales').value=12;    $('tb_sales').value=10;    $('ta_sales').value=5;
     $('tb_other').value=1.5;  $('ta_other').value=1.5;
-
     ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_other'].forEach(id=>{ $(id).textContent='0.00'; });
   }
 
-  // 集計トリガ
   function calc(){ recalcOther(); var r=compute(); updateUI(r); }
 
-  // 初期表示
-  resetAll();
-  calc();
+  resetAll(); calc();
   </script>
 </body>
 </html>
