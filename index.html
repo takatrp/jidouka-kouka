@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自動化メリット試算（HTML版 r22）</title>
+  <title>TKC方式 | 自動化メリット試算（HTML版 r24）</title>
   <style>
     :root{
       --bg:#eef5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b;
@@ -14,7 +14,18 @@
 
       --emph-bg:#eaf6fb; --emph-border:rgba(32,132,168,.55);
       --emph-shadow:0 8px 20px rgba(32,132,168,.18);
+
+      /* 機能別テーブルの列配分（PC/タブレット） */
+      --cols: 1fr 2.2fr 1.4fr 1.7fr 1.7fr 1fr;
     }
+    /* 狭幅（スマホ横想定） */
+    @media (max-width:900px){
+      :root{ --cols: .7fr 1.9fr 1fr 1.1fr 1.1fr .9fr; }
+    }
+    @media (max-width:740px){
+      :root{ --cols: .6fr 1.9fr .9fr 1fr 1fr .8fr; }
+    }
+
     *{box-sizing:border-box;}
     body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;margin:0;color:var(--ink);background:var(--bg);}
     .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
@@ -54,14 +65,9 @@
     .kpi .val{font-size:clamp(18px,3.2vw,24px);font-variant-numeric:tabular-nums;}
 
     /* 強調カード（人件費削減） */
-    .kpi .item--emph{
-      background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);
-      border:2px solid var(--emph-border);
-      box-shadow: var(--emph-shadow);
-    }
-    .kpi .item--emph:hover{ transform:translateY(-1px); box-shadow:0 12px 26px rgba(32,132,168,.26); }
-    .kpi .item--emph h3{ color:var(--accent-700); }
-
+    .kpi .item--emph{background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);border:2px solid var(--emph-border);box-shadow:var(--emph-shadow);}
+    .kpi .item--emph:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(32,132,168,.26);}
+    .kpi .item--emph h3{color:var(--accent-700);}
     .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
     .savings .val-main{font-size:clamp(20px,3.2vw,28px);font-weight:700;color:var(--good);line-height:1;}
     .savings .aside{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
@@ -71,25 +77,43 @@
     .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
     .ok{color:var(--good);} .warn{color:var(--warn);}
 
-    /* ▼ ここから “上下を詰める” 専用のコンパクトスタイル（機能別セクションのみ適用） */
+    /* ▼ コンパクト（機能別セクション専用） */
     .compact-table .thead{margin-bottom:6px;}
-    .compact-table .grid{row-gap:6px;align-items:center;}
-    .compact-table .th,.compact-table .td{padding:6px 6px;}
-    .compact-table input[type="number"]{padding:6px 8px;font-size:13px;border-radius:8px;}
+    .compact-table .th,.compact-table .td{padding:6px 6px;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+    .compact-table input[type="number"]{padding:6px 8px;font-size:13px;border-radius:8px;min-width:0;}
     .compact-table .btns{margin-top:8px;}
+    /* 列レイアウトをCSS変数で制御 */
+    .features-head, .features-rows{display:grid;gap:6px;grid-template-columns:var(--cols);align-items:center;}
+    .features-rows .td.res{text-align:right;}
+
+    /* 狭幅時のさらに細かな調整（スマホ横向き想定） */
+    @media (max-width:900px){
+      .wrap{padding:0 12px;}
+      .card{padding:12px;}
+      h1{font-size:20px;}
+      .compact-table input[type="number"]{padding:5px 7px;font-size:12.5px;}
+      .compact-table .th,.compact-table .td{padding:5px 5px;font-size:13px;}
+      .sumline{grid-template-columns:1fr;row-gap:6px;}
+    }
+    @media (max-width:740px){
+      .compact-table input[type="number"]{padding:4px 6px;font-size:12px;}
+      .compact-table .th,.compact-table .td{padding:4px 4px;font-size:12px;}
+    }
 
     .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
     .credit small{opacity:.9;}
+
     @media (max-width:720px){
       .kpi{grid-template-columns:1fr;}
       .thead{display:none;}
     }
-  </style>
-  <style media="print">
-    .btns,#copyBtn,#csvBtn,#printBtn{display:none!important;}
-    body{background:#fff;}
-    .card{box-shadow:none;border:1px solid #e5e7eb;}
-    .credit{display:none;}
+
+    @media print{
+      .btns,#copyBtn,#csvBtn,#printBtn{display:none!important;}
+      body{background:#fff;}
+      .card{box-shadow:none;border:1px solid #e5e7eb;}
+      .credit{display:none;}
+    }
   </style>
 </head>
 <body>
@@ -115,10 +139,12 @@
       <div class="note" style="margin-top:8px;">※ 各分数は社内の実測で置換してください。</div>
     </section>
 
-    <!-- 1) 機能別（コンパクト化） -->
+    <!-- 1) 機能別（コンパクト化＋レスポンシブ列） -->
     <section class="card compact-table">
       <div class="thead" style="margin-bottom:8px;">機能別（チェックで導入状態を切替）</div>
-      <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.7fr 1.7fr 1fr;font-weight:600;color:var(--muted);">
+
+      <!-- 見出し -->
+      <div class="features-head">
         <div class="th">導入</div>
         <div class="th">機能</div>
         <div class="th">件数/月</div>
@@ -127,7 +153,8 @@
         <div class="th" style="text-align:right;">削減h</div>
       </div>
 
-      <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.7fr 1.7fr 1fr;">
+      <!-- データ行 -->
+      <div class="features-rows">
         <div class="td"><input id="cb_receipts" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">証憑保存（スマホで経費）</div>
         <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()" /></div>
@@ -139,7 +166,7 @@
         <div class="td">銀行信販データ受信機能</div>
         <div class="td"><input id="n_bank" type="number" value="260" min="0" oninput="calc()" /></div>
         <div class="td"><input id="tb_bank" type="number" value="2" min="0" oninput="calc()" /></div>
-        <div class="td"><input id="ta_bank" type="number" value="0.5" min="0" oninput="calc()" step="0.1" /></div>
+        <div class="td"><input id="ta_bank" type="number" value="0.5" min="0" step="0.1" oninput="calc()" /></div>
         <div class="td res" id="sv_bank">0.00</div>
 
         <div class="td"><input id="cb_payroll" type="checkbox" checked onchange="calc()" /></div>
@@ -231,7 +258,7 @@
       <small>
         Copyright (c) <span id="creditYear"></span>
         <span id="creditCompany">税理士法人松本会計事務所</span>
-        All Rights Reserved. / <span id="creditRev">r22</span>
+        All Rights Reserved. / <span id="creditRev">r24</span>
       </small>
     </div>
 
