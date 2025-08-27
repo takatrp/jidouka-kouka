@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自動化メリット試算（HTML版 r22）</title>
+  <title>TKC方式 | 自動化メリット試算（HTML版 r23）</title>
   <style>
     :root{
       --bg:#eef5f9; --card:#ffffff; --ink:#0f172a; --muted:#64748b;
@@ -71,15 +71,21 @@
     .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
     .ok{color:var(--good);} .warn{color:var(--warn);}
 
-    /* ▼ ここから “上下を詰める” 専用のコンパクトスタイル（機能別セクションのみ適用） */
+    /* ▼ 機能別テーブルの“上下を詰める”コンパクト設定（r22のまま） */
     .compact-table .thead{margin-bottom:6px;}
-    .compact-table .grid{row-gap:6px;align-items:center;}               /* 行間を詰める */
-    .compact-table .th,.compact-table .td{padding:6px 6px;}             /* セル余白を縮小 */
-    .compact-table input[type="number"]{padding:6px 8px;font-size:13px;border-radius:8px;} /* 入力の高さを低く */
-    .compact-table .btns{margin-top:8px;}                               /* ボタン周りも詰める */
+    .compact-table .grid{row-gap:6px;align-items:center;}
+    .compact-table .th,.compact-table .td{padding:6px 6px;}
+    .compact-table input[type="number"]{padding:6px 8px;font-size:13px;border-radius:8px;}
+    .compact-table .btns{margin-top:8px;}
 
+    /* ▼ 追加：手作業→自動化 後の間に置く右向き三角（薄色） */
+    .arrowcell{display:flex;align-items:center;justify-content:center;color:#94a3b8;opacity:.85;font-size:13px;user-select:none;}
+    .arrowcell .sym{transform:translateY(-1px);} /* ほんの少し上げて視線誘導 */
+
+    /* クレジット */
     .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
     .credit small{opacity:.9;}
+
     @media (max-width:720px){
       .kpi{grid-template-columns:1fr;}
       .thead{display:none;}
@@ -115,51 +121,65 @@
       <div class="note" style="margin-top:8px;">※ 各分数は社内の実測で置換してください。</div>
     </section>
 
-    <!-- 1) 機能別（コンパクト化） -->
+    <!-- 1) 機能別（コンパクト＋矢印列を追加） -->
     <section class="card compact-table">
       <div class="thead" style="margin-bottom:8px;">機能別（チェックで導入状態を切替）</div>
-      <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.7fr 1.7fr 1fr;font-weight:600;color:var(--muted);">
+
+      <!-- ヘッダ行（矢印列を追加） -->
+      <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.6fr 0.4fr 1.6fr 1fr;font-weight:600;color:var(--muted);">
         <div class="th">導入</div>
         <div class="th">機能</div>
         <div class="th">件数/月</div>
         <div class="th">手作業 分/件</div>
+        <div class="th arrowcell"><span class="sym">▷</span></div>
         <div class="th">自動化後 分/件</div>
         <div class="th" style="text-align:right;">削減h</div>
       </div>
 
-      <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.7fr 1.7fr 1fr;">
+      <!-- データ行 -->
+      <div class="grid" style="grid-template-columns:1fr 2.2fr 1.4fr 1.6fr 0.4fr 1.6fr 1fr;">
+        <!-- 証憑保存 -->
         <div class="td"><input id="cb_receipts" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">証憑保存（スマホで経費）</div>
         <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()" /></div>
         <div class="td"><input id="tb_receipts" type="number" value="3" min="0" oninput="calc()" /></div>
+        <div class="td arrowcell"><span class="sym">▷</span></div>
         <div class="td"><input id="ta_receipts" type="number" value="1" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_receipts">0.00</div>
 
+        <!-- 銀行信販データ受信機能 -->
         <div class="td"><input id="cb_bank" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">銀行信販データ受信機能</div>
         <div class="td"><input id="n_bank" type="number" value="260" min="0" oninput="calc()" /></div>
         <div class="td"><input id="tb_bank" type="number" value="2" min="0" oninput="calc()" /></div>
+        <div class="td arrowcell"><span class="sym">▷</span></div>
         <div class="td"><input id="ta_bank" type="number" value="0.5" min="0" step="0.1" oninput="calc()" /></div>
         <div class="td res" id="sv_bank">0.00</div>
 
+        <!-- 給与計算機能（仕訳含む） -->
         <div class="td"><input id="cb_payroll" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">給与計算機能（仕訳含む）</div>
         <div class="td"><input id="n_payroll" type="number" value="10" min="0" oninput="calc()" /></div>
         <div class="td"><input id="tb_payroll" type="number" value="8" min="0" oninput="calc()" /></div>
+        <div class="td arrowcell"><span class="sym">▷</span></div>
         <div class="td"><input id="ta_payroll" type="number" value="3" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_payroll">0.00</div>
 
+        <!-- 販売管理機能（売上計上・請求） -->
         <div class="td"><input id="cb_sales" type="checkbox" checked onchange="calc()" /></div>
         <div class="td">販売管理機能（売上計上・請求）</div>
         <div class="td"><input id="n_sales" type="number" value="12" min="0" oninput="calc()" /></div>
         <div class="td"><input id="tb_sales" type="number" value="10" min="0" oninput="calc()" /></div>
+        <div class="td arrowcell"><span class="sym">▷</span></div>
         <div class="td"><input id="ta_sales" type="number" value="5" min="0" oninput="calc()" /></div>
         <div class="td res" id="sv_sales">0.00</div>
 
+        <!-- その他（自動調整・対象外） -->
         <div class="td"><span class="note">—</span></div>
         <div class="td">その他（自動調整・対象外）</div>
         <div class="td"><input id="n_other" type="number" value="0" readonly /></div>
         <div class="td"><input id="tb_other" type="number" value="1.5" min="0" oninput="calc()" /></div>
+        <div class="td arrowcell"><span class="sym">▷</span></div>
         <div class="td"><input id="ta_other" type="number" value="1.5" min="0" oninput="calc()" readonly /></div>
         <div class="td res" id="sv_other">0.00</div>
       </div>
@@ -231,7 +251,7 @@
       <small>
         Copyright (c) <span id="creditYear"></span>
         <span id="creditCompany">税理士法人松本会計事務所</span>
-        All Rights Reserved. / <span id="creditRev">r22</span>
+        All Rights Reserved. / <span id="creditRev">r23</span>
       </small>
     </div>
 
@@ -284,6 +304,7 @@
     var m_payroll=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num(ids.n_payroll),num(ids.tb_payroll),num(ids.ta_payroll),wage);
     var m_sales=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num(ids.n_sales),num(ids.tb_sales),num(ids.ta_sales),wage);
 
+    // その他は対象外（変化なし）
     var nOther=num(ids.n_other), tOther=num(ids.tb_other);
     var hOther=(tOther*Math.max(0,nOther))/60;
 
