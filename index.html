@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r29）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r30）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -12,7 +12,7 @@
     --good:#059669; --warn:#b45309; --radius:14px;
     --emph-bg:#eaf6fb; --emph-border:rgba(32,132,168,.55); --emph-shadow:0 8px 20px rgba(32,132,168,.18);
 
-    /* 機能別（8列：導入/取引種類/機能/件数/手作業/▷/自動化後/削減h） */
+    /* 機能別（8列：導入/取引種類/機能/件数/手作業/▷/自動化/削減h） */
     --cols: .8fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
     --row-gap:6px; --col-gap:4px;
   }
@@ -24,7 +24,6 @@
   .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
   header{margin-bottom:16px;}
   h1{font-size:clamp(20px,3vw,28px);margin:0 0 6px;}
-  /* ▼ 説明文：固定サイズ。スマホ横でさらに小さく */
   .sub{color:var(--muted);font-size:13px;line-height:1.5;}
   @media (max-width:900px){ .sub{font-size:12px;} }
   @media (max-width:932px) and (orientation:landscape){ .sub{font-size:10.5px !important; line-height:1.45;} }
@@ -54,22 +53,22 @@
   .field{display:flex;flex-direction:column;gap:6px;}
   .field-note{min-height:32px;line-height:1.4;color:var(--muted);font-size:12px;}
 
-  /* KPI */
-  .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:14px;}
-  .kpi h3{margin:0 0 8px;font-size:12px;color:var(--muted);}
-  .kpi .val{font-size:clamp(18px,3.2vw,24px);font-variant-numeric:tabular-nums;}
-  .krow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
-  .aside{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-  .aside .label{font-size:11px;color:var(--muted);}
-  .aside .yen{font-size:clamp(15px,2.4vw,19px);font-variant-numeric:tabular-nums;color:#0f5132;}
+  /* ▼ KPIカード：高さを落とす（r30調整） */
+  .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;} /* 14px → 10px */
+  .kpi h3{margin:0 0 6px;font-size:11.5px;color:var(--muted);}        /* 12px → 11.5px / マージン縮小 */
+  .kpi .val{font-size:clamp(17px,3vw,22px);}                         /* 少し小さめ */
+  .krow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;} /* gap縮小 */
+  .aside{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .aside .label{font-size:10.5px;color:var(--muted);}
+  .aside .yen{font-size:clamp(14px,2.2vw,18px);color:#0f5132;}
 
-  /* 強調カード（人件費削減） */
+  /* 強調カード（人件費削減）も高さ控えめ */
   .kpi .item--emph{background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);border:2px solid var(--emph-border);box-shadow:var(--emph-shadow);}
-  .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
-  .savings .val-main{font-size:clamp(20px,3.2vw,28px);font-weight:700;color:var(--good);line-height:1;}
-  .savings .aside .label{font-size:11px;color:var(--muted);}
-  .savings .aside .val{font-size:clamp(16px,2.5vw,20px);font-variant-numeric:tabular-nums;color:#0f5132;}
+  .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
+  .savings .val-main{font-size:clamp(19px,3vw,26px);font-weight:700;color:var(--good);line-height:1;}
+  .savings .aside .label{font-size:10.5px;color:var(--muted);}
+  .savings .aside .val{font-size:clamp(15px,2.3vw,19px);color:#0f5132;}
 
   /* 合計帯（固定サイズ＋スマホ横で小さく） */
   .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
@@ -159,7 +158,7 @@
       <div class="th">件数/月</div>
       <div class="th">手作業 分/件</div>
       <div class="th arrow"></div>
-      <div class="th">自動化後 分/件</div>
+      <div class="th">自動化 分/件</div><!-- ← 文言変更 -->
       <div class="th">削減h</div>
     </div>
 
@@ -168,7 +167,7 @@
       <!-- 証憑保存 -->
       <div class="td"><input id="cb_receipts" type="checkbox" checked onchange="calc()" /></div>
       <div class="td">現金</div>
-      <div class="td c-name">証憑保存（スマホで経費）</div>
+      <div class="td c-name">証憑保存機能（スマホで経費）</div><!-- ← 文言変更 -->
       <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()" /></div>
       <div class="td"><input id="tb_receipts" type="number" value="3" min="0" oninput="calc()" /></div>
       <div class="td arrow">▷</div>
@@ -271,7 +270,7 @@
       </div>
     </div>
 
-    <div class="btns" style="margin-top:12px;">
+    <div class="btns" style="margin-top:10px;">
       <button class="outline" id="copyBtn" onclick="copySummary()">コピー</button>
       <button class="outline" id="printBtn" onclick="printPage()">印刷</button>
       <button class="outline" id="csvBtn" onclick="exportCSV()">CSV出力</button>
@@ -283,7 +282,7 @@
     <small>
       Copyright (c) <span id="creditYear"></span>
       <span id="creditCompany">税理士法人松本会計事務所</span>
-      All Rights Reserved. / <span id="creditRev">r29</span>
+      All Rights Reserved. / <span id="creditRev">r30</span>
     </small>
   </div>
 
@@ -304,21 +303,12 @@
   const CREDIT_COMPANY='税理士法人松本会計事務所';
   (function(){ var y=new Date().getFullYear(); $('creditYear').textContent=y; $('creditCompany').textContent=CREDIT_COMPANY; })();
 
-  var ids={ wage:'wage', total:'totalJournals',
-    cb_receipts:'cb_receipts', n_receipts:'n_receipts', tb_receipts:'tb_receipts', ta_receipts:'ta_receipts',
-    cb_bank:'cb_bank', n_bank:'n_bank', tb_bank:'tb_bank', ta_bank:'ta_bank',
-    cb_payroll:'cb_payroll', n_payroll:'n_payroll', tb_payroll:'tb_payroll', ta_payroll:'ta_payroll',
-    cb_sales:'cb_sales', n_sales:'n_sales', tb_sales:'tb_sales', ta_sales:'ta_sales',
-    n_other:'n_other', tb_other:'tb_other', ta_other:'ta_other'
-  };
-
   function syncOther(){ $('ta_other').value=$('tb_other').value; }
-
   function recalcOther(){
-    var total=num(ids.total);
-    var sumFour=num(ids.n_receipts)+num(ids.n_bank)+num(ids.n_payroll)+num(ids.n_sales);
+    var total=num('totalJournals');
+    var sumFour=num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales');
     var other=total-sumFour;
-    $(ids.n_other).value=other;
+    $('n_other').value=other;
     $('sumFour').textContent=String(sumFour);
     $('sumOther').textContent=String(other);
     $('sumTotal').textContent=String(sumFour+other);
@@ -338,31 +328,11 @@
   }
 
   function compute(){
-    var wage=num(ids.wage);
-    var m_receipts=mod('証憑保存（スマホで経費）',$('cb_receipts').checked,num(ids.n_receipts),num(ids.tb_receipts),num(ids.ta_receipts),wage);
-    var m_bank=mod('銀行信販データ受信機能')($('cb_bank').checked,num(ids.n_bank),num(ids.tb_bank),num(ids.ta_bank),wage);
-  }
-</script>
-<script>
-  /* ↑ 分割したので続き */
-  function mod(label, checked, n, tb, ta, wage){
-    var cnt=Math.max(0,n);
-    var hBefore=(tb*cnt)/60, hAfter=(ta*cnt)/60;
-    var hChosen=checked?hAfter:hBefore;
-    var hSaved=Math.max(0,hBefore-hChosen);
-    var adopted = !!checked && cnt>0;
-    return { label,checked,cnt,tb,ta,hBefore,hAfter,hChosen,hSaved,adopted,
-             cBefore:hBefore*wage, cChosen:hChosen*wage };
-  }
-</script>
-<script>
-  /* computeの再定義（上の誤分割を修正） */
-  function compute(){
     var wage=num('wage');
-    var m_receipts=mod('証憑保存（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
-    var m_bank=mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
-    var m_payroll=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
-    var m_sales=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
+    var m_receipts=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
+    var m_bank    =mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
+    var m_payroll =mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
+    var m_sales   =mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
 
     var hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
     var mods=[m_receipts,m_bank,m_payroll,m_sales];
@@ -383,20 +353,20 @@
 
   function updateUI(r){
     $('sv_receipts').textContent=r.mods[0].hSaved.toFixed(2);
-    $('sv_bank').textContent=r.mods[1].hSaved.toFixed(2);
+    $('sv_bank').textContent   =r.mods[1].hSaved.toFixed(2);
     $('sv_payroll').textContent=r.mods[2].hSaved.toFixed(2);
-    $('sv_sales').textContent=r.mods[3].hSaved.toFixed(2);
+    $('sv_sales').textContent  =r.mods[3].hSaved.toFixed(2);
     $('sv_other').textContent='0.00';
 
-    $('kpiHAfter').textContent=r.hChosen.toFixed(2)+' 時間';
-    $('kpiHBefore').textContent=r.hBefore.toFixed(2)+' 時間';
-    $('kpiSaved').textContent=r.hSaved.toFixed(2)+' 時間';
-    $('kpiCostAfter').textContent=yen(r.costChosen);
-    $('kpiCostBefore').textContent=yen(r.costBefore);
-    $('kpiYen').textContent=yen(r.monthlySaving);
-    $('kpiYenYear').textContent=yen(r.monthlySavingYear);
-    $('kpiAdopt').textContent=r.adopted+' / 4';
-    $('kpiBreakdown').textContent=r.mods.map(m=>m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ')||'—';
+    $('kpiHAfter').textContent = r.hChosen.toFixed(2)+' 時間';
+    $('kpiHBefore').textContent= r.hBefore.toFixed(2)+' 時間';
+    $('kpiSaved').textContent  = r.hSaved.toFixed(2)+' 時間';
+    $('kpiCostAfter').textContent = yen(r.costChosen);
+    $('kpiCostBefore').textContent= yen(r.costBefore);
+    $('kpiYen').textContent       = yen(r.monthlySaving);
+    $('kpiYenYear').textContent   = yen(r.monthlySavingYear);
+    $('kpiAdopt').textContent     = r.adopted+' / 4';
+    $('kpiBreakdown').textContent = r.mods.map(m=>m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ')||'—';
   }
 
   async function copySummary(){
@@ -406,7 +376,7 @@
     lines.push('時給: '+r.wage+' 円/時');
     lines.push('導入機能: '+r.adopted+' / 4');
     r.mods.forEach(m=>{
-      lines.push(m.label+' ['+(m.adopted?'導入':'未導入')+'] 件数='+m.cnt+' 手作業='+m.tb+'分 自動化後='+m.ta+'分 削減='+(m.hSaved.toFixed(2))+'h');
+      lines.push(m.label+' ['+(m.adopted?'導入':'未導入')+'] 件数='+m.cnt+' 手作業='+m.tb+'分 自動化='+m.ta+'分 削減='+(m.hSaved.toFixed(2))+'h');
     });
     lines.push('— 合計');
     lines.push('導入なし 総時間: '+r.hBefore.toFixed(2)+'h（人件費相当額: '+Math.round(r.costBefore)+'円）');
@@ -428,7 +398,7 @@
   function exportCSV(){
     var r=compute();
     var rows=[];
-    rows.push(['項目','導入','件数','手作業(分/件)','自動化後(分/件)','導入あり時間(h)','導入なし時間(h)','削減時間(h)']);
+    rows.push(['項目','導入','件数','手作業(分/件)','自動化(分/件)','導入あり時間(h)','導入なし時間(h)','削減時間(h)']); // 見出しも変更
     r.mods.forEach(m=>{
       rows.push([m.label,(m.adopted?'導入':'未導入'),m.cnt,m.tb,m.ta,m.hChosen.toFixed(2),m.hBefore.toFixed(2),m.hSaved.toFixed(2)]);
     });
