@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r28）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r29）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -12,22 +12,22 @@
     --good:#059669; --warn:#b45309; --radius:14px;
     --emph-bg:#eaf6fb; --emph-border:rgba(32,132,168,.55); --emph-shadow:0 8px 20px rgba(32,132,168,.18);
 
-    /* 機能別（7列：導入/取引種類/機能/件数/手作業/自動化後/削減h） */
-    --cols: .8fr 1fr 2.9fr 1.0fr 1.2fr 1.1fr .8fr;
+    /* 機能別（8列：導入/取引種類/機能/件数/手作業/▷/自動化後/削減h） */
+    --cols: .8fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
     --row-gap:6px; --col-gap:4px;
   }
-  @media (max-width:900px){ :root{ --cols:.7fr .9fr 2.7fr .95fr 1.1fr 1.05fr .75fr; } }
-  @media (max-width:740px){ :root{ --cols:.65fr .85fr 2.6fr .9fr 1.0fr 1.0fr .7fr; } }
+  @media (max-width:900px){ :root{ --cols:.7fr .9fr 2.6fr .95fr 1.05fr .3fr 1.05fr .75fr; } }
+  @media (max-width:740px){ :root{ --cols:.65fr .85fr 2.5fr .9fr 1.0fr .28fr 1.0fr .7fr; } }
 
   *{box-sizing:border-box;}
   body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;margin:0;color:var(--ink);background:var(--bg);}
   .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
   header{margin-bottom:16px;}
   h1{font-size:clamp(20px,3vw,28px);margin:0 0 6px;}
-  /* ▼ 説明文：固定サイズ（スマホ横でさらに小さく） */
+  /* ▼ 説明文：固定サイズ。スマホ横でさらに小さく */
   .sub{color:var(--muted);font-size:13px;line-height:1.5;}
   @media (max-width:900px){ .sub{font-size:12px;} }
-  @media (max-width:900px) and (orientation:landscape){ .sub{font-size:11.5px;} }
+  @media (max-width:932px) and (orientation:landscape){ .sub{font-size:10.5px !important; line-height:1.45;} }
 
   .card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(2,6,23,.08);padding:16px;margin:12px 0;}
   .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr);align-items:start;}
@@ -54,6 +54,7 @@
   .field{display:flex;flex-direction:column;gap:6px;}
   .field-note{min-height:32px;line-height:1.4;color:var(--muted);font-size:12px;}
 
+  /* KPI */
   .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
   .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:14px;}
   .kpi h3{margin:0 0 8px;font-size:12px;color:var(--muted);}
@@ -70,18 +71,23 @@
   .savings .aside .label{font-size:11px;color:var(--muted);}
   .savings .aside .val{font-size:clamp(16px,2.5vw,20px);font-variant-numeric:tabular-nums;color:#0f5132;}
 
-  /* ▼ 合計帯：固定サイズ（スマホ横でさらに小さく） */
+  /* 合計帯（固定サイズ＋スマホ横で小さく） */
   .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
   @media (max-width:900px){ .sumline{font-size:12px;} }
-  @media (max-width:900px) and (orientation:landscape){ .sumline{font-size:11.5px;} }
+  @media (max-width:932px) and (orientation:landscape){ .sumline{font-size:10.5px;} }
 
   .ok{color:var(--good);} .warn{color:var(--warn);}
 
-  /* 機能別テーブル（列間を詰め、機能列を広めに） */
+  /* 機能別テーブル：列間詰め＋機能列1行表示＋矢印カラム */
   .compact-table .thead{margin-bottom:6px;}
+  .headbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+  .headnote{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;}
+  @media (max-width:932px) and (orientation:landscape){ .headnote{font-size:11px;} }
+
   .features-head,.features-rows{display:grid;grid-template-columns:var(--cols);align-items:center;gap:var(--row-gap) var(--col-gap);}
   .features-rows .td,.features-head .th{padding:6px 6px;min-width:0;}
   .features-rows .c-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .features-rows .td.arrow, .features-head .th.arrow{ text-align:center; color:#64748b; }
   .features-head .th:last-child,.features-rows .td.res{text-align:right;}
   .compact-table input[type="number"],.compact-table input[type="text"]{padding:6px 8px;font-size:13px;border-radius:8px;}
 
@@ -140,51 +146,72 @@
 
   <!-- 1) 機能別 -->
   <section class="card compact-table">
-    <div class="thead" style="margin-bottom:8px;">機能別（チェックで導入状態を切替）</div>
-
-    <div class="features-head">
-      <div class="th">導入</div><div class="th">取引種類</div><div class="th c-name">機能</div>
-      <div class="th">件数/月</div><div class="th">手作業 分/件</div><div class="th">自動化後 分/件</div><div class="th">削減h</div>
+    <div class="headbar">
+      <div class="thead">機能別（チェックで導入状態を切替）</div>
+      <div class="headnote">※各数値は社内の実測値を入れてください。</div>
     </div>
 
+    <!-- 見出し（8列） -->
+    <div class="features-head">
+      <div class="th">導入</div>
+      <div class="th">取引種類</div>
+      <div class="th c-name">機能</div>
+      <div class="th">件数/月</div>
+      <div class="th">手作業 分/件</div>
+      <div class="th arrow"></div>
+      <div class="th">自動化後 分/件</div>
+      <div class="th">削減h</div>
+    </div>
+
+    <!-- 行 -->
     <div class="features-rows">
+      <!-- 証憑保存 -->
       <div class="td"><input id="cb_receipts" type="checkbox" checked onchange="calc()" /></div>
       <div class="td">現金</div>
       <div class="td c-name">証憑保存（スマホで経費）</div>
       <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()" /></div>
       <div class="td"><input id="tb_receipts" type="number" value="3" min="0" oninput="calc()" /></div>
+      <div class="td arrow">▷</div>
       <div class="td"><input id="ta_receipts" type="number" value="1" min="0" oninput="calc()" /></div>
       <div class="td res" id="sv_receipts">0.00</div>
 
+      <!-- 銀行信販 -->
       <div class="td"><input id="cb_bank" type="checkbox" checked onchange="calc()" /></div>
       <div class="td">預金</div>
       <div class="td c-name">銀行信販データ受信機能</div>
       <div class="td"><input id="n_bank" type="number" value="260" min="0" oninput="calc()" /></div>
       <div class="td"><input id="tb_bank" type="number" value="2" min="0" oninput="calc()" /></div>
+      <div class="td arrow">▷</div>
       <div class="td"><input id="ta_bank" type="number" value="0.5" min="0" step="0.1" oninput="calc()" /></div>
       <div class="td res" id="sv_bank">0.00</div>
 
+      <!-- 給与 -->
       <div class="td"><input id="cb_payroll" type="checkbox" checked onchange="calc()" /></div>
       <div class="td">給与</div>
       <div class="td c-name">給与計算機能（仕訳含む）</div>
       <div class="td"><input id="n_payroll" type="number" value="10" min="0" oninput="calc()" /></div>
       <div class="td"><input id="tb_payroll" type="number" value="8" min="0" oninput="calc()" /></div>
+      <div class="td arrow">▷</div>
       <div class="td"><input id="ta_payroll" type="number" value="3" min="0" oninput="calc()" /></div>
       <div class="td res" id="sv_payroll">0.00</div>
 
+      <!-- 販売管理 -->
       <div class="td"><input id="cb_sales" type="checkbox" checked onchange="calc()" /></div>
       <div class="td">売上</div>
       <div class="td c-name">販売管理機能（売上計上・請求）</div>
       <div class="td"><input id="n_sales" type="number" value="12" min="0" oninput="calc()" /></div>
       <div class="td"><input id="tb_sales" type="number" value="10" min="0" oninput="calc()" /></div>
+      <div class="td arrow">▷</div>
       <div class="td"><input id="ta_sales" type="number" value="5" min="0" oninput="calc()" /></div>
       <div class="td res" id="sv_sales">0.00</div>
 
+      <!-- その他 -->
       <div class="td"><span class="note">—</span></div>
       <div class="td">その他</div>
       <div class="td c-name">その他（自動調整・対象外）</div>
       <div class="td"><input id="n_other" type="number" value="0" readonly /></div>
       <div class="td"><input id="tb_other" type="number" value="1.5" min="0" oninput="syncOther(); calc()" /></div>
+      <div class="td arrow">▷</div>
       <div class="td"><input id="ta_other" type="number" value="1.5" min="0" readonly /></div>
       <div class="td res" id="sv_other">0.00</div>
     </div>
@@ -199,8 +226,6 @@
       <button class="outline" onclick="resetAll(); calc(); toast('初期値にリセットしました');">リセット</button>
     </div>
   </section>
-
-  <div class="note" style="margin:8px 0 0 2px;">各分数は社内の実測で置換してください。</div>
 
   <!-- 2) 結果表示（順序：導入なし→導入あり） -->
   <section class="card">
@@ -253,11 +278,12 @@
     </div>
   </section>
 
+  <!-- クレジット -->
   <div class="credit">
     <small>
       Copyright (c) <span id="creditYear"></span>
       <span id="creditCompany">税理士法人松本会計事務所</span>
-      All Rights Reserved. / <span id="creditRev">r28</span>
+      All Rights Reserved. / <span id="creditRev">r29</span>
     </small>
   </div>
 
@@ -269,6 +295,7 @@
   function yen(n){ return isNaN(n)?'¥0':n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}); }
   function toast(msg){ var t=$('toast'); t.textContent=msg; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1600); }
 
+  /* カンマ⇔数値 */
   function parseNum(v){ if(v==null) return 0; var s=String(v).replace(/[,\s]/g,''); var n=parseFloat(s); return isNaN(n)?0:n; }
   function num(id){ return parseNum($(id).value); }
   function unformatWage(){ var el=$('wage'); el.value=String(parseNum(el.value)); }
@@ -286,6 +313,7 @@
   };
 
   function syncOther(){ $('ta_other').value=$('tb_other').value; }
+
   function recalcOther(){
     var total=num(ids.total);
     var sumFour=num(ids.n_receipts)+num(ids.n_bank)+num(ids.n_payroll)+num(ids.n_sales);
@@ -312,24 +340,44 @@
   function compute(){
     var wage=num(ids.wage);
     var m_receipts=mod('証憑保存（スマホで経費）',$('cb_receipts').checked,num(ids.n_receipts),num(ids.tb_receipts),num(ids.ta_receipts),wage);
-    var m_bank=mod('銀行信販データ受信機能',$('cb_bank').checked,num(ids.n_bank),num(ids.tb_bank),num(ids.ta_bank),wage);
-    var m_payroll=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num(ids.n_payroll),num(ids.tb_payroll),num(ids.ta_payroll),wage);
-    var m_sales=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num(ids.n_sales),num(ids.tb_sales),num(ids.ta_sales),wage);
+    var m_bank=mod('銀行信販データ受信機能')($('cb_bank').checked,num(ids.n_bank),num(ids.tb_bank),num(ids.ta_bank),wage);
+  }
+</script>
+<script>
+  /* ↑ 分割したので続き */
+  function mod(label, checked, n, tb, ta, wage){
+    var cnt=Math.max(0,n);
+    var hBefore=(tb*cnt)/60, hAfter=(ta*cnt)/60;
+    var hChosen=checked?hAfter:hBefore;
+    var hSaved=Math.max(0,hBefore-hChosen);
+    var adopted = !!checked && cnt>0;
+    return { label,checked,cnt,tb,ta,hBefore,hAfter,hChosen,hSaved,adopted,
+             cBefore:hBefore*wage, cChosen:hChosen*wage };
+  }
+</script>
+<script>
+  /* computeの再定義（上の誤分割を修正） */
+  function compute(){
+    var wage=num('wage');
+    var m_receipts=mod('証憑保存（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
+    var m_bank=mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
+    var m_payroll=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
+    var m_sales=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
 
-    var hOther=(num(ids.tb_other)*Math.max(0,num(ids.n_other)))/60;
+    var hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
     var mods=[m_receipts,m_bank,m_payroll,m_sales];
 
     var hBefore=mods.reduce((s,m)=>s+m.hBefore,0)+hOther;
     var hChosen=mods.reduce((s,m)=>s+m.hChosen,0)+hOther;
     var hSaved=Math.max(0,hBefore-hChosen);
 
-    var costBefore=hBefore*num(ids.wage);
-    var costChosen=hChosen*num(ids.wage);
+    var costBefore=hBefore*wage;
+    var costChosen=hChosen*wage;
     var monthlySaving=costBefore-costChosen;
     var monthlySavingYear=monthlySaving*12;
     var adopted=mods.reduce((s,m)=>s+(m.adopted?1:0),0);
 
-    return { wage: num(ids.wage), mods, hOther, hBefore, hChosen, hSaved,
+    return { wage, mods, hOther, hBefore, hChosen, hSaved,
              costBefore, costChosen, monthlySaving, monthlySavingYear, adopted };
   }
 
