@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r30）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r31・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -49,21 +49,19 @@
   .outline:active{transform:translateY(0);background:#eef7fb;}
   .outline:focus{box-shadow:0 0 0 4px var(--ring),0 1px 6px rgba(2,6,23,.05);}
 
-  /* 2列の高さ統一 */
+  /* 入力2列の高さ統一 */
   .field{display:flex;flex-direction:column;gap:6px;}
   .field-note{min-height:32px;line-height:1.4;color:var(--muted);font-size:12px;}
 
-  /* ▼ KPIカード：高さを落とす（r30調整） */
+  /* KPI（高さ控えめのまま） */
   .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;} /* 14px → 10px */
-  .kpi h3{margin:0 0 6px;font-size:11.5px;color:var(--muted);}        /* 12px → 11.5px / マージン縮小 */
-  .kpi .val{font-size:clamp(17px,3vw,22px);}                         /* 少し小さめ */
-  .krow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;} /* gap縮小 */
+  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;}
+  .kpi h3{margin:0 0 6px;font-size:11.5px;color:var(--muted);}
+  .kpi .val{font-size:clamp(17px,3vw,22px);}
+  .krow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
   .aside{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
   .aside .label{font-size:10.5px;color:var(--muted);}
   .aside .yen{font-size:clamp(14px,2.2vw,18px);color:#0f5132;}
-
-  /* 強調カード（人件費削減）も高さ控えめ */
   .kpi .item--emph{background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);border:2px solid var(--emph-border);box-shadow:var(--emph-shadow);}
   .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
   .savings .val-main{font-size:clamp(19px,3vw,26px);font-weight:700;color:var(--good);line-height:1;}
@@ -119,8 +117,8 @@
 <body>
 <div class="wrap" id="app">
   <header>
-    <h1>自動化メリット試算（TKC方式・4機能）</h1>
-    <div class="sub">4機能のチェックで<span style="font-weight:600">導入（自動化後）/未導入（手作業）</span>を切替。導入効果（時間・人件費）を算出します。月間仕訳総数との差分は<strong>「その他」</strong>として自動調整。</div>
+    <h1>自動化メリット試算（TKC方式・5機能）</h1>
+    <div class="sub">5機能のチェックで<span style="font-weight:600">導入（自動化後）/未導入（手作業）</span>を切替。導入効果（時間・人件費）を算出します。月間仕訳総数との差分は<strong>「その他」</strong>として自動調整。</div>
   </header>
 
   <!-- 0) 前提 -->
@@ -158,7 +156,7 @@
       <div class="th">件数/月</div>
       <div class="th">手作業 分/件</div>
       <div class="th arrow"></div>
-      <div class="th">自動化 分/件</div><!-- ← 文言変更 -->
+      <div class="th">自動化 分/件</div>
       <div class="th">削減h</div>
     </div>
 
@@ -167,7 +165,7 @@
       <!-- 証憑保存 -->
       <div class="td"><input id="cb_receipts" type="checkbox" checked onchange="calc()" /></div>
       <div class="td">現金</div>
-      <div class="td c-name">証憑保存機能（スマホで経費）</div><!-- ← 文言変更 -->
+      <div class="td c-name">証憑保存機能（スマホで経費）</div>
       <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()" /></div>
       <div class="td"><input id="tb_receipts" type="number" value="3" min="0" oninput="calc()" /></div>
       <div class="td arrow">▷</div>
@@ -204,6 +202,16 @@
       <div class="td"><input id="ta_sales" type="number" value="5" min="0" oninput="calc()" /></div>
       <div class="td res" id="sv_sales">0.00</div>
 
+      <!-- レジ（新規） -->
+      <div class="td"><input id="cb_pos" type="checkbox" checked onchange="calc()" /></div>
+      <div class="td">レジ</div>
+      <div class="td c-name">レジからのデータ受信</div>
+      <div class="td"><input id="n_pos" type="number" value="0" min="0" oninput="calc()" /></div>
+      <div class="td"><input id="tb_pos" type="number" value="3" min="0" oninput="calc()" /></div>
+      <div class="td arrow">▷</div>
+      <div class="td"><input id="ta_pos" type="number" value="1" min="0" oninput="calc()" /></div>
+      <div class="td res" id="sv_pos">0.00</div>
+
       <!-- その他 -->
       <div class="td"><span class="note">—</span></div>
       <div class="td">その他</div>
@@ -216,7 +224,7 @@
     </div>
 
     <div class="sumline">
-      <div>入力合計（4機能）＝ <strong id="sumFour">312</strong> 件 ／ その他＝ <strong id="sumOther">8</strong> 件 ／ 総合計＝ <strong id="sumTotal">320</strong> 件</div>
+      <div>入力合計（5機能）＝ <strong id="sumFeat">312</strong> 件 ／ その他＝ <strong id="sumOther">8</strong> 件 ／ 総合計＝ <strong id="sumTotal">320</strong> 件</div>
       <div id="deltaMsg" class="ok">その他は自動調整されます。合計は常に総数と一致します。</div>
     </div>
 
@@ -260,7 +268,7 @@
 
       <div class="item">
         <h3>導入機能数</h3>
-        <div class="val" id="kpiAdopt">0 / 4</div>
+        <div class="val" id="kpiAdopt">0 / 5</div>
         <div class="note">チェックあり & 件数>0 の数</div>
       </div>
       <div class="item">
@@ -282,7 +290,7 @@
     <small>
       Copyright (c) <span id="creditYear"></span>
       <span id="creditCompany">税理士法人松本会計事務所</span>
-      All Rights Reserved. / <span id="creditRev">r30</span>
+      All Rights Reserved. / <span id="creditRev">r31</span>
     </small>
   </div>
 
@@ -304,14 +312,15 @@
   (function(){ var y=new Date().getFullYear(); $('creditYear').textContent=y; $('creditCompany').textContent=CREDIT_COMPANY; })();
 
   function syncOther(){ $('ta_other').value=$('tb_other').value; }
+
   function recalcOther(){
     var total=num('totalJournals');
-    var sumFour=num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales');
-    var other=total-sumFour;
+    var sumFeat=num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales')+num('n_pos');
+    var other=total-sumFeat;
     $('n_other').value=other;
-    $('sumFour').textContent=String(sumFour);
+    $('sumFeat').textContent=String(sumFeat);
     $('sumOther').textContent=String(other);
-    $('sumTotal').textContent=String(sumFour+other);
+    $('sumTotal').textContent=String(sumFeat+other);
     var msg=$('deltaMsg');
     if(other<0){ msg.textContent='合計が総数を超過しています（その他が負値）。件数配分を見直してください。'; msg.className='warn'; }
     else{ msg.textContent='その他は自動調整されます。合計は常に総数と一致します。'; msg.className='ok'; }
@@ -333,9 +342,10 @@
     var m_bank    =mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
     var m_payroll =mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
     var m_sales   =mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
+    var m_pos     =mod('レジからのデータ受信',$('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),wage);
 
     var hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
-    var mods=[m_receipts,m_bank,m_payroll,m_sales];
+    var mods=[m_receipts,m_bank,m_payroll,m_sales,m_pos];
 
     var hBefore=mods.reduce((s,m)=>s+m.hBefore,0)+hOther;
     var hChosen=mods.reduce((s,m)=>s+m.hChosen,0)+hOther;
@@ -356,6 +366,7 @@
     $('sv_bank').textContent   =r.mods[1].hSaved.toFixed(2);
     $('sv_payroll').textContent=r.mods[2].hSaved.toFixed(2);
     $('sv_sales').textContent  =r.mods[3].hSaved.toFixed(2);
+    $('sv_pos').textContent    =r.mods[4].hSaved.toFixed(2);
     $('sv_other').textContent='0.00';
 
     $('kpiHAfter').textContent = r.hChosen.toFixed(2)+' 時間';
@@ -365,16 +376,16 @@
     $('kpiCostBefore').textContent= yen(r.costBefore);
     $('kpiYen').textContent       = yen(r.monthlySaving);
     $('kpiYenYear').textContent   = yen(r.monthlySavingYear);
-    $('kpiAdopt').textContent     = r.adopted+' / 4';
+    $('kpiAdopt').textContent     = r.adopted+' / 5';
     $('kpiBreakdown').textContent = r.mods.map(m=>m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ')||'—';
   }
 
   async function copySummary(){
     var r=compute();
     var lines=[];
-    lines.push('【自動化メリット試算サマリー（4機能）】');
+    lines.push('【自動化メリット試算サマリー（5機能）】');
     lines.push('時給: '+r.wage+' 円/時');
-    lines.push('導入機能: '+r.adopted+' / 4');
+    lines.push('導入機能: '+r.adopted+' / 5');
     r.mods.forEach(m=>{
       lines.push(m.label+' ['+(m.adopted?'導入':'未導入')+'] 件数='+m.cnt+' 手作業='+m.tb+'分 自動化='+m.ta+'分 削減='+(m.hSaved.toFixed(2))+'h');
     });
@@ -398,7 +409,7 @@
   function exportCSV(){
     var r=compute();
     var rows=[];
-    rows.push(['項目','導入','件数','手作業(分/件)','自動化(分/件)','導入あり時間(h)','導入なし時間(h)','削減時間(h)']); // 見出しも変更
+    rows.push(['項目','導入','件数','手作業(分/件)','自動化(分/件)','導入あり時間(h)','導入なし時間(h)','削減時間(h)']);
     r.mods.forEach(m=>{
       rows.push([m.label,(m.adopted?'導入':'未導入'),m.cnt,m.tb,m.ta,m.hChosen.toFixed(2),m.hBefore.toFixed(2),m.hSaved.toFixed(2)]);
     });
@@ -424,13 +435,14 @@
 
   function resetAll(){
     $('wage').value='2,779'; $('totalJournals').value=320;
-    $('cb_receipts').checked=true; $('cb_bank').checked=true; $('cb_payroll').checked=true; $('cb_sales').checked=true;
+    $('cb_receipts').checked=true; $('cb_bank').checked=true; $('cb_payroll').checked=true; $('cb_sales').checked=true; $('cb_pos').checked=true;
     $('n_receipts').value=30; $('tb_receipts').value=3;  $('ta_receipts').value=1;
     $('n_bank').value=260;    $('tb_bank').value=2;      $('ta_bank').value=0.5;
     $('n_payroll').value=10;  $('tb_payroll').value=8;   $('ta_payroll').value=3;
     $('n_sales').value=12;    $('tb_sales').value=10;    $('ta_sales').value=5;
+    $('n_pos').value=0;       $('tb_pos').value=3;       $('ta_pos').value=1;  /* 新規 */
     $('tb_other').value=1.5;  $('ta_other').value=1.5;
-    ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_other'].forEach(id=>$(id).textContent='0.00');
+    ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos','sv_other'].forEach(id=>$(id).textContent='0.00');
   }
 
   function calc(){ syncOther(); recalcOther(); updateUI(compute()); }
