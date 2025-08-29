@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r33・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r35・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -48,7 +48,7 @@
   .outline:active{transform:translateY(0);background:#eef7fb;}
   .outline:focus{box-shadow:0 0 0 4px var(--ring),0 1px 6px rgba(2,6,23,.05);}
 
-  /* 高さ控えめKPI */
+  /* KPI */
   .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
   .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;}
   .kpi h3{margin:0 0 6px;font-size:11.5px;color:var(--muted);}
@@ -57,20 +57,19 @@
   .aside{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
   .aside .label{font-size:10.5px;color:var(--muted);}
   .aside .yen{font-size:clamp(14px,2.2vw,18px);color:#0f5132;}
+  .aside .pct{font-size:clamp(14px,2.2vw,18px);font-variant-numeric:tabular-nums;}
   .kpi .item--emph{background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);border:2px solid var(--emph-border);box-shadow:var(--emph-shadow);}
   .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
-  .savings .val-main{font-size:clamp(19px,3vw,26px);font-weight:700;color:var(--good);line-height:1;}
+  .savings .val-main{font-size:clamp(19px,3vw,26px);font-weight:700;color:#059669;line-height:1;}
   .savings .aside .label{font-size:10.5px;color:var(--muted);}
   .savings .aside .val{font-size:clamp(15px,2.3vw,19px);color:#0f5132;}
 
-  /* 合計帯（固定サイズ＋スマホ横で小さく） */
   .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
   @media (max-width:900px){ .sumline{font-size:12px;} }
   @media (max-width:932px) and (orientation:landscape){ .sumline{font-size:10.5px;} }
 
   .ok{color:var(--good);} .warn{color:var(--warn);}
 
-  /* 機能別テーブル */
   .compact-table .thead{margin-bottom:6px;}
   .headbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
   .headnote{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;}
@@ -128,7 +127,6 @@
         <div class="field-note">※初期値：令和5年民間給与実態統計調査での平均年収460万円をベースにした金額</div>
       </div>
 
-      <!-- ★ ここを 'span 6' に戻しました（以前は誤って % が付いていました） -->
       <div class="td field" style="grid-column:span 6;">
         <label>月間仕訳数（<span class="note">総数</span>）</label>
         <input id="totalJournals" type="number" inputmode="numeric" value="320" min="0" oninput="calc()" />
@@ -264,9 +262,16 @@
 
       <div class="item">
         <h3>導入機能数</h3>
-        <div class="val" id="kpiAdopt">0 / 5</div>
+        <div class="krow">
+          <div class="val" id="kpiAdopt">0 / 5</div>
+          <div class="aside">
+            <div class="label">自動化率</div>
+            <div class="pct" id="kpiRate">0%</div>
+          </div>
+        </div>
         <div class="note">チェックあり & 件数>0 の数</div>
       </div>
+
       <div class="item">
         <h3>機能別 削減時間（h）</h3>
         <div class="note">チェック時のみ削減 > 0</div>
@@ -285,7 +290,7 @@
     <small>
       Copyright (c) <span id="creditYear"></span>
       <span id="creditCompany">税理士法人松本会計事務所</span>
-      All Rights Reserved. / <span id="creditRev">r33</span>
+      All Rights Reserved. / <span id="creditRev">r35</span>
     </small>
   </div>
 
@@ -293,6 +298,7 @@
 </div>
 
 <script>
+  /* 汎用 */
   function $(id){ return document.getElementById(id); }
   function yen(n){ return isNaN(n)?'¥0':n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}); }
   function toast(msg){ var t=$('toast'); t.textContent=msg; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1600); }
@@ -303,11 +309,14 @@
   function unformatWage(){ var el=$('wage'); el.value=String(parseNum(el.value)); }
   function formatWage(){ var el=$('wage'); var n=parseNum(el.value); el.value = n? n.toLocaleString('ja-JP'):''; }
 
+  /* クレジット */
   const CREDIT_COMPANY='税理士法人松本会計事務所';
   (function(){ var y=new Date().getFullYear(); $('creditYear').textContent=y; $('creditCompany').textContent=CREDIT_COMPANY; })();
 
+  /* その他の分/件は同期 */
   function syncOther(){ $('ta_other').value=$('tb_other').value; }
 
+  /* 件数の自動調整 */
   function recalcOther(){
     var total=num('totalJournals');
     var sumFeat=num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales')+num('n_pos');
@@ -321,6 +330,7 @@
     else{ msg.textContent='その他は自動調整されます。合計は常に総数と一致します。'; msg.className='ok'; }
   }
 
+  /* モジュール（1行の計算） */
   function mod(label, checked, n, tb, ta, wage){
     var cnt=Math.max(0,n);
     var hBefore=(tb*cnt)/60, hAfter=(ta*cnt)/60;
@@ -331,28 +341,7 @@
              cBefore:hBefore*wage, cChosen:hChosen*wage };
   }
 
-  function compute(){
-    var wage=num('wage');
-    var m_receipts=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
-    var m_bank    =mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
-    var m_payroll =mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
-    var m_sales   =mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
-    var m_pos     =mod('レジからのデータ受信')($('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),wage);
-  }
-</script>
-<script>
-  /* ↑ 一部ブラウザでのパース安定のため関数を分割再宣言 */
-  function mod(label, checked, n, tb, ta, wage){
-    var cnt=Math.max(0,n);
-    var hBefore=(tb*cnt)/60, hAfter=(ta*cnt)/60;
-    var hChosen=checked?hAfter:hBefore;
-    var hSaved=Math.max(0,hBefore-hChosen);
-    var adopted = !!checked && cnt>0;
-    return { label,checked,cnt,tb,ta,hBefore,hAfter,hChosen,hSaved,adopted,
-             cBefore:hBefore*wage, cChosen:hChosen*wage };
-  }
-</script>
-<script>
+  /* 集計 */
   function compute(){
     var wage=num('wage');
     var m_receipts=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
@@ -374,10 +363,17 @@
     var monthlySavingYear=monthlySaving*12;
     var adopted=mods.reduce((s,m)=>s+(m.adopted?1:0),0);
 
+    /* ▼ 自動化率：チェックが付いた機能の仕訳数合計 / 仕訳総数 ×100 */
+    var totalJ = num('totalJournals');
+    var autoJ  = mods.reduce((s,m)=> s + (m.checked ? m.cnt : 0), 0);
+    var rateJ  = totalJ > 0 ? (autoJ / totalJ) * 100 : 0;
+
     return { wage, mods, hOther, hBefore, hChosen, hSaved,
-             costBefore, costChosen, monthlySaving, monthlySavingYear, adopted };
+             costBefore, costChosen, monthlySaving, monthlySavingYear,
+             adopted, autoJ, totalJ, rateJ };
   }
 
+  /* 画面反映 */
   function updateUI(r){
     $('sv_receipts').textContent=r.mods[0].hSaved.toFixed(2);
     $('sv_bank').textContent   =r.mods[1].hSaved.toFixed(2);
@@ -394,15 +390,17 @@
     $('kpiYen').textContent       = yen(r.monthlySaving);
     $('kpiYenYear').textContent   = yen(r.monthlySavingYear);
     $('kpiAdopt').textContent     = r.adopted+' / 5';
+    $('kpiRate').textContent      = Math.round(r.rateJ)+'%'; /* ← 新定義で表示 */
     $('kpiBreakdown').textContent = r.mods.map(m=>m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ')||'—';
   }
 
+  /* コピー */
   async function copySummary(){
     var r=compute();
     var lines=[];
     lines.push('【自動化メリット試算サマリー（5機能）】');
     lines.push('時給: '+r.wage+' 円/時');
-    lines.push('導入機能: '+r.adopted+' / 5');
+    lines.push('導入機能: '+r.adopted+' / 5（自動化率: '+Math.round(r.rateJ)+'%）');
     r.mods.forEach(m=>{
       lines.push(m.label+' ['+(m.adopted?'導入':'未導入')+'] 件数='+m.cnt+' 手作業='+m.tb+'分 自動化='+m.ta+'分 削減='+(m.hSaved.toFixed(2))+'h');
     });
@@ -431,7 +429,10 @@
     r.mods.forEach(m=>{
       rows.push([m.label,(m.adopted?'導入':'未導入'),m.cnt,m.tb,m.ta,m.hChosen.toFixed(2),m.hBefore.toFixed(2),m.hSaved.toFixed(2)]);
     });
-    rows.push([]); rows.push(['導入なし 人件費相当額(円)',Math.round(r.costBefore)]);
+    rows.push([]);
+    rows.push(['導入機能数', r.adopted]);
+    rows.push(['自動化率（仕訳ベース）', Math.round(r.rateJ)+'%']);
+    rows.push(['導入なし 人件費相当額(円)',Math.round(r.costBefore)]);
     rows.push(['導入あり 人件費相当額(円)',Math.round(r.costChosen)]);
     rows.push(['時間短縮(h/月)',r.hSaved.toFixed(2)]);
     rows.push(['人件費削減(円/月)',Math.round(r.monthlySaving)]);
@@ -463,6 +464,7 @@
 
   function printPage(){ try{ window.print(); toast('印刷ダイアログを開きます'); }catch(e){ toast('印刷がブロックされました'); } }
 
+  /* 初期化 */
   function resetAll(){
     $('wage').value='2,779'; $('totalJournals').value=320;
     $('cb_receipts').checked=true; $('cb_bank').checked=true; $('cb_payroll').checked=true; $('cb_sales').checked=true; $('cb_pos').checked=true;
