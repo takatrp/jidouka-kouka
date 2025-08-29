@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r35・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r36・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -57,7 +57,12 @@
   .aside{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
   .aside .label{font-size:10.5px;color:var(--muted);}
   .aside .yen{font-size:clamp(14px,2.2vw,18px);color:#0f5132;}
-  .aside .pct{font-size:clamp(14px,2.2vw,18px);font-variant-numeric:tabular-nums;}
+  /* ↓ 仕訳自動化率を少し大きく・強調 */
+  .aside .pct{
+    font-size:clamp(18px,3vw,24px);
+    font-variant-numeric:tabular-nums;
+    font-weight:700;
+  }
   .kpi .item--emph{background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);border:2px solid var(--emph-border);box-shadow:var(--emph-shadow);}
   .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
   .savings .val-main{font-size:clamp(19px,3vw,26px);font-weight:700;color:#059669;line-height:1;}
@@ -265,8 +270,8 @@
         <div class="krow">
           <div class="val" id="kpiAdopt">0 / 5</div>
           <div class="aside">
-            <div class="label">自動化率</div>
-            <div class="pct" id="kpiRate">0%</div>
+            <div class="label">仕訳自動化率</div>
+            <div class="pct" id="kpiRate">0.00%</div>
           </div>
         </div>
         <div class="note">チェックあり & 件数>0 の数</div>
@@ -290,7 +295,7 @@
     <small>
       Copyright (c) <span id="creditYear"></span>
       <span id="creditCompany">税理士法人松本会計事務所</span>
-      All Rights Reserved. / <span id="creditRev">r35</span>
+      All Rights Reserved. / <span id="creditRev">r36</span>
     </small>
   </div>
 
@@ -348,6 +353,28 @@
     var m_bank    =mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
     var m_payroll =mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
     var m_sales   =mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
+    var m_pos     =mod('レジからのデータ受信')($('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),wage);
+  }
+</script>
+<script>
+  /* 上のスニペットで関数が崩れないよう再宣言 */
+  function mod(label, checked, n, tb, ta, wage){
+    var cnt=Math.max(0,n);
+    var hBefore=(tb*cnt)/60, hAfter=(ta*cnt)/60;
+    var hChosen=checked?hAfter:hBefore;
+    var hSaved=Math.max(0,hBefore-hChosen);
+    var adopted = !!checked && cnt>0;
+    return { label,checked,cnt,tb,ta,hBefore,hAfter,hChosen,hSaved,adopted,
+             cBefore:hBefore*wage, cChosen:hChosen*wage };
+  }
+</script>
+<script>
+  function compute(){
+    var wage=num('wage');
+    var m_receipts=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
+    var m_bank    =mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
+    var m_payroll =mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
+    var m_sales   =mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
     var m_pos     =mod('レジからのデータ受信',$('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),wage);
 
     var hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
@@ -363,7 +390,7 @@
     var monthlySavingYear=monthlySaving*12;
     var adopted=mods.reduce((s,m)=>s+(m.adopted?1:0),0);
 
-    /* ▼ 自動化率：チェックが付いた機能の仕訳数合計 / 仕訳総数 ×100 */
+    /* 仕訳自動化率：チェック付機能の仕訳数合計 / 仕訳総数 ×100 */
     var totalJ = num('totalJournals');
     var autoJ  = mods.reduce((s,m)=> s + (m.checked ? m.cnt : 0), 0);
     var rateJ  = totalJ > 0 ? (autoJ / totalJ) * 100 : 0;
@@ -390,7 +417,7 @@
     $('kpiYen').textContent       = yen(r.monthlySaving);
     $('kpiYenYear').textContent   = yen(r.monthlySavingYear);
     $('kpiAdopt').textContent     = r.adopted+' / 5';
-    $('kpiRate').textContent      = Math.round(r.rateJ)+'%'; /* ← 新定義で表示 */
+    $('kpiRate').textContent      = r.rateJ.toFixed(2)+'%'; /* ← 2桁表示 */
     $('kpiBreakdown').textContent = r.mods.map(m=>m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ')||'—';
   }
 
@@ -400,7 +427,7 @@
     var lines=[];
     lines.push('【自動化メリット試算サマリー（5機能）】');
     lines.push('時給: '+r.wage+' 円/時');
-    lines.push('導入機能: '+r.adopted+' / 5（自動化率: '+Math.round(r.rateJ)+'%）');
+    lines.push('導入機能: '+r.adopted+' / 5（仕訳自動化率: '+r.rateJ.toFixed(2)+'%）');
     r.mods.forEach(m=>{
       lines.push(m.label+' ['+(m.adopted?'導入':'未導入')+'] 件数='+m.cnt+' 手作業='+m.tb+'分 自動化='+m.ta+'分 削減='+(m.hSaved.toFixed(2))+'h');
     });
@@ -431,7 +458,7 @@
     });
     rows.push([]);
     rows.push(['導入機能数', r.adopted]);
-    rows.push(['自動化率（仕訳ベース）', Math.round(r.rateJ)+'%']);
+    rows.push(['仕訳自動化率', r.rateJ.toFixed(2)+'%']);  /* ← ラベル＆2桁 */
     rows.push(['導入なし 人件費相当額(円)',Math.round(r.costBefore)]);
     rows.push(['導入あり 人件費相当額(円)',Math.round(r.costChosen)]);
     rows.push(['時間短縮(h/月)',r.hSaved.toFixed(2)]);
