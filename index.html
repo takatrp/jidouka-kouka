@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r32・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r33・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -128,7 +128,8 @@
         <div class="field-note">※初期値：令和5年民間給与実態統計調査での平均年収460万円をベースにした金額</div>
       </div>
 
-      <div class="td field" style="grid-column:span 6%;">
+      <!-- ★ ここを 'span 6' に戻しました（以前は誤って % が付いていました） -->
+      <div class="td field" style="grid-column:span 6;">
         <label>月間仕訳数（<span class="note">総数</span>）</label>
         <input id="totalJournals" type="number" inputmode="numeric" value="320" min="0" oninput="calc()" />
         <div class="field-note"></div>
@@ -164,7 +165,7 @@
       <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()" /></div>
       <div class="td"><input id="tb_receipts" type="number" value="3" min="0" oninput="calc()" /></div>
       <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_receipts" type="number" value="2" min="0" oninput="calc()" /></div><!-- ← 2 に変更 -->
+      <div class="td"><input id="ta_receipts" type="number" value="2" min="0" oninput="calc()" /></div>
       <div class="td res" id="sv_receipts">0.00</div>
 
       <!-- 銀行信販 -->
@@ -204,17 +205,17 @@
       <div class="td"><input id="n_pos" type="number" value="0" min="0" oninput="calc()" /></div>
       <div class="td"><input id="tb_pos" type="number" value="3" min="0" oninput="calc()" /></div>
       <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_pos" type="number" value="0.5" min="0" step="0.1" oninput="calc()" /></div><!-- ← 0.5 に変更 -->
+      <div class="td"><input id="ta_pos" type="number" value="0.5" min="0" step="0.1" oninput="calc()" /></div>
       <div class="td res" id="sv_pos">0.00</div>
 
-      <!-- その他（同期仕様） -->
+      <!-- その他（同期） -->
       <div class="td"><span class="note">—</span></div>
       <div class="td">その他</div>
       <div class="td c-name">その他（自動調整・対象外）</div>
       <div class="td"><input id="n_other" type="number" value="0" readonly /></div>
-      <div class="td"><input id="tb_other" type="number" value="3" min="0" oninput="syncOther(); calc()" /></div><!-- ← 3 に変更 -->
+      <div class="td"><input id="tb_other" type="number" value="3" min="0" oninput="syncOther(); calc()" /></div>
       <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_other" type="number" value="3" min="0" readonly /></div><!-- ← 3 に変更（同期） -->
+      <div class="td"><input id="ta_other" type="number" value="3" min="0" readonly /></div>
       <div class="td res" id="sv_other">0.00</div>
     </div>
 
@@ -284,7 +285,7 @@
     <small>
       Copyright (c) <span id="creditYear"></span>
       <span id="creditCompany">税理士法人松本会計事務所</span>
-      All Rights Reserved. / <span id="creditRev">r32</span>
+      All Rights Reserved. / <span id="creditRev">r33</span>
     </small>
   </div>
 
@@ -330,6 +331,28 @@
              cBefore:hBefore*wage, cChosen:hChosen*wage };
   }
 
+  function compute(){
+    var wage=num('wage');
+    var m_receipts=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
+    var m_bank    =mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
+    var m_payroll =mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
+    var m_sales   =mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
+    var m_pos     =mod('レジからのデータ受信')($('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),wage);
+  }
+</script>
+<script>
+  /* ↑ 一部ブラウザでのパース安定のため関数を分割再宣言 */
+  function mod(label, checked, n, tb, ta, wage){
+    var cnt=Math.max(0,n);
+    var hBefore=(tb*cnt)/60, hAfter=(ta*cnt)/60;
+    var hChosen=checked?hAfter:hBefore;
+    var hSaved=Math.max(0,hBefore-hChosen);
+    var adopted = !!checked && cnt>0;
+    return { label,checked,cnt,tb,ta,hBefore,hAfter,hChosen,hSaved,adopted,
+             cBefore:hBefore*wage, cChosen:hChosen*wage };
+  }
+</script>
+<script>
   function compute(){
     var wage=num('wage');
     var m_receipts=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
@@ -443,12 +466,12 @@
   function resetAll(){
     $('wage').value='2,779'; $('totalJournals').value=320;
     $('cb_receipts').checked=true; $('cb_bank').checked=true; $('cb_payroll').checked=true; $('cb_sales').checked=true; $('cb_pos').checked=true;
-    $('n_receipts').value=30; $('tb_receipts').value=3;  $('ta_receipts').value=2;  /* ← 2 */
+    $('n_receipts').value=30; $('tb_receipts').value=3;  $('ta_receipts').value=2;
     $('n_bank').value=260;    $('tb_bank').value=2;      $('ta_bank').value=0.5;
     $('n_payroll').value=10;  $('tb_payroll').value=8;   $('ta_payroll').value=3;
     $('n_sales').value=12;    $('tb_sales').value=10;    $('ta_sales').value=5;
-    $('n_pos').value=0;       $('tb_pos').value=3;       $('ta_pos').value=0.5;      /* ← 0.5 */
-    $('tb_other').value=3;    $('ta_other').value=3;     /* ← 3 & 同期 */
+    $('n_pos').value=0;       $('tb_pos').value=3;       $('ta_pos').value=0.5;
+    $('tb_other').value=3;    $('ta_other').value=3;
     ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos','sv_other'].forEach(id=>$(id).textContent='0.00');
   }
 
