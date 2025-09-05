@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r37・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r38・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
     --accent:#2084A8; --accent-600:#1b7899; --accent-700:#166b8a;
     --ring:rgba(32,132,168,.18);
     --good:#059669; --warn:#b45309; --radius:14px;
-    --emph-bg:#eaf6fb; --emph-border:rgba(32,132,168,.55); --emph-shadow:0 8px 20px rgba(32,132,168,.18);
+    --emph-bg:#eaf6fb; --emph-border:rgba(32,132,168,.55); --emph-shadow:0 10px 28px rgba(32,132,168,.22);
+    /* 機能別（8列：導入/取引種類/機能/件数/手作業/▷/自動化/削減h） */
     --cols: .8fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
     --row-gap:6px; --col-gap:4px;
   }
@@ -41,21 +42,34 @@
   .primary{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(32,132,168,.18);}
   .primary:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(32,132,168,.28);background:var(--accent-600);}
   .primary:active{transform:translateY(0);filter:brightness(0.96);background:var(--accent-700);}
+  .primary:focus{box-shadow:0 0 0 4px var(--ring),0 2px 10px rgba(32,132,168,.18);}
   .outline{background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);box-shadow:0 1px 6px rgba(2,6,23,.05);}
   .outline:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(32,132,168,.18);background:#f3f9fc;}
   .outline:active{transform:translateY(0);background:#eef7fb;}
   .outline:focus{box-shadow:0 0 0 4px var(--ring),0 1px 6px rgba(2,6,23,.05);}
 
-  /* KPI（既存） */
+  /* KPI：高さを落としつつ、人件費削減は強調 */
   .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;}
-  .kpi h3{margin:0 0 6px;font-size:11.5px;color:var(--muted);}
-  .kpi .val{font-size:clamp(17px,3vw,22px);}
+  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:8px;} /* ↓高さ控えめ */
+  .kpi h3{margin:0 0 4px;font-size:11.5px;color:var(--muted);}
+  .kpi .val{font-size:clamp(16px,2.4vw,20px);}
   .krow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
-  .aside{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .aside{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
   .aside .label{font-size:10.5px;color:var(--muted);}
-  .aside .yen{font-size:clamp(14px,2.2vw,18px);color:#0f5132;}
+  .aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132;}
   .aside .pct{font-size:clamp(18px,3vw,24px);font-variant-numeric:tabular-nums;font-weight:700;}
+  .item.thin{padding:8px;} /* 明示用 */
+
+  .kpi .item--emph{
+    background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);
+    border:2px solid var(--emph-border);
+    box-shadow:var(--emph-shadow);
+    padding:10px; /* やや薄めだが強調 */
+  }
+  .savings .row{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
+  .savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1;} /* 強調 */
+  .savings .aside .label{font-size:10.5px;color:var(--muted);}
+  .savings .aside .val{font-size:clamp(15px,2.3vw,19px);color:#0f5132;}
 
   .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
   @media (max-width:900px){ .sumline{font-size:12px;} }
@@ -63,7 +77,6 @@
 
   .ok{color:var(--good);} .warn{color:var(--warn);}
 
-  /* 機能別テーブル */
   .compact-table .thead{margin-bottom:6px;}
   .headbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
   .headnote{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;}
@@ -76,11 +89,15 @@
   .features-head .th:last-child,.features-rows .td.res{text-align:right;}
   .compact-table input[type="number"],.compact-table input[type="text"]{padding:6px 8px;font-size:13px;border-radius:8px;}
 
-  /* 追加：給与単位セグメント */
-  .seg{display:flex;gap:8px;margin-bottom:8px;}
-  .segbtn{flex:1;min-width:0;background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);padding:10px;border-radius:12px;cursor:pointer;font-size:14px;transition:.15s;}
+  /* ▼ 給与単位：小型チップ＋入力欄を同一行に並べる */
+  .comp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .seg{display:flex;gap:6px;}
+  .seg.sm .segbtn{padding:6px 10px;font-size:12px;border-radius:10px;}
+  .segbtn{flex:0 0 auto;background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);padding:10px 14px;border-radius:12px;cursor:pointer;font-size:14px;transition:.15s;}
   .segbtn:hover{background:#f3f9fc;box-shadow:0 4px 12px rgba(32,132,168,.12);}
   .segbtn.active{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(32,132,168,.25);}
+  .comp-row input[type="text"]{flex:1 1 280px;min-width:180px;}
+
   .calc-note{margin-top:6px;color:var(--muted);font-size:12px;}
   .hourly-badge{margin-top:6px;font-weight:700;}
 
@@ -111,33 +128,31 @@
     <div class="grid" style="grid-template-columns:repeat(12,1fr);">
       <div class="thead th" style="grid-column:span 12;">試算前提</div>
 
-      <!-- ▼ 新：給与単位切替（時給・月給・年収） -->
+      <!-- ▼ 小型チップ＋同一行 -->
       <div class="td field" style="grid-column:span 6;">
-        <label>給与の単位を選択して入力（社保等<span style="font-weight:700;">事業主負担16%</span>は換算時に自動加算）</label>
-        <div class="seg" role="tablist" aria-label="給与単位">
-          <button type="button" class="segbtn" data-unit="hour"  aria-selected="false" onclick="setUnit('hour')">時給</button>
-          <button type="button" class="segbtn" data-unit="month" aria-selected="false" onclick="setUnit('month')">月給</button>
-          <button type="button" class="segbtn active" data-unit="year" aria-selected="true" onclick="setUnit('year')">年収</button>
+        <label>給与の単位を選択して入力（社保等<strong>事業主負担16%</strong>は換算時に自動加算）</label>
+        <div class="comp-row">
+          <div class="seg sm" role="tablist" aria-label="給与単位">
+            <button type="button" class="segbtn" data-unit="hour"  aria-selected="false" onclick="setUnit('hour')">時給</button>
+            <button type="button" class="segbtn" data-unit="month" aria-selected="false" onclick="setUnit('month')">月給</button>
+            <button type="button" class="segbtn active" data-unit="year" aria-selected="true"  onclick="setUnit('year')">年収</button>
+          </div>
+          <input id="baseComp" type="text" inputmode="numeric" value="4,600,000"
+                 onfocus="unfmt(this)" onblur="fmt(this); updateWage(); calc()" oninput="updateWage()" />
         </div>
-        <input id="baseComp" type="text" inputmode="numeric" value="4,600,000"
-               onfocus="unfmt(this)" onblur="fmt(this); updateWage(); calc()" oninput="updateWage()" />
-        <div class="calc-note">※初期値：令和5年民間給与実態統計調査の平均年収<strong>460万円</strong>をベースに算出。<br>
-          換算は <strong>月160時間×12ヶ月</strong>、<strong>事業主負担の社会保険料16％を自動加算</strong>して時給化しています。</div>
+        <div class="calc-note">※初期値：令和5年民間給与実態統計調査の平均年収<strong>460万円</strong>をベースに算出。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
         <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,780 / 時</span>（16％込み）</div>
-        <!-- 内部計算用（円/時・社保込み） -->
         <input type="hidden" id="wage" value="2780" />
       </div>
 
-      <!-- 月間仕訳数（右欄はそのまま） -->
       <div class="td field" style="grid-column:span 6;">
         <label>月間仕訳数（<span class="note">総数</span>）</label>
         <input id="totalJournals" type="number" inputmode="numeric" value="320" min="0" oninput="calc()" />
-        <div class="field-note"></div>
       </div>
     </div>
   </section>
 
-  <!-- 1) 機能別（既存のまま） -->
+  <!-- 1) 機能別 -->
   <section class="card compact-table">
     <div class="headbar">
       <div class="thead">機能別（チェックで導入状態を切替）</div>
@@ -220,14 +235,15 @@
   <!-- 2) 結果表示 -->
   <section class="card">
     <div class="kpi">
-      <div class="item">
+      <div class="item thin">
         <h3>導入なし 総時間（月）</h3>
         <div class="krow">
           <div class="val" id="kpiHBefore">0.00 時間</div>
           <div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div>
         </div>
       </div>
-      <div class="item">
+
+      <div class="item thin">
         <h3>導入あり 総時間（月）</h3>
         <div class="krow">
           <div class="val" id="kpiHAfter">0.00 時間</div>
@@ -235,7 +251,7 @@
         </div>
       </div>
 
-      <div class="item">
+      <div class="item thin">
         <h3>時間短縮（合計・月間）</h3>
         <div class="val" id="kpiSaved">0.00 時間</div>
         <div class="note">（導入なし − 導入あり）</div>
@@ -249,7 +265,7 @@
         </div>
       </div>
 
-      <div class="item">
+      <div class="item thin">
         <h3>導入機能数</h3>
         <div class="krow">
           <div class="val" id="kpiAdopt">0 / 5</div>
@@ -261,7 +277,7 @@
         <div class="note">チェックあり & 件数>0 の数</div>
       </div>
 
-      <div class="item">
+      <div class="item thin">
         <h3>機能別 削減時間（h）</h3>
         <div class="note">チェック時のみ削減 > 0</div>
         <div class="val" style="font-size:16px;line-height:1.6;" id="kpiBreakdown">—</div>
@@ -279,7 +295,7 @@
     <small>
       Copyright (c) <span id="creditYear"></span>
       <span id="creditCompany">税理士法人松本会計事務所</span>
-      All Rights Reserved. / <span id="creditRev">r37</span>
+      All Rights Reserved. / <span id="creditRev">r38</span>
     </small>
   </div>
 
@@ -296,6 +312,7 @@
   function parseNum(v){ if(v==null) return 0; var s=String(v).replace(/[,\s]/g,''); var n=parseFloat(s); return isNaN(n)?0:n; }
   function fmt(el){ var n=parseNum(el.value); el.value = n? n.toLocaleString('ja-JP'):''; }
   function unfmt(el){ el.value = String(parseNum(el.value)); }
+  function num(id){ return parseNum($(id).value); }
 
   /* クレジット */
   const CREDIT_COMPANY='税理士法人松本会計事務所';
@@ -318,7 +335,7 @@
     else{ msg.textContent='その他は自動調整されます。合計は常に総数と一致します。'; msg.className='ok'; }
   }
 
-  /* ここから：給与単位→時給（16％込み）換算 */
+  /* 給与単位→時給（16％込み）換算 */
   const HOURS_PER_MONTH = 160;
   let payUnit = 'year'; // 'hour' | 'month' | 'year'
 
@@ -329,37 +346,26 @@
       b.classList.toggle('active', on);
       b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
-
-    // プレースホルダの目安
     const base = $('baseComp');
     if(u==='hour'){ base.placeholder='例）2,500（円/時）'; }
     if(u==='month'){ base.placeholder='例）300,000（円/月）'; }
     if(u==='year'){ base.placeholder='例）4,600,000（円/年）'; }
-    updateWage(); // 単位切替時に即換算
+    updateWage();
   }
 
   function updateWage(){
     const v = parseNum($('baseComp').value);
     let hourly = 0;
-    if(payUnit==='hour'){
-      hourly = v;
-    }else if(payUnit==='month'){
-      hourly = v / HOURS_PER_MONTH;
-    }else{ // year
-      hourly = v / 12 / HOURS_PER_MONTH;
-    }
+    if(payUnit==='hour'){ hourly = v; }
+    else if(payUnit==='month'){ hourly = v / HOURS_PER_MONTH; }
+    else { hourly = v / 12 / HOURS_PER_MONTH; }
     hourly = hourly * 1.16; // 事業主負担16% 上乗せ
-    // 画面表示（カンマ＆円記号つき）
     $('hourlyDisplay').textContent = (isNaN(hourly)?0:Math.round(hourly)).toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0})+' / 時';
-    // 内部計算用（カンマなし数値文字列）
     $('wage').value = Math.round(hourly);
     calc();
   }
 
-  /* 旧: num('wage') などで使用 */
-  function num(id){ return parseNum($(id).value); }
-
-  /* モジュール（1行の計算） */
+  /* 1行モジュール */
   function mod(label, checked, n, tb, ta, wage){
     var cnt=Math.max(0,n);
     var hBefore=(tb*cnt)/60, hAfter=(ta*cnt)/60;
@@ -450,7 +456,7 @@
     }catch(e){ toast('コピーに失敗しました'); }
   }
 
-  /* CSV出力（UTF-8 BOM） */
+  /* CSV（UTF-8 BOM） */
   function exportCSV(){
     const r=compute();
     const rows=[];
@@ -487,7 +493,6 @@
 
   /* 初期化 */
   function resetAll(){
-    // 給与単位：年収 460万円をデフォルト
     setUnit('year');
     const bc = $('baseComp'); bc.value='4,600,000'; fmt(bc);
     updateWage();
@@ -506,7 +511,6 @@
 
   function calc(){ syncOther(); recalcOther(); updateUI(compute()); }
 
-  // 初期描画
   resetAll(); calc();
 </script>
 </body>
