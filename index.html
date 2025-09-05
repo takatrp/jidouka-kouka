@@ -3,17 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r41・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r42・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
     --accent:#2084A8; --accent-600:#1b7899; --accent-700:#166b8a;
     --ring:rgba(32,132,168,.18);
     --good:#059669; --warn:#b45309; --radius:14px;
-    --emph-bg:#eaf6fb; --emph-border:rgba(32,132,168,.55); --emph-shadow:0 10px 28px rgba(32,132,168,.22);
-    /* 導入/取引種類/機能/件数/手作業/▷/自動化/削減h */
     --cols:.9fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
     --row-gap:6px; --col-gap:4px;
+    --kpiRowH:auto; /* JSで「導入なし/あり」の高さに同期 */
   }
   @media (max-width:900px){ :root{ --cols:.8fr .95fr 2.6fr .95fr 1.05fr .3fr 1.05fr .75fr; } }
   @media (max-width:740px){ :root{ --cols:.75fr .9fr 2.5fr .9fr 1.0fr .28fr 1.0fr .7fr; } }
@@ -46,9 +45,9 @@
   .outline:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(32,132,168,.18);background:#f3f9fc;}
   .outline:active{transform:translateY(0);background:#eef7fb;}
 
-  /* KPI（高さ控えめ、人件費削減は強調） */
+  /* KPI */
   .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:8px;}
+  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:8px;min-height:var(--kpiRowH);display:flex;flex-direction:column;justify-content:space-between;}
   .kpi h3{margin:0 0 4px;font-size:11.5px;color:var(--muted);}
   .kpi .val{font-size:clamp(16px,2.4vw,20px);}
   .krow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
@@ -56,7 +55,9 @@
   .aside .label{font-size:10.5px;color:var(--muted);}
   .aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132;}
   .aside .pct{font-size:clamp(18px,3vw,24px);font-variant-numeric:tabular-nums;font-weight:700;}
-  .item--emph{background:linear-gradient(180deg,#f4fbfe 0%, var(--emph-bg) 100%);border:2px solid var(--emph-border);box-shadow:var(--emph-shadow);padding:10px;}
+
+  /* 人件費削減カード：影なし・枠線強調 */
+  .item--emph{background:#fff;border:2px solid var(--accent);box-shadow:none;padding:10px;}
   .savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1;}
 
   .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
@@ -68,6 +69,7 @@
   .compact-table .thead{margin-bottom:6px;}
   .headbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
   .headnote{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;}
+  @media (max-width:932px) and (orientation:landscape){ .headnote{font-size:11px;} }
 
   .features-head,.features-rows{display:grid;grid-template-columns:var(--cols);align-items:center;gap:var(--row-gap) var(--col-gap);}
   .features-rows .td,.features-head .th{padding:6px 6px;min-width:0;}
@@ -176,7 +178,7 @@
       <div class="td"><input id="ta_receipts" type="number" value="2" min="0" step="0.1" oninput="calc()" /></div>
       <div class="td res" id="sv_receipts">0.00</div>
 
-      <!-- 銀行信販（預金・カード） -->
+      <!-- 銀行信販 -->
       <div class="td"><div class="adopt-box"><input id="cb_bank" type="checkbox" checked onchange="calc()" /></div></div>
       <div class="td kind">預金・カード</div>
       <div class="td c-name">銀行信販データ受信機能</div>
@@ -241,11 +243,29 @@
   <!-- 結果 -->
   <section class="card">
     <div class="kpi">
-      <div class="item"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
-      <div class="item"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
+      <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
+      <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
+
       <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
-      <div class="item item--emph savings"><h3>人件費削減</h3><div class="row"><div class="val-main" id="kpiYen">¥0</div><div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="val" id="kpiYenYear">¥0</div></div></div></div>
-      <div class="item"><h3>導入機能数</h3><div class="krow"><div class="val" id="kpiAdopt">0 / 5</div><div class="aside"><div class="label">仕訳自動化率</div><div class="pct" id="kpiRate">0.00%</div></div></div><div class="note">チェックあり & 件数>0 の数</div></div>
+
+      <div class="item item--emph savings">
+        <h3>人件費削減</h3>
+        <div class="krow">
+          <div class="val-main" id="kpiYen">¥0</div>
+          <div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div>
+        </div>
+      </div>
+
+      <!-- 仕訳自動化率（主）＋ 導入機能数（副） -->
+      <div class="item">
+        <h3>仕訳自動化率</h3>
+        <div class="krow">
+          <div class="pct" id="kpiRate">0.00%</div>
+          <div class="aside"><div class="label">導入機能数</div><div class="val" id="kpiAdopt">0 / 5</div></div>
+        </div>
+        <div class="note">チェックあり & 件数>0 を採用としてカウント</div>
+      </div>
+
       <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val breakdown" id="kpiBreakdown">—</div></div>
     </div>
 
@@ -257,7 +277,7 @@
   </section>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r41</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r42</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -377,6 +397,15 @@
              adopted, autoJ, totalJ, rateJ };
   }
 
+  /* ========= KPIカード高さ同期 ========= */
+  function syncKPIHeights(){
+    const beforeEl = $('kpiBefore');
+    const afterEl  = $('kpiAfter');
+    if(!beforeEl || !afterEl) return;
+    const h = Math.max(beforeEl.offsetHeight, afterEl.offsetHeight);
+    document.documentElement.style.setProperty('--kpiRowH', h+'px');
+  }
+
   /* ========= 画面反映 ========= */
   function updateUI(r){
     $('sv_receipts').textContent = r.mods[0].hSaved.toFixed(2);
@@ -393,9 +422,15 @@
     $('kpiCostAfter').textContent  = yen(r.costChosen);
     $('kpiYen').textContent        = yen(r.monthlySaving);
     $('kpiYenYear').textContent    = yen(r.monthlySaving * 12);
-    $('kpiAdopt').textContent      = r.adopted + ' / 5';
+
+    // 主副を入れ替え：率をメイン、採用数をサイド
     $('kpiRate').textContent       = r.rateJ.toFixed(2) + '%';
+    $('kpiAdopt').textContent      = r.adopted + ' / 5';
+
     $('kpiBreakdown').textContent  = r.mods.map(m=> m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ') || '—';
+
+    // 高さ同期
+    syncKPIHeights();
   }
 
   /* ========= 操作 ========= */
@@ -404,7 +439,7 @@
     const lines = [];
     lines.push('【自動化メリット試算サマリー（5機能）】');
     lines.push('時給(社保16%込み): ' + Math.round(r.wage) + ' 円/時');
-    lines.push('導入機能: ' + r.adopted + ' / 5（仕訳自動化率: ' + r.rateJ.toFixed(2) + '%）');
+    lines.push('仕訳自動化率: ' + r.rateJ.toFixed(2) + '%（導入機能: ' + r.adopted + ' / 5）');
     r.mods.forEach(m=>{
       lines.push(m.label+' ['+(m.adopted?'導入':'未導入')+'] 件数='+m.cnt+' 手作業='+m.tb+'分 自動化='+m.ta+'分 削減='+m.hSaved.toFixed(2)+'h');
     });
@@ -435,8 +470,8 @@
     });
     rows.push([]);
     rows.push(['時給(社保16%込み)', Math.round(r.wage)]);
-    rows.push(['導入機能数', r.adopted]);
     rows.push(['仕訳自動化率', r.rateJ.toFixed(2)+'%']);
+    rows.push(['導入機能数', r.adopted + ' / 5']);
     rows.push(['導入なし 人件費相当額(円)',Math.round(r.costBefore)]);
     rows.push(['導入あり 人件費相当額(円)',Math.round(r.costChosen)]);
     rows.push(['時間短縮(h/月)',r.hSaved.toFixed(2)]);
@@ -482,11 +517,15 @@
     ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos','sv_other'].forEach(id=>$(id).textContent='0.00');
 
     const bc=$('baseComp'); bc.value='4,600,000'; formatLive(bc); updateWage();
+
+    // 初回高さ同期
+    setTimeout(syncKPIHeights, 0);
   }
 
-  function calc(){ syncOther(); recalcOther(); updateUI(compute()); }
+  function calc(){ syncOther(); recalcOther(); const r=compute(); updateUI(r); }
 
   resetAll(); calc();
+  window.addEventListener('resize', ()=> setTimeout(syncKPIHeights, 0));
 </script>
 </body>
 </html>
