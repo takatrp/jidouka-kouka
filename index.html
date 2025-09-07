@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r43・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r44・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -57,18 +57,26 @@
   .aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132;}
   .aside .pct{font-size:clamp(18px,3vw,24px);font-variant-numeric:tabular-nums;font-weight:700;}
 
-  /* 人件費削減カード：影なし・枠線強調 */
-  .item--emph{background:#fff;border:2px solid var(--accent);box-shadow:none;padding:10px;}
+  /* 人件費削減カード：同系色の二重枠＋淡色背景（悪目立ちしない） */
+  .item--emph{
+    background:linear-gradient(180deg, #f5fbfe 0%, #ffffff 100%);
+    border:2px solid rgba(32,132,168,.70); /* 濃いめの外枠 */
+    box-shadow:none;
+    padding:10px;
+    position:relative;
+  }
+  .item--emph::after{
+    content:"";
+    position:absolute;
+    inset:6px; /* 内側に薄い枠 */
+    border-radius:calc(var(--radius) - 2px);
+    border:1px solid rgba(32,132,168,.22);
+    pointer-events:none;
+  }
   .savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1;}
 
-  /* 仕訳自動化率ヒーロー表示 */
-  .rate-hero{
-    font-size:clamp(28px,5vw,44px);
-    line-height:1;
-    font-weight:900;
-    letter-spacing:.2px;
-    color:var(--accent);
-  }
+  /* 仕訳自動化率ヒーロー表示（r43踏襲） */
+  .rate-hero{font-size:clamp(28px,5vw,44px);line-height:1;font-weight:900;letter-spacing:.2px;color:var(--accent);}
 
   .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
   @media (max-width:900px){ .sumline{font-size:12px;} }
@@ -254,6 +262,7 @@
 
       <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
 
+      <!-- ★ 人件費削減（枠で目立たせ） -->
       <div class="item item--emph savings">
         <h3>人件費削減</h3>
         <div class="krow">
@@ -262,7 +271,7 @@
         </div>
       </div>
 
-      <!-- 仕訳自動化率（主）＋ 導入機能数（副）＋ 右詰めノート -->
+      <!-- 仕訳自動化率（主）＋ 導入機能数（副） -->
       <div class="item">
         <h3>仕訳自動化率</h3>
         <div class="krow">
@@ -286,7 +295,7 @@
   </section>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r43</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r44</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -304,6 +313,7 @@
 
   (function(){ const y=new Date().getFullYear(); $('creditYear').textContent=y; })();
 
+  /* その他 分/件 同期 & 件数自動調整 */
   function syncOther(){ $('ta_other').value = $('tb_other').value; }
   function recalcOther(){
     const total = num('totalJournals');
@@ -323,6 +333,7 @@
     }
   }
 
+  /* 給与 → 時給換算（社保16%込み） */
   const HOURS_PER_MONTH = 160;
   let payUnit = 'year';
   function setUnit(u){
@@ -351,17 +362,20 @@
     calc();
   }
 
+  /* 1行モジュール */
   function mod(label, checked, n, tb, ta, wage){
     const cnt = Math.max(0, n);
     const hBefore = (tb * cnt) / 60;
     const hAfter  = (ta * cnt) / 60;
     const hChosen = checked ? hAfter : hBefore;
+    theSaved = Math.max(0, hBefore - hChosen);
     const hSaved  = Math.max(0, hBefore - hChosen);
     const adopted = !!checked && cnt > 0;
     return { label, checked, cnt, tb, ta, hBefore, hAfter, hChosen, hSaved, adopted,
              cBefore:hBefore*wage, cChosen:hChosen*wage };
   }
 
+  /* 集計 */
   function compute(){
     const wage = parseFloat($('wage').value) || 0;
     const m_receipts = mod('証憑保存機能（スマホで経費）', $('cb_receipts').checked, num('n_receipts'), num('tb_receipts'), num('ta_receipts'), wage);
