@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r45・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r46・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -57,10 +57,10 @@
   .aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132;}
   .aside .pct{font-size:clamp(18px,3vw,24px);font-variant-numeric:tabular-nums;font-weight:700;}
 
-  /* 人件費削減カード：背景は他と同じ、外枠色のみアクセントに（悪目立ちしない） */
+  /* 人件費削減カード：枠線をより濃く太く */
   .item--emph{
-    background:#fff;               /* 他カードと同じ */
-    border:1.5px solid rgba(32,132,168,.85); /* 外枠カラーで差別化 */
+    background:#fff;
+    border:3px solid var(--accent-700); /* ← 濃く太く */
     box-shadow:none;
     padding:10px;
   }
@@ -253,7 +253,7 @@
 
       <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
 
-      <!-- 人件費削減：外枠色で強調（背景・サイズは他と同じ） -->
+      <!-- 人件費削減（枠線強調） -->
       <div class="item item--emph savings">
         <h3>人件費削減</h3>
         <div class="krow">
@@ -286,14 +286,13 @@
   </section>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r45</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r46</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
 </div>
 
 <script>
-  /* ========= 共通ユーティリティ ========= */
   const $ = (id)=>document.getElementById(id);
   const yen = (n)=> isNaN(n)?'¥0':n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0});
   const toast = (m)=>{ const t=$('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1600); };
@@ -304,7 +303,6 @@
 
   (function(){ const y=new Date().getFullYear(); $('creditYear').textContent=y; })();
 
-  /* その他 分/件 同期 & 件数自動調整 */
   function syncOther(){ $('ta_other').value = $('tb_other').value; }
   function recalcOther(){
     const total = num('totalJournals');
@@ -315,134 +313,125 @@
     $('sumOther').textContent = String(other);
     $('sumTotal').textContent = String(sumFeat + other);
     const m = $('deltaMsg');
-    if(other < 0){
-      m.textContent = '合計が総数を超過しています（その他が負値）。件数配分を見直してください。';
-      m.className = 'warn';
-    }else{
-      m.textContent = 'その他は自動調整されます。合計は常に総数と一致します。';
-      m.className = 'ok';
-    }
+    if(other < 0){ m.textContent='合計が総数を超過しています（その他が負値）。件数配分を見直してください。'; m.className='warn'; }
+    else{ m.textContent='その他は自動調整されます。合計は常に総数と一致します。'; m.className='ok'; }
   }
 
-  /* 給与 → 時給換算（社保16%込み） */
   const HOURS_PER_MONTH = 160;
   let payUnit = 'year';
   function setUnit(u){
     payUnit = u;
     document.querySelectorAll('.segbtn').forEach(b=>{
-      const on = (b.dataset.unit===u);
+      const on=(b.dataset.unit===u);
       b.classList.toggle('active', on);
       b.setAttribute('aria-selected', on?'true':'false');
     });
-    const base = $('baseComp');
+    const base=$('baseComp');
     if(u==='hour'){ base.value='2,500'; }
     if(u==='month'){ base.value='300,000'; }
     if(u==='year'){ base.value='4,600,000'; }
-    formatLive(base);
-    updateWage();
+    formatLive(base); updateWage();
   }
   function updateWage(){
-    const v = parseNum($('baseComp').value);
-    let hourly = 0;
-    if(payUnit==='hour'){ hourly = v; }
-    else if(payUnit==='month'){ hourly = v / HOURS_PER_MONTH; }
-    else { hourly = v / 12 / HOURS_PER_MONTH; }
-    hourly = hourly * 1.16;
-    $('hourlyDisplay').textContent = (isNaN(hourly)?0:Math.round(hourly)).toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0})+' / 時';
-    $('wage').value = Math.round(hourly);
+    const v=parseNum($('baseComp').value);
+    let hourly=0;
+    if(payUnit==='hour'){ hourly=v; }
+    else if(payUnit==='month'){ hourly=v/ H
+
+OURS_PER_MONTH; }
+    else { hourly=v/12/ H
+
+OURS_PER_MONTH; }
+    hourly*=1.16;
+    $('hourlyDisplay').textContent=(isNaN(hourly)?0:Math.round(hourly)).toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0})+' / 時';
+    $('wage').value=Math.round(hourly);
     calc();
   }
 
-  /* 1行モジュール */
   function mod(label, checked, n, tb, ta, wage){
-    const cnt = Math.max(0, n);
-    const hBefore = (tb * cnt) / 60;
-    const hAfter  = (ta * cnt) / 60;
-    const hChosen = checked ? hAfter : hBefore;
-    const hSaved  = Math.max(0, hBefore - hChosen);
-    const adopted = !!checked && cnt > 0;
-    return { label, checked, cnt, tb, ta, hBefore, hAfter, hChosen, hSaved, adopted,
-             cBefore:hBefore*wage, cChosen:hChosen*wage };
+    const cnt=Math.max(0,n);
+    const hBefore=(tb*cnt)/60;
+    const hAfter =(ta*cnt)/60;
+    const hChosen=checked?hAfter:hBefore;
+    const hSaved =Math.max(0,hBefore-hChosen);
+    const adopted=!!checked && cnt>0;
+    return {label,checked,cnt,tb,ta,hBefore,hAfter,hChosen,hSaved,adopted,cBefore:hBefore*wage,cChosen:hChosen*wage};
   }
 
-  /* 集計 */
   function compute(){
-    const wage = parseFloat($('wage').value) || 0;
-    const m_receipts = mod('証憑保存機能（スマホで経費）', $('cb_receipts').checked, num('n_receipts'), num('tb_receipts'), num('ta_receipts'), wage);
-    const m_bank     = mod('銀行信販データ受信機能',         $('cb_bank').checked,     num('n_bank'),     num('tb_bank'),     num('ta_bank'),     wage);
-    const m_payroll  = mod('給与計算機能（仕訳含む）',       $('cb_payroll').checked,  num('n_payroll'),  num('tb_payroll'),  num('ta_payroll'),  wage);
-    const m_sales    = mod('販売管理機能（売上計上・請求）', $('cb_sales').checked,    num('n_sales'),    num('tb_sales'),    num('ta_sales'),    wage);
-    const m_pos      = mod('レジからのデータ受信',           $('cb_pos').checked,      num('n_pos'),      num('tb_pos'),      num('ta_pos'),      wage);
+    const wage=parseFloat($('wage').value)||0;
+    const m_receipts=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),wage);
+    const m_bank    =mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),wage);
+    const m_payroll =mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),wage);
+    const m_sales   =mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),wage);
+    const m_pos     =mod('レジからのデータ受信',$('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),wage);
 
-    const hOther = (num('tb_other') * Math.max(0, num('n_other'))) / 60;
-    const mods = [m_receipts, m_bank, m_payroll, m_sales, m_pos];
+    const hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
+    const mods=[m_receipts,m_bank,m_payroll,m_sales,m_pos];
 
-    const hBefore = mods.reduce((s,m)=>s+m.hBefore,0) + hOther;
-    const hChosen = mods.reduce((s,m)=>s+m.hChosen,0) + hOther;
-    const hSaved  = Math.max(0, hBefore - hChosen);
+    const hBefore=mods.reduce((s,m)=>s+m.hBefore,0)+hOther;
+    const hChosen=mods.reduce((s,m)=>s+m.hChosen,0)+hOther;
+    const hSaved =Math.max(0,hBefore-hChosen);
 
-    const costBefore = hBefore * wage;
-    const costChosen = hChosen * wage;
-    const monthlySaving = costBefore - costChosen;
+    const costBefore=hBefore*wage;
+    const costChosen=hChosen*wage;
+    const monthlySaving=costBefore-costChosen;
 
-    const adopted = mods.reduce((s,m)=> s + (m.adopted?1:0), 0);
-    const totalJ = num('totalJournals');
-    const autoJ  = mods.reduce((s,m)=> s + (m.checked ? m.cnt : 0), 0);
-    const rateJ  = totalJ > 0 ? (autoJ / totalJ) * 100 : 0;
+    const adopted=mods.reduce((s,m)=>s+(m.adopted?1:0),0);
+    const totalJ=num('totalJournals');
+    const autoJ =mods.reduce((s,m)=>s+(m.checked?m.cnt:0),0);
+    const rateJ = totalJ>0 ? (autoJ/totalJ)*100 : 0;
 
-    return { wage, mods, hOther, hBefore, hChosen, hSaved,
-             costBefore, costChosen, monthlySaving,
-             adopted, autoJ, totalJ, rateJ };
+    return {wage,mods,hOther,hBefore,hChosen,hSaved,costBefore,costChosen,monthlySaving,adopted,autoJ,totalJ,rateJ};
   }
 
   function syncKPIHeights(){
-    const beforeEl = $('kpiBefore');
-    const afterEl  = $('kpiAfter');
+    const beforeEl=$('kpiBefore'), afterEl=$('kpiAfter');
     if(!beforeEl || !afterEl) return;
-    const h = Math.max(beforeEl.offsetHeight, afterEl.offsetHeight);
-    document.documentElement.style.setProperty('--kpiRowH', h+'px');
+    const h=Math.max(beforeEl.offsetHeight,afterEl.offsetHeight);
+    document.documentElement.style.setProperty('--kpiRowH',h+'px');
   }
 
   function updateUI(r){
-    $('sv_receipts').textContent = r.mods[0].hSaved.toFixed(2);
-    $('sv_bank').textContent     = r.mods[1].hSaved.toFixed(2);
-    $('sv_payroll').textContent  = r.mods[2].hSaved.toFixed(2);
-    $('sv_sales').textContent    = r.mods[3].hSaved.toFixed(2);
-    $('sv_pos').textContent      = r.mods[4].hSaved.toFixed(2);
-    $('sv_other').textContent    = '0.00';
+    $('sv_receipts').textContent=r.mods[0].hSaved.toFixed(2);
+    $('sv_bank').textContent    =r.mods[1].hSaved.toFixed(2);
+    $('sv_payroll').textContent =r.mods[2].hSaved.toFixed(2);
+    $('sv_sales').textContent   =r.mods[3].hSaved.toFixed(2);
+    $('sv_pos').textContent     =r.mods[4].hSaved.toFixed(2);
+    $('sv_other').textContent   ='0.00';
 
-    $('kpiHBefore').textContent = r.hBefore.toFixed(2) + ' 時間';
-    $('kpiHAfter').textContent  = r.hChosen.toFixed(2) + ' 時間';
-    $('kpiSaved').textContent   = r.hSaved.toFixed(2) + ' 時間';
-    $('kpiCostBefore').textContent = yen(r.costBefore);
-    $('kpiCostAfter').textContent  = yen(r.costChosen);
-    $('kpiYen').textContent        = yen(r.monthlySaving);
-    $('kpiYenYear').textContent    = yen(r.monthlySaving * 12);
+    $('kpiHBefore').textContent=r.hBefore.toFixed(2)+' 時間';
+    $('kpiHAfter').textContent =r.hChosen.toFixed(2)+' 時間';
+    $('kpiSaved').textContent  =r.hSaved.toFixed(2)+' 時間';
+    $('kpiCostBefore').textContent=yen(r.costBefore);
+    $('kpiCostAfter').textContent =yen(r.costChosen);
+    $('kpiYen').textContent       =yen(r.monthlySaving);
+    $('kpiYenYear').textContent   =yen(r.monthlySaving*12);
 
-    $('kpiRate').textContent  = r.rateJ.toFixed(2) + '%';
-    $('kpiAdopt').textContent = r.adopted + ' / 5';
-    $('kpiBreakdown').textContent  = r.mods.map(m=> m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ') || '—';
+    $('kpiRate').textContent = r.rateJ.toFixed(2)+'%';
+    $('kpiAdopt').textContent= r.adopted+' / 5';
+    $('kpiBreakdown').textContent=r.mods.map(m=>m.label+':'+m.hSaved.toFixed(2)+'h').join(' / ')||'—';
 
     syncKPIHeights();
   }
 
   async function copySummary(){
-    const r = compute();
-    const lines = [];
+    const r=compute();
+    const lines=[];
     lines.push('【自動化メリット試算サマリー（5機能）】');
-    lines.push('時給(社保16%込み): ' + Math.round(r.wage) + ' 円/時');
-    lines.push('仕訳自動化率: ' + r.rateJ.toFixed(2) + '%（導入機能: ' + r.adopted + ' / 5）');
+    lines.push('時給(社保16%込み): '+Math.round(r.wage)+' 円/時');
+    lines.push('仕訳自動化率: '+r.rateJ.toFixed(2)+'%（導入機能: '+r.adopted+' / 5）');
     r.mods.forEach(m=>{
       lines.push(m.label+' ['+(m.adopted?'導入':'未導入')+'] 件数='+m.cnt+' 手作業='+m.tb+'分 自動化='+m.ta+'分 削減='+m.hSaved.toFixed(2)+'h');
     });
     lines.push('— 合計');
-    lines.push('導入なし 総時間: ' + r.hBefore.toFixed(2) + 'h（人件費相当額: ' + Math.round(r.costBefore) + '円）');
-    lines.push('導入あり 総時間: ' + r.hChosen.toFixed(2) + 'h（人件費相当額: ' + Math.round(r.costChosen) + '円）');
-    lines.push('時間短縮(月): ' + r.hSaved.toFixed(2) + 'h');
-    lines.push('人件費削減(月): ' + Math.round(r.monthlySaving) + ' 円');
-    lines.push('人件費削減(年): ' + Math.round(r.monthlySaving*12) + ' 円');
+    lines.push('導入なし 総時間: '+r.hBefore.toFixed(2)+'h（人件費相当額: '+Math.round(r.costBefore)+'円）');
+    lines.push('導入あり 総時間: '+r.hChosen.toFixed(2)+'h（人件費相当額: '+Math.round(r.costChosen)+'円）');
+    lines.push('時間短縮(月): '+r.hSaved.toFixed(2)+'h');
+    lines.push('人件費削減(月): '+Math.round(r.monthlySaving)+' 円');
+    lines.push('人件費削減(年): '+Math.round(r.monthlySaving*12)+' 円');
 
-    const text = lines.join('\n');
+    const text=lines.join('\n');
     try{
       if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(text); }
       else{
@@ -489,13 +478,13 @@
 
   function resetAll(){
     setUnit('year');
-    $('totalJournals').value = 320;
+    $('totalJournals').value=320;
 
-    $('cb_receipts').checked = true;
-    $('cb_bank').checked     = true;
-    $('cb_payroll').checked  = true;
-    $('cb_sales').checked    = true;
-    $('cb_pos').checked      = true;
+    $('cb_receipts').checked=true;
+    $('cb_bank').checked=true;
+    $('cb_payroll').checked=true;
+    $('cb_sales').checked=true;
+    $('cb_pos').checked=true;
 
     $('n_receipts').value=30; $('tb_receipts').value=3;   $('ta_receipts').value=2;
     $('n_bank').value=260;    $('tb_bank').value=2;       $('ta_bank').value=0.5;
@@ -509,13 +498,13 @@
 
     const bc=$('baseComp'); bc.value='4,600,000'; formatLive(bc); updateWage();
 
-    setTimeout(syncKPIHeights, 0);
+    setTimeout(syncKPIHeights,0);
   }
 
   function calc(){ syncOther(); recalcOther(); const r=compute(); updateUI(r); }
 
   resetAll(); calc();
-  window.addEventListener('resize', ()=> setTimeout(syncKPIHeights, 0));
+  window.addEventListener('resize', ()=> setTimeout(syncKPIHeights,0));
 </script>
 </body>
 </html>
