@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r46・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r47・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -57,15 +57,20 @@
   .aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132;}
   .aside .pct{font-size:clamp(18px,3vw,24px);font-variant-numeric:tabular-nums;font-weight:700;}
 
-  /* ★人件費削減カード：背景は共通のまま、外枠だけをアクセント色の実線に（確実に上書きされるセレクタ） */
-  .kpi .item.item--emph{
-    border:2px solid rgba(32,132,168,.9) !important;
-    box-shadow:none;
-  }
+  /* 人件費削減カード：外枠で強調（背景は共通） */
+  .kpi .item.item--emph{ border:2px solid rgba(32,132,168,.9) !important; box-shadow:none; }
   .savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1;}
 
-  /* 仕訳自動化率ヒーロー表示 */
-  .rate-hero{font-size:clamp(28px,5vw,44px);line-height:1;font-weight:900;letter-spacing:.2px;color:var(--accent);}
+  /* 仕訳自動化率：金額と同サイズに統一＋サイドの数字を小さく */
+  .rate-hero{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:var(--accent);}
+  .krow .rate-hero + .aside .val{font-size:13px;} /* 導入機能数の数字だけ縮小 */
+
+  /* 機能別 削減時間：もっと小さく、2行で省略して高さを抑える */
+  #kpiBreakdown.breakdown{
+    font-size:10.5px; line-height:1.35;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
 
   .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
   @media (max-width:900px){ .sumline{font-size:12px;} }
@@ -99,8 +104,6 @@
 
   .adopt-box{display:flex;align-items:center;justify-content:center;width:24px;margin:0 auto;}
   .adopt-dash{display:inline-block;width:24px;text-align:center;color:#94a3b8;}
-
-  #kpiBreakdown.breakdown{font-size:11.5px;line-height:1.5;}
 
   .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
   .credit small{opacity:.9;}
@@ -251,7 +254,7 @@
 
       <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
 
-      <!-- 人件費削減：外枠色で強調 -->
+      <!-- 人件費削減 -->
       <div class="item item--emph savings">
         <h3>人件費削減</h3>
         <div class="krow">
@@ -260,7 +263,7 @@
         </div>
       </div>
 
-      <!-- 仕訳自動化率 -->
+      <!-- 仕訳自動化率（フォント統一・高さ抑制） -->
       <div class="item">
         <h3>仕訳自動化率</h3>
         <div class="krow">
@@ -273,6 +276,7 @@
         </div>
       </div>
 
+      <!-- 機能別 削減時間（小さめ・2行省略） -->
       <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val breakdown" id="kpiBreakdown">—</div></div>
     </div>
 
@@ -284,7 +288,7 @@
   </section>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r46</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r47</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -416,7 +420,9 @@
 
     $('kpiRate').textContent  = (Number.isFinite(r.rateJ)? r.rateJ.toFixed(2):'0.00') + '%';
     $('kpiAdopt').textContent = r.adopted + ' / 5';
-    $('kpiBreakdown').textContent  = r.mods.map(m=> m.label+':'+safeFixed(m.hSaved)+'h').join(' / ') || '—';
+
+    const full = r.mods.map(m=> m.label+':'+safeFixed(m.hSaved)+'h').join(' / ') || '—';
+    const bd = $('kpiBreakdown'); bd.textContent = full; bd.title = full;
 
     syncKPIHeights();
   }
@@ -509,7 +515,6 @@
 
   function calc(){ syncOther(); recalcOther(); const r=compute(); updateUI(r); }
 
-  /* 初期化は DOM 構築後に実行（描画前評価による NaN 表示を防止） */
   window.addEventListener('DOMContentLoaded', ()=>{ resetAll(); calc(); });
   window.addEventListener('resize', ()=> setTimeout(syncKPIHeights, 0));
 </script>
