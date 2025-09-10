@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r53・5機能・アニメ付）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r54・5機能・一括チェック対応）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -108,6 +108,11 @@
   .adopt-box{display:flex;align-items:center;justify-content:center;width:24px;margin:0 auto;}
   .adopt-dash{display:inline-block;width:24px;text-align:center;color:#94a3b8;}
 
+  /* 一括チェック */
+  .features-head .th.bulk{ text-align:center; }
+  .bulk-label{display:flex; align-items:center; justify-content:center; gap:6px; color:var(--muted); font-size:12px; user-select:none;}
+  .bulk-label input{ transform:scale(1.1); }
+
   /* グラフ */
   .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
   .chart-title{font-weight:800;color:var(--accent);font-size:clamp(16px,2.6vw,20px);}
@@ -176,7 +181,13 @@
     </div>
 
     <div class="features-head">
-      <div class="th">導入</div>
+      <!-- 導入 → 一括チェック -->
+      <div class="th bulk">
+        <label class="bulk-label" title="5機能の導入チェックを一括でON/OFF">
+          <span>一括</span>
+          <input id="cb_all" type="checkbox" onclick="toggleAll(this.checked)" />
+        </label>
+      </div>
       <div class="th kind">取引種類</div>
       <div class="th c-name">機能</div>
       <div class="th">件数/月</div>
@@ -188,7 +199,7 @@
 
     <div class="features-rows">
       <!-- 証憑 -->
-      <div class="td"><div class="adopt-box"><input id="cb_receipts" type="checkbox" checked onchange="calc()" /></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_receipts" type="checkbox" checked onchange="calc()" /></div></div>
       <div class="td kind">現金</div>
       <div class="td c-name">
         <a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-tds" target="_blank" rel="noopener">証憑保存機能（スマホで経費）</a>
@@ -200,7 +211,7 @@
       <div class="td res" id="sv_receipts">0.00</div>
 
       <!-- 銀行信販 -->
-      <div class="td"><div class="adopt-box"><input id="cb_bank" type="checkbox" checked onchange="calc()" /></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_bank" type="checkbox" checked onchange="calc()" /></div></div>
       <div class="td kind">預金・カード</div>
       <div class="td c-name">
         <a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-FinTech" target="_blank" rel="noopener">銀行信販データ受信機能</a>
@@ -212,7 +223,7 @@
       <div class="td res" id="sv_bank">0.00</div>
 
       <!-- 給与 -->
-      <div class="td"><div class="adopt-box"><input id="cb_payroll" type="checkbox" checked onchange="calc()" /></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_payroll" type="checkbox" checked onchange="calc()" /></div></div>
       <div class="td kind">給与</div>
       <div class="td c-name">
         <a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-system012" target="_blank" rel="noopener">給与計算機能（仕訳含む）</a>
@@ -224,7 +235,7 @@
       <div class="td res" id="sv_payroll">0.00</div>
 
       <!-- 販売管理 -->
-      <div class="td"><div class="adopt-box"><input id="cb_sales" type="checkbox" checked onchange="calc()" /></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_sales" type="checkbox" checked onchange="calc()" /></div></div>
       <div class="td kind">売上</div>
       <div class="td c-name">
         <a class="feat-link" href="https://www.tkc.jp/file.jsp?id=166750" target="_blank" rel="noopener">販売管理機能（売上計上・請求）</a>
@@ -236,7 +247,7 @@
       <div class="td res" id="sv_sales">0.00</div>
 
       <!-- レジ -->
-      <div class="td"><div class="adopt-box"><input id="cb_pos" type="checkbox" checked onchange="calc()" /></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_pos" type="checkbox" checked onchange="calc()" /></div></div>
       <div class="td kind">レジ</div>
       <div class="td c-name">
         <a class="feat-link" href="https://www.tkc.jp/fx/#:~:text=%E3%81%97%E3%81%8F%E3%81%AF%E3%81%93%E3%81%A1%E3%82%89-,%E5%A3%B2%E4%B8%8A%E4%BB%95%E8%A8%B3%E3%81%AE%E5%85%A5%E5%8A%9B%E6%A5%AD%E5%8B%99%E3%82%92%E5%A4%A7%E5%B9%85%E3%81%AB%E7%9C%81%E5%8A%9B%E5%8C%96,-%E3%82%BF%E3%83%96%E3%83%AC%E3%83%83%E3%83%88POS%E3%83%AC%E3%82%B8" target="_blank" rel="noopener">レジからのデータ受信</a>
@@ -264,7 +275,7 @@
     </div>
 
     <div class="btns" style="margin-top:8px;">
-      <button class="primary" onclick="calc(); toast('計算を更新しました');">効果を計算</button>
+      <!-- 効果を計算：削除 -->
       <button class="outline" onclick="resetAll(); calc(); toast('初期値にリセットしました');">リセット</button>
     </div>
   </section>
@@ -326,7 +337,7 @@
   </div>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r53</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r54</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -465,22 +476,31 @@
     // グラフ（アニメ付）を先に更新
     drawChartsAnimated(r);
 
-    // 高さ整合
+    // KPI高さ整合
     syncKPIHeights();
+
+    // 一括チェックの表示（checked/indeterminate）更新
+    refreshBulkCheckbox();
   }
 
-  /* ========== グラフ描画・アニメーション ========== */
+  /* ===== 一括チェック制御 ===== */
+  function toggleAll(checked){
+    document.querySelectorAll('.feat-cb').forEach(cb => cb.checked = checked);
+    calc();
+  }
+  function refreshBulkCheckbox(){
+    const boxes = Array.from(document.querySelectorAll('.feat-cb'));
+    const all = $('cb_all'); if(!all) return;
+    const total = boxes.length;
+    const cnt = boxes.filter(b=>b.checked).length;
+    all.indeterminate = (cnt>0 && cnt<total);
+    all.checked = (cnt===total);
+  }
+
+  /* ========== グラフ描画・アニメーション（r53相当） ========== */
   function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
   function lerp(a,b,t){ return a + (b-a)*t; }
-
-  // 前回値を保持
-  const chartState = {
-    init:false,
-    time:{before:0, after:0},
-    cost:{before:0, after:0},
-    rate:0,
-    animId:null
-  };
+  const chartState = { init:false, time:{before:0, after:0}, cost:{before:0, after:0}, rate:0, animId:null };
 
   function drawBar(canvasId, beforeVal, afterVal, formatter, topLabel){
     const c = $(canvasId);
@@ -507,33 +527,28 @@
       ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(cssW-pad,y); ctx.stroke();
     }
 
-    const x0 = cssW/2 - gap/2 - barW; // before
-    const x1 = cssW/2 + gap/2;        // after
+    const x0 = cssW/2 - gap/2 - barW;
+    const x1 = cssW/2 + gap/2;
 
-    // bars
     const h0 = chartH * (beforeVal/max);
     const h1 = chartH * (afterVal/max);
 
-    // before
     ctx.fillStyle = '#cbd5e1';
     ctx.fillRect(x0, baseY - h0, barW, h0);
-    // after
+
     ctx.fillStyle = '#2084A8';
     ctx.fillRect(x1, baseY - h1, barW, h1);
 
-    // labels
     ctx.fillStyle = '#334155';
     ctx.textAlign = 'center';
     ctx.fillText('導入なし', x0 + barW/2, baseY + 16);
     ctx.fillText('導入あり', x1 + barW/2, baseY + 16);
 
-    // values
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 13px system-ui, -apple-system';
     ctx.fillText(formatter(beforeVal), x0 + barW/2, baseY - h0 - 6);
     ctx.fillText(formatter(afterVal),  x1 + barW/2, baseY - h1 - 6);
 
-    // 右上：トップラベル
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
@@ -556,7 +571,6 @@
       rate: (res.hBefore>0? (res.hBefore-res.hChosen)/res.hBefore*100 : 0)
     };
 
-    // 初回は状態セットのみ
     if(!chartState.init){
       chartState.time = {...next.time};
       chartState.cost = {...next.cost};
@@ -566,34 +580,29 @@
       return;
     }
 
-    // 前回値スナップショット
     const prev = {
       time:{...chartState.time},
       cost:{...chartState.cost},
       rate: chartState.rate
     };
 
-    // 既存アニメがあれば停止
     if(chartState.animId){ cancelAnimationFrame(chartState.animId); chartState.animId = null; }
 
-    const dur = 500; // ms
+    const dur = 500;
     const t0 = performance.now();
 
     const step = (now)=>{
       const t = Math.min(1, (now - t0) / dur);
       const e = easeInOutCubic(t);
 
-      // 補間値
-      const timeB = lerp(prev.time.before, next.time.before, e);
-      const timeA = lerp(prev.time.after,  next.time.after,  e);
-      const costB = lerp(prev.cost.before, next.cost.before, e);
-      const costA = lerp(prev.cost.after,  next.cost.after,  e);
-      const rate  = lerp(prev.rate, next.rate, e);
+      const timeB = prev.time.before + (next.time.before - prev.time.before) * e;
+      const timeA = prev.time.after  + (next.time.after  - prev.time.after ) * e;
+      const costB = prev.cost.before + (next.cost.before - prev.cost.before) * e;
+      const costA = prev.cost.after  + (next.cost.after  - prev.cost.after ) * e;
+      const rate  = prev.rate + (next.rate - prev.rate) * e;
 
-      // タイトル（削減率）
       const rateEl = $('chartRate'); if(rateEl) rateEl.textContent = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
 
-      // 上部ラベルの補間
       const timeSaved = Math.max(0, timeB - timeA);
       const costSaved = Math.max(0, costB - costA);
 
@@ -603,7 +612,6 @@
       if(t < 1){
         chartState.animId = requestAnimationFrame(step);
       }else{
-        // 終了：次回のために確定値保存
         chartState.time = {...next.time};
         chartState.cost = {...next.cost};
         chartState.rate = next.rate;
@@ -697,17 +705,13 @@
 
     const bc=$('baseComp'); bc.value='4,600,000'; formatLive(bc); updateWage();
 
-    setTimeout(syncKPIHeights, 0);
+    setTimeout(()=>{ refreshBulkCheckbox(); syncKPIHeights(); }, 0);
   }
 
   function calc(){ syncOther(); recalcOther(); const r=compute(); updateUI(r); }
 
   window.addEventListener('DOMContentLoaded', ()=>{ resetAll(); calc(); });
-  window.addEventListener('resize', ()=>{ // リサイズは非アニメで即時再描画
-    const r=compute();
-    drawChartsOnce(r);
-    setTimeout(syncKPIHeights,0);
-  });
+  window.addEventListener('resize', ()=>{ const r=compute(); drawChartsOnce(r); setTimeout(syncKPIHeights,0); });
 </script>
 </body>
 </html>
