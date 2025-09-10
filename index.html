@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r50・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r52・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -168,7 +168,7 @@
     </div>
   </section>
 
-  <!-- 機能別 -->
+  <!-- 機能別（チェックで導入状態切替） -->
   <section class="card compact-table">
     <div class="headbar">
       <div class="thead">機能別（チェックで導入状態を切替）</div>
@@ -269,41 +269,7 @@
     </div>
   </section>
 
-  <!-- 結果 -->
-  <section class="card">
-    <div class="kpi">
-      <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
-      <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
-
-      <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
-
-      <!-- 人件費削減 -->
-      <div class="item item--emph savings">
-        <h3>人件費削減</h3>
-        <div class="krow">
-          <div class="val-main" id="kpiYen">¥0</div>
-          <div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div>
-        </div>
-      </div>
-
-      <!-- 仕訳自動化率 -->
-      <div class="item">
-        <h3>仕訳自動化率</h3>
-        <div class="krow">
-          <div class="rate-hero" id="kpiRate">0.00%</div>
-          <div class="aside">
-            <div class="label">導入機能数</div>
-            <div class="val" id="kpiAdopt">0 / 5</div>
-            <div class="note-right">チェックあり＆件数>0を採用としてカウント</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val breakdown" id="kpiBreakdown">—</div></div>
-    </div>
-  </section>
-
-  <!-- Before→After 可視化 -->
+  <!-- 削減率（グラフを先に表示） -->
   <section class="card">
     <div class="chart-head">
       <div class="chart-title">削減率 <span id="chartRate">0.00%</span></div>
@@ -321,6 +287,41 @@
     </div>
   </section>
 
+  <!-- 結果（クラスタを後に表示） -->
+  <section class="card">
+    <div class="kpi">
+      <!-- 仕訳自動化率（先頭） -->
+      <div class="item">
+        <h3>仕訳自動化率</h3>
+        <div class="krow">
+          <div class="rate-hero" id="kpiRate">0.00%</div>
+          <div class="aside">
+            <div class="label">導入機能数</div>
+            <div class="val" id="kpiAdopt">0 / 5</div>
+            <div class="note-right">チェックあり＆件数>0を採用としてカウント</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 導入なし/あり・時間短縮・人件費削減 -->
+      <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
+      <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
+      <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
+
+      <!-- 人件費削減（枠で強調） -->
+      <div class="item item--emph savings">
+        <h3>人件費削減</h3>
+        <div class="krow">
+          <div class="val-main" id="kpiYen">¥0</div>
+          <div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div>
+        </div>
+      </div>
+
+      <!-- 機能別 削減時間 -->
+      <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val breakdown" id="kpiBreakdown">—</div></div>
+    </div>
+  </section>
+
   <!-- 最下部ボタン -->
   <div class="btns" id="footerBtns" style="justify-content:center; margin-top:8px;">
     <button class="outline" id="copyBtn" onclick="copySummary()">コピー</button>
@@ -329,7 +330,7 @@
   </div>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r50</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r52</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -465,7 +466,9 @@
     const full = r.mods.map(m=> m.label+':'+safeFixed(m.hSaved)+'h').join(' / ') || '—';
     const bd = $('kpiBreakdown'); bd.textContent = full; bd.title = full;
 
-    drawCharts(r);  // グラフ更新
+    // グラフ＆タイトル更新を先に（上部でインパクト）
+    drawCharts(r);
+    // 高さ整合
     syncKPIHeights();
   }
 
@@ -521,7 +524,7 @@
     ctx.fillText(formatter(beforeVal), x0 + barW/2, baseY - h0 - 6);
     ctx.fillText(formatter(afterVal),  x1 + barW/2, baseY - h1 - 6);
 
-    // 右上：指定のトップラベル（時間短縮xxh / 人件費削減¥xx）
+    // 右上：トップラベル（時間短縮xxh / 人件費削減¥xx）
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
@@ -529,7 +532,7 @@
   }
 
   function drawCharts(res){
-    // 共通の削減率（時間基準だが、コストも同率）
+    // 共通の削減率（時間基準・コストも同率）
     const rate = res.hBefore > 0 ? (res.hBefore - res.hChosen) / res.hBefore * 100 : 0;
     const rateStr = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
     const rateEl = $('chartRate'); if(rateEl) rateEl.textContent = rateStr;
