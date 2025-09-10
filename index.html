@@ -1,142 +1,144 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r54・5機能・一括チェック対応）</title>
-<style>
-  :root{
-    --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
-    --accent:#2084A8; --accent-600:#1b7899; --accent-700:#166b8a;
-    --ring:rgba(32,132,168,.18);
-    --good:#059669; --warn:#b45309; --radius:14px;
-    --cols:.9fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
-    --row-gap:6px; --col-gap:4px;
-    --kpiRowH:auto;
-  }
-  @media (max-width:900px){ :root{ --cols:.8fr .95fr 2.6fr .95fr 1.05fr .3fr 1.05fr .75fr; } }
-  @media (max-width:740px){ :root{ --cols:.75fr .9fr 2.5fr .9fr 1.0fr .28fr 1.0fr .7fr; } }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TKC方式 | 自動化メリット試算（r55・5機能・一括チェック＋グラフ）</title>
 
-  *{box-sizing:border-box;}
-  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;margin:0;color:var(--ink);background:var(--bg);}
-  .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
-  header{margin-bottom:16px;}
-  h1{font-size:clamp(20px,3vw,28px);margin:0 0 6px;}
-  .sub{color:var(--muted);font-size:13px;line-height:1.5;}
-  @media (max-width:900px){ .sub{font-size:12px;} }
-  @media (max-width:932px) and (orientation:landscape){ .sub{font-size:10.5px !important; line-height:1.45;} }
+  <!-- ファビコン：96×96 PNG（ファイル名：favicon-96×96.png） -->
+  <link rel="icon" type="image/png" sizes="96x96" href="./favicon-96%C3%9796.png">
+  <link rel="shortcut icon" href="./favicon-96%C3%9796.png">
+  <meta name="theme-color" content="#2084A8">
 
-  .card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(2,6,23,.08);padding:16px;margin:12px 0;}
-  .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr);align-items:start;}
-  label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;}
-  input[type="number"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;}
-  input[type="number"]:focus,input[type="text"]:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring);}
-  input[readonly]{background:#f8fafc;color:#334155;}
-  .th,.td{padding:10px 8px;}
-  .thead{color:var(--muted);font-size:12px;font-weight:600;border-bottom:1px solid #e3edf4;}
-  .td.res{text-align:right;font-variant-numeric:tabular-nums;}
-  .note{font-size:12px;color:var(--muted);}
-  .note-right{font-size:11px;color:var(--muted);text-align:right;margin-top:4px;}
-  .btns{display:flex;gap:10px;flex-wrap:wrap;}
-  button{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-size:14px;transition:transform .08s ease, box-shadow .15s ease, background-color .15s ease, filter .15s ease;}
-  .primary{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(32,132,168,.18);}
-  .primary:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(32,132,168,.28);background:var(--accent-600);}
-  .primary:active{transform:translateY(0);filter:brightness(0.96);background:var(--accent-700);}
-  .outline{background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);box-shadow:0 1px 6px rgba(2,6,23,.05);}
-  .outline:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(32,132,168,.18);background:#f3f9fc;}
-  .outline:active{transform:translateY(0);background:#eef7fb;}
+  <style>
+    :root{
+      --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
+      --accent:#2084A8; --accent-600:#1b7899; --accent-700:#166b8a;
+      --ring:rgba(32,132,168,.18);
+      --good:#059669; --warn:#b45309; --radius:14px;
+      --cols:.9fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
+      --row-gap:6px; --col-gap:4px;
+      --kpiRowH:auto;
+    }
+    @media (max-width:900px){ :root{ --cols:.8fr .95fr 2.6fr .95fr 1.05fr .3fr 1.05fr .75fr; } }
+    @media (max-width:740px){ :root{ --cols:.75fr .9fr 2.5fr .9fr 1.0fr .28fr 1.0fr .7fr; } }
 
-  /* KPI */
-  .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-  .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:8px;min-height:var(--kpiRowH);display:flex;flex-direction:column;justify-content:space-between;}
-  .kpi h3{margin:0 0 4px;font-size:11.5px;color:var(--muted);}
-  .kpi .val{font-size:clamp(16px,2.4vw,20px);}
-  .krow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
-  .aside{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
-  .aside .label{font-size:10.5px;color:var(--muted);}
-  .aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132;}
-  .aside .pct{font-size:clamp(18px,3vw,24px);font-variant-numeric:tabular-nums;font-weight:700;}
+    *{box-sizing:border-box;}
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;margin:0;color:var(--ink);background:var(--bg);}
+    .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
+    header{margin-bottom:16px;}
+    h1{font-size:clamp(20px,3vw,28px);margin:0 0 6px;}
+    .sub{color:var(--muted);font-size:13px;line-height:1.5;}
+    @media (max-width:900px){ .sub{font-size:12px;} }
+    @media (max-width:932px) and (orientation:landscape){ .sub{font-size:10.5px !important; line-height:1.45;} }
 
-  /* 人件費削減カード：外枠で強調 */
-  .kpi .item.item--emph{ border:2px solid rgba(32,132,168,.9) !important; box-shadow:none; }
-  .savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1;}
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(2,6,23,.08);padding:16px;margin:12px 0;}
+    .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr);align-items:start;}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px;}
+    input[type="number"],input[type="text"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;}
+    input[type="number"]:focus,input[type="text"]:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring);}
+    input[readonly]{background:#f8fafc;color:#334155;}
+    .th,.td{padding:10px 8px;}
+    .thead{color:var(--muted);font-size:12px;font-weight:600;border-bottom:1px solid #e3edf4;}
+    .td.res{text-align:right;font-variant-numeric:tabular-nums;}
+    .note{font-size:12px;color:var(--muted);}
+    .note-right{font-size:11px;color:var(--muted);text-align:right;margin-top:4px;}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;}
+    button{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-size:14px;transition:transform .08s ease, box-shadow .15s ease, background-color .15s ease, filter .15s ease;}
+    .outline{background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);box-shadow:0 1px 6px rgba(2,6,23,.05);}
+    .outline:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(32,132,168,.18);background:#f3f9fc;}
+    .outline:active{transform:translateY(0);background:#eef7fb;}
 
-  /* 仕訳自動化率 */
-  .rate-hero{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:var(--accent);}
-  .krow .rate-hero + .aside .val{font-size:13px;}
+    /* KPI */
+    .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+    .kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:8px;min-height:var(--kpiRowH);display:flex;flex-direction:column;justify-content:space-between;}
+    .kpi h3{margin:0 0 4px;font-size:11.5px;color:var(--muted);}
+    .kpi .val{font-size:clamp(16px,2.4vw,20px);}
+    .krow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;}
+    .aside{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+    .aside .label{font-size:10.5px;color:var(--muted);}
+    .aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132;}
 
-  /* 機能別 削減時間 */
-  #kpiBreakdown.breakdown{
-    font-size:10.5px; line-height:1.35;
-    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
-    overflow:hidden;
-  }
+    /* 人件費削減カード：枠線で強調（悪目立ちなし） */
+    .kpi .item.item--emph{ border:2px solid rgba(32,132,168,.9) !important; box-shadow:none; }
+    .savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1;}
 
-  .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
-  @media (max-width:900px){ .sumline{font-size:12px;} }
-  @media (max-width:932px) and (orientation:landscape){ .sumline{font-size:10.5px;} }
+    /* 仕訳自動化率（大きめ表示） */
+    .rate-hero{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:var(--accent);}
+    .krow .rate-hero + .aside .val{font-size:13px;}
 
-  .ok{color:var(--good);} .warn{color:var(--warn);}
+    /* 機能別 削減時間（重要度低） */
+    #kpiBreakdown.breakdown{
+      font-size:10.5px; line-height:1.35;
+      display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
 
-  .compact-table .thead{margin-bottom:6px;}
-  .headbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
-  .headnote{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;}
-  @media (max-width:932px) and (orientation:landscape){ .headnote{font-size:11px;} }
+    .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px;}
+    @media (max-width:900px){ .sumline{font-size:12px;} }
+    @media (max-width:932px) and (orientation:landscape){ .sumline{font-size:10.5px;} }
 
-  .features-head,.features-rows{display:grid;grid-template-columns:var(--cols);align-items:center;gap:var(--row-gap) var(--col-gap);}
-  .features-rows .td,.features-head .th{padding:6px 6px;min-width:0;}
-  .features-rows .c-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .features-rows .td.arrow,.features-head .th.arrow{text-align:center;color:#64748b;}
-  .features-head .th:last-child,.features-rows .td.res{text-align:right;}
-  .compact-table input[type="number"],.compact-table input[type="text"]{padding:6px 8px;font-size:13px;border-radius:8px;}
+    .ok{color:var(--good);} .warn{color:var(--warn);}
 
-  .features-head .th.kind, .features-rows .td.kind{padding-left:2px;margin-left:-2px;}
+    .compact-table .thead{margin-bottom:6px;}
+    .headbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+    .headnote{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;}
+    @media (max-width:932px) and (orientation:landscape){ .headnote{font-size:11px;} }
 
-  .feat-link{color:var(--accent); text-decoration:underline; text-underline-offset:2px;}
-  .feat-link:hover{color:var(--accent-600);}
+    .features-head,.features-rows{display:grid;grid-template-columns:var(--cols);align-items:center;gap:var(--row-gap) var(--col-gap);}
+    .features-rows .td,.features-head .th{padding:6px 6px;min-width:0;}
+    .features-rows .c-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .features-rows .td.arrow,.features-head .th.arrow{text-align:center;color:#64748b;}
+    .features-head .th:last-child,.features-rows .td.res{text-align:right;}
+    .compact-table input[type="number"],.compact-table input[type="text"]{padding:6px 8px;font-size:13px;border-radius:8px;}
 
-  .comp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  .seg{display:flex;gap:6px;}
-  .seg.sm .segbtn{padding:6px 10px;font-size:12px;border-radius:10px;}
-  .segbtn{flex:0 0 auto;background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);padding:10px 14px;border-radius:12px;cursor:pointer;font-size:14px;transition:.15s;}
-  .segbtn:hover{background:#f3f9fc;box-shadow:0 4px 12px rgba(32,132,168,.12);}
-  .segbtn.active{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(32,132,168,.25);}
-  .comp-row input[type="text"]{flex:1 1 280px;min-width:180px;}
-  .calc-note{margin-top:6px;color:var(--muted);font-size:12px;}
-  .hourly-badge{margin-top:6px;font-weight:700;}
+    .features-head .th.kind, .features-rows .td.kind{padding-left:2px;margin-left:-2px;}
 
-  .adopt-box{display:flex;align-items:center;justify-content:center;width:24px;margin:0 auto;}
-  .adopt-dash{display:inline-block;width:24px;text-align:center;color:#94a3b8;}
+    .feat-link{color:var(--accent); text-decoration:underline; text-underline-offset:2px;}
+    .feat-link:hover{color:var(--accent-600);}
 
-  /* 一括チェック */
-  .features-head .th.bulk{ text-align:center; }
-  .bulk-label{display:flex; align-items:center; justify-content:center; gap:6px; color:var(--muted); font-size:12px; user-select:none;}
-  .bulk-label input{ transform:scale(1.1); }
+    .comp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .seg{display:flex;gap:6px;}
+    .seg.sm .segbtn{padding:6px 10px;font-size:12px;border-radius:10px;}
+    .segbtn{flex:0 0 auto;background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);padding:10px 14px;border-radius:12px;cursor:pointer;font-size:14px;transition:.15s;}
+    .segbtn:hover{background:#f3f9fc;box-shadow:0 4px 12px rgba(32,132,168,.12);}
+    .segbtn.active{background:var(--accent);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(32,132,168,.25);}
+    .comp-row input[type="text"]{flex:1 1 280px;min-width:180px;}
+    .calc-note{margin-top:6px;color:var(--muted);font-size:12px;}
+    .hourly-badge{margin-top:6px;font-weight:700;}
 
-  /* グラフ */
-  .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
-  .chart-title{font-weight:800;color:var(--accent);font-size:clamp(16px,2.6vw,20px);}
-  .chart-sub{color:var(--muted);font-size:12px;}
-  .chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-  .chartbox{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;}
-  .chartbox h4{margin:0 0 8px;font-size:12px;color:var(--muted);}
-  canvas{width:100%;height:220px;display:block;}
-  @media (max-width:720px){ .chart-grid{grid-template-columns:1fr;} canvas{height:200px;} }
+    .adopt-box{display:flex;align-items:center;justify-content:center;width:24px;margin:0 auto;}
+    .adopt-dash{display:inline-block;width:24px;text-align:center;color:#94a3b8;}
 
-  .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
-  .credit small{opacity:.9;}
+    /* 一括チェック */
+    .features-head .th.bulk{ text-align:center; }
+    .bulk-label{display:flex; align-items:center; justify-content:center; gap:6px; color:var(--muted); font-size:12px; user-select:none;}
+    .bulk-label input{ transform:scale(1.1); }
 
-  @media (max-width:720px){
-    .kpi{grid-template-columns:1fr;}
-    .thead{display:none;}
-  }
-  @media print{
-    .btns,#copyBtn,#csvBtn,#printBtn,#footerBtns{display:none!important;}
-    body{background:#fff;}
-    .card{box-shadow:none;border:1px solid #e5e7eb;}
-    .credit{display:none;}
-  }
-</style>
+    /* グラフ */
+    .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+    .chart-title{font-weight:800;color:var(--accent);font-size:clamp(16px,2.6vw,20px);}
+    .chart-sub{color:var(--muted);font-size:12px;}
+    .chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+    .chartbox{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;}
+    .chartbox h4{margin:0 0 8px;font-size:12px;color:var(--muted);}
+    canvas{width:100%;height:220px;display:block;}
+    @media (max-width:720px){ .chart-grid{grid-template-columns:1fr;} canvas{height:200px;} }
+
+    .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
+    .credit small{opacity:.9;}
+
+    @media (max-width:720px){
+      .kpi{grid-template-columns:1fr;}
+      .thead{display:none;}
+    }
+    @media print{
+      .btns,#copyBtn,#csvBtn,#printBtn,#footerBtns{display:none!important;}
+      body{background:#fff;}
+      .card{box-shadow:none;border:1px solid #e5e7eb;}
+      .credit{display:none;}
+    }
+  </style>
 </head>
 <body>
 <div class="wrap" id="app">
@@ -275,8 +277,8 @@
     </div>
 
     <div class="btns" style="margin-top:8px;">
-      <!-- 効果を計算：削除 -->
-      <button class="outline" onclick="resetAll(); calc(); toast('初期値にリセットしました');">リセット</button>
+      <!-- 効果を計算：削除済み。自動再計算 -->
+      <button class="outline" onclick="resetAll(); calc();">リセット</button>
     </div>
   </section>
 
@@ -337,7 +339,7 @@
   </div>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r54</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r55</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -348,13 +350,14 @@
   const $ = (id)=>document.getElementById(id);
   const safeFixed = (n,d=2)=> (Number.isFinite(n)? n.toFixed(d) : (0).toFixed(d));
   const yen = (n)=> Number.isFinite(n) ? n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}) : '¥0';
-  const toast = (m)=>{ const t=$('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1600); };
 
   function parseNum(v){ if(v==null) return 0; const s=String(v).replace(/[,\s]/g,''); const n=parseFloat(s); return isNaN(n)?0:n; }
   const num = (id)=> parseNum($(id).value);
   function formatLive(el){ const raw=(el.value||'').replace(/[^\d]/g,''); el.value = raw? Number(raw).toLocaleString('ja-JP'):''; }
 
   (function(){ const y=new Date().getFullYear(); $('creditYear').textContent=y; })();
+
+  function toast(m){ const t=$('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1600); }
 
   function syncOther(){ $('ta_other').value = $('tb_other').value; }
   function recalcOther(){
@@ -397,7 +400,7 @@
     if(payUnit==='hour'){ hourly = v; }
     else if(payUnit==='month'){ hourly = v / HOURS_PER_MONTH; }
     else { hourly = v / 12 / HOURS_PER_MONTH; }
-    hourly = hourly * 1.16;
+    hourly = hourly * 1.16; // 事業主負担16%込み
     $('hourlyDisplay').textContent = yen(Math.round(hourly)) + ' / 時';
     $('wage').value = Math.round(hourly);
     calc();
@@ -473,13 +476,8 @@
     const full = r.mods.map(m=> m.label+':'+safeFixed(m.hSaved)+'h').join(' / ') || '—';
     const bd = $('kpiBreakdown'); bd.textContent = full; bd.title = full;
 
-    // グラフ（アニメ付）を先に更新
-    drawChartsAnimated(r);
-
-    // KPI高さ整合
+    drawChartsAnimated(r); // グラフ（アニメ付）
     syncKPIHeights();
-
-    // 一括チェックの表示（checked/indeterminate）更新
     refreshBulkCheckbox();
   }
 
@@ -497,7 +495,7 @@
     all.checked = (cnt===total);
   }
 
-  /* ========== グラフ描画・アニメーション（r53相当） ========== */
+  /* ========== グラフ描画・アニメーション ========== */
   function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
   function lerp(a,b,t){ return a + (b-a)*t; }
   const chartState = { init:false, time:{before:0, after:0}, cost:{before:0, after:0}, rate:0, animId:null };
@@ -527,28 +525,31 @@
       ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(cssW-pad,y); ctx.stroke();
     }
 
-    const x0 = cssW/2 - gap/2 - barW;
-    const x1 = cssW/2 + gap/2;
-
+    const x0 = cssW/2 - gap/2 - barW; // before
+    const x1 = cssW/2 + gap/2;        // after
     const h0 = chartH * (beforeVal/max);
     const h1 = chartH * (afterVal/max);
 
+    // before
     ctx.fillStyle = '#cbd5e1';
     ctx.fillRect(x0, baseY - h0, barW, h0);
-
+    // after
     ctx.fillStyle = '#2084A8';
     ctx.fillRect(x1, baseY - h1, barW, h1);
 
+    // labels
     ctx.fillStyle = '#334155';
     ctx.textAlign = 'center';
     ctx.fillText('導入なし', x0 + barW/2, baseY + 16);
     ctx.fillText('導入あり', x1 + barW/2, baseY + 16);
 
+    // values
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 13px system-ui, -apple-system';
     ctx.fillText(formatter(beforeVal), x0 + barW/2, baseY - h0 - 6);
     ctx.fillText(formatter(afterVal),  x1 + barW/2, baseY - h1 - 6);
 
+    // 右上：トップラベル
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
@@ -588,7 +589,7 @@
 
     if(chartState.animId){ cancelAnimationFrame(chartState.animId); chartState.animId = null; }
 
-    const dur = 500;
+    const dur = 500; // ms
     const t0 = performance.now();
 
     const step = (now)=>{
@@ -671,6 +672,7 @@
       return /[",\n\r]/.test(v)?`"${v}"`:v;
     }).join(',')).join('\r\n');
 
+    // 文字化け防止のBOM付きUTF-8
     const bom = new Uint8Array([0xEF,0xBB,0xBF]);
     const blob = new Blob([bom,csv],{type:'text/csv;charset=utf-8;'});
     const a=document.createElement('a');
