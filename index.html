@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r49・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r50・5機能）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -109,6 +109,9 @@
   .adopt-dash{display:inline-block;width:24px;text-align:center;color:#94a3b8;}
 
   /* グラフ */
+  .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+  .chart-title{font-weight:800;color:var(--accent);font-size:clamp(16px,2.6vw,20px);}
+  .chart-sub{color:var(--muted);font-size:12px;}
   .chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
   .chartbox{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;}
   .chartbox h4{margin:0 0 8px;font-size:12px;color:var(--muted);}
@@ -302,7 +305,10 @@
 
   <!-- Before→After 可視化 -->
   <section class="card">
-    <div class="thead" style="margin-bottom:8px;">Before → After 可視化</div>
+    <div class="chart-head">
+      <div class="chart-title">削減率 <span id="chartRate">0.00%</span></div>
+      <div class="chart-sub">Before → After 可視化</div>
+    </div>
     <div class="chart-grid">
       <div class="chartbox">
         <h4>総時間（時間）</h4>
@@ -323,7 +329,7 @@
   </div>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r49</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r50</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -459,12 +465,12 @@
     const full = r.mods.map(m=> m.label+':'+safeFixed(m.hSaved)+'h').join(' / ') || '—';
     const bd = $('kpiBreakdown'); bd.textContent = full; bd.title = full;
 
-    drawCharts(r);  // グラフ更新（削減率表示含む）
+    drawCharts(r);  // グラフ更新
     syncKPIHeights();
   }
 
   /* ========== グラフ描画（素のCanvas） ========== */
-  function drawBar(canvasId, beforeVal, afterVal, formatter){
+  function drawBar(canvasId, beforeVal, afterVal, formatter, topLabel){
     const c = $(canvasId);
     if(!c) return;
     const ctx = c.getContext('2d');
@@ -515,17 +521,21 @@
     ctx.fillText(formatter(beforeVal), x0 + barW/2, baseY - h0 - 6);
     ctx.fillText(formatter(afterVal),  x1 + barW/2, baseY - h1 - 6);
 
-    // 削減率（空きスペース右上）
-    const rate = beforeVal > 0 ? (beforeVal - afterVal) / beforeVal * 100 : 0;
+    // 右上：指定のトップラベル（時間短縮xxh / 人件費削減¥xx）
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
-    ctx.fillText(`削減率 ${rate.toFixed(2)}%`, cssW - pad, pad + 2);
+    ctx.fillText(topLabel, cssW - pad, pad + 2);
   }
 
   function drawCharts(res){
-    drawBar('chartTime', res.hBefore, res.hChosen, v=>`${safeFixed(v,2)}h`);
-    drawBar('chartCost', res.costBefore, res.costChosen, v=>yen(v));
+    // 共通の削減率（時間基準だが、コストも同率）
+    const rate = res.hBefore > 0 ? (res.hBefore - res.hChosen) / res.hBefore * 100 : 0;
+    const rateStr = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
+    const rateEl = $('chartRate'); if(rateEl) rateEl.textContent = rateStr;
+
+    drawBar('chartTime', res.hBefore, res.hChosen, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(res.hSaved,2)}h`);
+    drawBar('chartCost', res.costBefore, res.costChosen, v=>yen(v), `人件費削減 ${yen(res.monthlySaving)}`);
   }
 
   async function copySummary(){
