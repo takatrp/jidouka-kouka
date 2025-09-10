@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TKC方式 | 自動化メリット試算（HTML版 r52・5機能）</title>
+<title>TKC方式 | 自動化メリット試算（HTML版 r53・5機能・アニメ付）</title>
 <style>
   :root{
     --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
@@ -61,11 +61,11 @@
   .kpi .item.item--emph{ border:2px solid rgba(32,132,168,.9) !important; box-shadow:none; }
   .savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1;}
 
-  /* 仕訳自動化率：金額と同サイズに統一＋右側を少し小さく */
+  /* 仕訳自動化率 */
   .rate-hero{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:var(--accent);}
   .krow .rate-hero + .aside .val{font-size:13px;}
 
-  /* 機能別 削減時間：小さめ・2行省略 */
+  /* 機能別 削減時間 */
   #kpiBreakdown.breakdown{
     font-size:10.5px; line-height:1.35;
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
@@ -290,7 +290,6 @@
   <!-- 結果（クラスタを後に表示） -->
   <section class="card">
     <div class="kpi">
-      <!-- 仕訳自動化率（先頭） -->
       <div class="item">
         <h3>仕訳自動化率</h3>
         <div class="krow">
@@ -303,12 +302,10 @@
         </div>
       </div>
 
-      <!-- 導入なし/あり・時間短縮・人件費削減 -->
       <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
       <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
       <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
 
-      <!-- 人件費削減（枠で強調） -->
       <div class="item item--emph savings">
         <h3>人件費削減</h3>
         <div class="krow">
@@ -317,7 +314,6 @@
         </div>
       </div>
 
-      <!-- 機能別 削減時間 -->
       <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val breakdown" id="kpiBreakdown">—</div></div>
     </div>
   </section>
@@ -330,7 +326,7 @@
   </div>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r52</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r53</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -466,13 +462,26 @@
     const full = r.mods.map(m=> m.label+':'+safeFixed(m.hSaved)+'h').join(' / ') || '—';
     const bd = $('kpiBreakdown'); bd.textContent = full; bd.title = full;
 
-    // グラフ＆タイトル更新を先に（上部でインパクト）
-    drawCharts(r);
+    // グラフ（アニメ付）を先に更新
+    drawChartsAnimated(r);
+
     // 高さ整合
     syncKPIHeights();
   }
 
-  /* ========== グラフ描画（素のCanvas） ========== */
+  /* ========== グラフ描画・アニメーション ========== */
+  function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+  function lerp(a,b,t){ return a + (b-a)*t; }
+
+  // 前回値を保持
+  const chartState = {
+    init:false,
+    time:{before:0, after:0},
+    cost:{before:0, after:0},
+    rate:0,
+    animId:null
+  };
+
   function drawBar(canvasId, beforeVal, afterVal, formatter, topLabel){
     const c = $(canvasId);
     if(!c) return;
@@ -524,21 +533,85 @@
     ctx.fillText(formatter(beforeVal), x0 + barW/2, baseY - h0 - 6);
     ctx.fillText(formatter(afterVal),  x1 + barW/2, baseY - h1 - 6);
 
-    // 右上：トップラベル（時間短縮xxh / 人件費削減¥xx）
+    // 右上：トップラベル
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
     ctx.fillText(topLabel, cssW - pad, pad + 2);
   }
 
-  function drawCharts(res){
-    // 共通の削減率（時間基準・コストも同率）
+  function drawChartsOnce(res){
     const rate = res.hBefore > 0 ? (res.hBefore - res.hChosen) / res.hBefore * 100 : 0;
     const rateStr = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
     const rateEl = $('chartRate'); if(rateEl) rateEl.textContent = rateStr;
 
     drawBar('chartTime', res.hBefore, res.hChosen, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(res.hSaved,2)}h`);
     drawBar('chartCost', res.costBefore, res.costChosen, v=>yen(v), `人件費削減 ${yen(res.monthlySaving)}`);
+  }
+
+  function drawChartsAnimated(res){
+    const next = {
+      time:{ before: Math.max(0,res.hBefore), after: Math.max(0,res.hChosen) },
+      cost:{ before: Math.max(0,res.costBefore), after: Math.max(0,res.costChosen) },
+      rate: (res.hBefore>0? (res.hBefore-res.hChosen)/res.hBefore*100 : 0)
+    };
+
+    // 初回は状態セットのみ
+    if(!chartState.init){
+      chartState.time = {...next.time};
+      chartState.cost = {...next.cost};
+      chartState.rate = next.rate;
+      chartState.init = true;
+      drawChartsOnce(res);
+      return;
+    }
+
+    // 前回値スナップショット
+    const prev = {
+      time:{...chartState.time},
+      cost:{...chartState.cost},
+      rate: chartState.rate
+    };
+
+    // 既存アニメがあれば停止
+    if(chartState.animId){ cancelAnimationFrame(chartState.animId); chartState.animId = null; }
+
+    const dur = 500; // ms
+    const t0 = performance.now();
+
+    const step = (now)=>{
+      const t = Math.min(1, (now - t0) / dur);
+      const e = easeInOutCubic(t);
+
+      // 補間値
+      const timeB = lerp(prev.time.before, next.time.before, e);
+      const timeA = lerp(prev.time.after,  next.time.after,  e);
+      const costB = lerp(prev.cost.before, next.cost.before, e);
+      const costA = lerp(prev.cost.after,  next.cost.after,  e);
+      const rate  = lerp(prev.rate, next.rate, e);
+
+      // タイトル（削減率）
+      const rateEl = $('chartRate'); if(rateEl) rateEl.textContent = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
+
+      // 上部ラベルの補間
+      const timeSaved = Math.max(0, timeB - timeA);
+      const costSaved = Math.max(0, costB - costA);
+
+      drawBar('chartTime', timeB, timeA, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(timeSaved,2)}h`);
+      drawBar('chartCost', costB, costA, v=>yen(v), `人件費削減 ${yen(costSaved)}`);
+
+      if(t < 1){
+        chartState.animId = requestAnimationFrame(step);
+      }else{
+        // 終了：次回のために確定値保存
+        chartState.time = {...next.time};
+        chartState.cost = {...next.cost};
+        chartState.rate = next.rate;
+        chartState.animId = null;
+      }
+    };
+
+    chartState.animId = requestAnimationFrame(step);
   }
 
   async function copySummary(){
@@ -630,7 +703,11 @@
   function calc(){ syncOther(); recalcOther(); const r=compute(); updateUI(r); }
 
   window.addEventListener('DOMContentLoaded', ()=>{ resetAll(); calc(); });
-  window.addEventListener('resize', ()=>{ const r=compute(); drawCharts(r); setTimeout(syncKPIHeights,0); });
+  window.addEventListener('resize', ()=>{ // リサイズは非アニメで即時再描画
+    const r=compute();
+    drawChartsOnce(r);
+    setTimeout(syncKPIHeights,0);
+  });
 </script>
 </body>
 </html>
