@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TKC方式 | 自動化メリット試算（r55・5機能・一括チェック＋グラフ）</title>
+  <title>TKC方式 | 自動化メリット試算（r56・5機能・一括チェック＋グラフ）</title>
 
-  <!-- ファビコン：192×192 PNG（ファイル名：favicon192192.png） -->
-  <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
-  <link rel="shortcut icon" href="./favicon192192.png">
+  <!-- ファビコン：96×96 PNG（ファイル名：favicon-96×96.png） -->
+  <link rel="icon" type="image/png" sizes="96x96" href="./favicon-96%C3%9796.png">
+  <link rel="shortcut icon" href="./favicon-96%C3%9796.png">
   <meta name="theme-color" content="#2084A8">
 
   <style>
@@ -27,10 +27,17 @@
     body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;margin:0;color:var(--ink);background:var(--bg);}
     .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
     header{margin-bottom:16px;}
-    h1{font-size:clamp(20px,3vw,28px);margin:0 0 6px;}
+
+    /* タイトルを少し小さく */
+    h1{font-size:clamp(18px,2.4vw,24px);margin:0 0 6px;}
+
     .sub{color:var(--muted);font-size:13px;line-height:1.5;}
     @media (max-width:900px){ .sub{font-size:12px;} }
     @media (max-width:932px) and (orientation:landscape){ .sub{font-size:10.5px !important; line-height:1.45;} }
+
+    /* ヘッダーにロゴ表示（高さ48px固定） */
+    header .brand{display:flex; align-items:center; gap:10px; margin-bottom:6px;}
+    header .brand img{height:48px; width:auto; display:block;}
 
     .card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(2,6,23,.08);padding:16px;margin:12px 0;}
     .grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr);align-items:start;}
@@ -143,8 +150,13 @@
 <body>
 <div class="wrap" id="app">
   <header>
-    <h1>自動化メリット試算（TKC方式・5機能）</h1>
-    <div class="sub">5機能のチェックで<strong>導入（自動化後）/未導入（手作業）</strong>を切替。導入効果（時間・人件費）を算出します。月間仕訳総数との差分は<strong>「その他」</strong>として自動調整。</div>
+    <div class="brand">
+      <img src="./ロゴ.jpg" alt="税理士法人松本会計事務所 ロゴ" decoding="async" loading="eager">
+      <h1>自動化メリット試算（TKC方式・5機能）</h1>
+    </div>
+    <div class="sub">
+      5機能のチェックで<strong>導入（自動化後）/未導入（手作業）</strong>を切替。導入効果（時間・人件費）を算出します。月間仕訳総数との差分は<strong>「その他」</strong>として自動調整。
+    </div>
   </header>
 
   <!-- 試算前提 -->
@@ -183,7 +195,6 @@
     </div>
 
     <div class="features-head">
-      <!-- 導入 → 一括チェック -->
       <div class="th bulk">
         <label class="bulk-label" title="5機能の導入チェックを一括でON/OFF">
           <span>一括</span>
@@ -277,7 +288,6 @@
     </div>
 
     <div class="btns" style="margin-top:8px;">
-      <!-- 効果を計算：削除済み。自動再計算 -->
       <button class="outline" onclick="resetAll(); calc();">リセット</button>
     </div>
   </section>
@@ -339,7 +349,7 @@
   </div>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r55</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r56</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -497,7 +507,6 @@
 
   /* ========== グラフ描画・アニメーション ========== */
   function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
-  function lerp(a,b,t){ return a + (b-a)*t; }
   const chartState = { init:false, time:{before:0, after:0}, cost:{before:0, after:0}, rate:0, animId:null };
 
   function drawBar(canvasId, beforeVal, afterVal, formatter, topLabel){
@@ -518,38 +527,34 @@
     const chartH = cssH - pad*2;
     const baseY = cssH - pad;
 
-    // grid
     ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
     for(let i=0;i<=4;i++){
       const y = baseY - chartH*(i/4);
       ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(cssW-pad,y); ctx.stroke();
     }
 
-    const x0 = cssW/2 - gap/2 - barW; // before
-    const x1 = cssW/2 + gap/2;        // after
+    const x0 = cssW/2 - gap/2 - barW;
+    const x1 = cssW/2 + gap/2;
+
     const h0 = chartH * (beforeVal/max);
     const h1 = chartH * (afterVal/max);
 
-    // before
     ctx.fillStyle = '#cbd5e1';
     ctx.fillRect(x0, baseY - h0, barW, h0);
-    // after
+
     ctx.fillStyle = '#2084A8';
     ctx.fillRect(x1, baseY - h1, barW, h1);
 
-    // labels
     ctx.fillStyle = '#334155';
     ctx.textAlign = 'center';
     ctx.fillText('導入なし', x0 + barW/2, baseY + 16);
     ctx.fillText('導入あり', x1 + barW/2, baseY + 16);
 
-    // values
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 13px system-ui, -apple-system';
     ctx.fillText(formatter(beforeVal), x0 + barW/2, baseY - h0 - 6);
     ctx.fillText(formatter(afterVal),  x1 + barW/2, baseY - h1 - 6);
 
-    // 右上：トップラベル
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
@@ -589,12 +594,12 @@
 
     if(chartState.animId){ cancelAnimationFrame(chartState.animId); chartState.animId = null; }
 
-    const dur = 500; // ms
+    const dur = 500;
     const t0 = performance.now();
 
     const step = (now)=>{
       const t = Math.min(1, (now - t0) / dur);
-      const e = easeInOutCubic(t);
+      const e = (t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2);
 
       const timeB = prev.time.before + (next.time.before - prev.time.before) * e;
       const timeA = prev.time.after  + (next.time.after  - prev.time.after ) * e;
@@ -672,7 +677,6 @@
       return /[",\n\r]/.test(v)?`"${v}"`:v;
     }).join(',')).join('\r\n');
 
-    // 文字化け防止のBOM付きUTF-8
     const bom = new Uint8Array([0xEF,0xBB,0xBF]);
     const blob = new Blob([bom,csv],{type:'text/csv;charset=utf-8;'});
     const a=document.createElement('a');
