@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>自動化効果試算ツール（r56・5機能・一括チェック＋グラフ）</title>
+  <title>自動化効果試算ツール（r58・5機能・一括チェック＋グラフ）</title>
 
-  <!-- ファビコン：192×192 PNG（ファイル名：favicon192192.png） -->
+  <!-- ファビコン：192×192 PNG -->
   <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
   <link rel="shortcut icon" href="./favicon192192.png">
   <meta name="theme-color" content="#2084A8">
@@ -28,14 +28,14 @@
     .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
     header{margin-bottom:16px;}
 
-    /* タイトルを少し小さく */
+    /* タイトル少し小さめ */
     h1{font-size:clamp(18px,2.4vw,24px);margin:0 0 6px;}
 
     .sub{color:var(--muted);font-size:13px;line-height:1.5;}
     @media (max-width:900px){ .sub{font-size:12px;} }
     @media (max-width:932px) and (orientation:landscape){ .sub{font-size:10.5px !important; line-height:1.45;} }
 
-    /* ヘッダーにロゴ表示（高さ48px固定） */
+    /* ヘッダーロゴ（高さ48px） */
     header .brand{display:flex; align-items:center; gap:10px; margin-bottom:6px;}
     header .brand img{height:48px; width:auto; display:block;}
 
@@ -66,11 +66,11 @@
     .aside .label{font-size:10.5px;color:var(--muted);}
     .aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132;}
 
-    /* 人件費削減カード：枠線で強調（悪目立ちなし） */
+    /* 人件費削減カード強調（枠線） */
     .kpi .item.item--emph{ border:2px solid rgba(32,132,168,.9) !important; box-shadow:none; }
     .savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1;}
 
-    /* 仕訳自動化率（大きめ表示） */
+    /* 仕訳自動化率（大きめ） */
     .rate-hero{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:var(--accent);}
     .krow .rate-hero + .aside .val{font-size:13px;}
 
@@ -151,7 +151,9 @@
 <div class="wrap" id="app">
   <header>
     <div class="brand">
-      <img src="./ロゴ.jpg" alt="税理士法人松本会計事務所 ロゴ" decoding="async" loading="eager">
+      <a href="https://www.matsumoto-kaikei.or.jp/" aria-label="松本会計 公式サイト">
+        <img src="./ロゴ.jpg" alt="税理士法人松本会計事務所 ロゴ" decoding="async" loading="eager">
+      </a>
       <h1>自動化効果試算ツール</h1>
     </div>
     <div class="sub">
@@ -172,12 +174,12 @@
             <button type="button" class="segbtn" data-unit="month" onclick="setUnit('month')">月給</button>
             <button type="button" class="segbtn active" data-unit="year" onclick="setUnit('year')">年収</button>
           </div>
-          <input id="baseComp" type="text" inputmode="numeric" value="4,600,000"
+          <input id="baseComp" type="text" inputmode="numeric" value="4,780,000"
                  oninput="formatLive(this); updateWage()" />
         </div>
-        <div class="calc-note">※初期値：令和5年民間給与実態統計調査の平均年収<strong>460万円</strong>をベースに算出。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
-        <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,780 / 時</span>（16％込み）</div>
-        <input type="hidden" id="wage" value="2780" />
+        <div class="calc-note">※初期値：令和6年民間給与実態統計調査の平均年収<strong>478万円</strong>をベースに算出。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
+        <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,888 / 時</span>（16％込み）</div>
+        <input type="hidden" id="wage" value="2888" />
       </div>
 
       <div class="td field" style="grid-column:span 6;">
@@ -292,7 +294,7 @@
     </div>
   </section>
 
-  <!-- 削減率（グラフを先に表示） -->
+  <!-- 削減率（グラフ先） -->
   <section class="card">
     <div class="chart-head">
       <div class="chart-title">削減率 <span id="chartRate">0.00%</span></div>
@@ -310,7 +312,7 @@
     </div>
   </section>
 
-  <!-- 結果（クラスタを後に表示） -->
+  <!-- 結果（クラスタ後） -->
   <section class="card">
     <div class="kpi">
       <div class="item">
@@ -349,7 +351,7 @@
   </div>
 
   <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r56</span></small>
+    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r58</span></small>
   </div>
 
   <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
@@ -400,7 +402,7 @@
     const base = $('baseComp');
     if(u==='hour'){ base.value='2,500'; }
     if(u==='month'){ base.value='300,000'; }
-    if(u==='year'){ base.value='4,600,000'; }
+    if(u==='year'){ base.value='4,780,000'; }
     formatLive(base);
     updateWage();
   }
@@ -486,12 +488,12 @@
     const full = r.mods.map(m=> m.label+':'+safeFixed(m.hSaved)+'h').join(' / ') || '—';
     const bd = $('kpiBreakdown'); bd.textContent = full; bd.title = full;
 
-    drawChartsAnimated(r); // グラフ（アニメ付）
+    drawChartsAnimated(r);
     syncKPIHeights();
     refreshBulkCheckbox();
   }
 
-  /* ===== 一括チェック制御 ===== */
+  /* ===== 一括チェック ===== */
   function toggleAll(checked){
     document.querySelectorAll('.feat-cb').forEach(cb => cb.checked = checked);
     calc();
@@ -505,7 +507,7 @@
     all.checked = (cnt===total);
   }
 
-  /* ========== グラフ描画・アニメーション ========== */
+  /* ===== グラフ描画・アニメ ===== */
   function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
   const chartState = { init:false, time:{before:0, after:0}, cost:{before:0, after:0}, rate:0, animId:null };
 
@@ -631,7 +633,7 @@
   async function copySummary(){
     const r = compute();
     const lines = [];
-    lines.push('【自動化メリット試算サマリー（5機能）】');
+    lines.push('【自動化効果試算ツール（5機能）サマリー】');
     lines.push('時給(社保16%込み): ' + Math.round(r.wage) + ' 円/時');
     lines.push('仕訳自動化率: ' + (Number.isFinite(r.rateJ)? r.rateJ.toFixed(2):'0.00') + '%（導入機能: ' + r.adopted + ' / 5）');
     r.mods.forEach(m=>{
@@ -682,7 +684,7 @@
     const a=document.createElement('a');
     const n=new Date(),p=x=>String(x).padStart(2,'0');
     a.href=URL.createObjectURL(blob);
-    a.download=`tkc_auto_benefit_${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}_${p(n.getHours())}${p(n.getMinutes())}.csv`;
+    a.download=`auto_effect_${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}_${p(n.getHours())}${p(n.getMinutes())}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     toast('CSVを作成しました（UTF-8 BOM付）');
   }
@@ -709,7 +711,7 @@
 
     ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos','sv_other'].forEach(id=>$(id).textContent='0.00');
 
-    const bc=$('baseComp'); bc.value='4,600,000'; formatLive(bc); updateWage();
+    const bc=$('baseComp'); bc.value='4,780,000'; formatLive(bc); updateWage();
 
     setTimeout(()=>{ refreshBulkCheckbox(); syncKPIHeights(); }, 0);
   }
