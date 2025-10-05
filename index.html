@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>自動化効果試算ツール（r58・5機能・一括チェック＋グラフ）</title>
+  <title>自動化効果試算ツール（r59・5機能・一括チェック＋横向きグラフ）</title>
 
   <!-- ファビコン：192×192 PNG -->
   <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
@@ -28,9 +28,7 @@
     .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
     header{margin-bottom:16px;}
 
-    /* タイトル少し小さめ */
     h1{font-size:clamp(18px,2.4vw,24px);margin:0 0 6px;}
-
     .sub{color:var(--muted);font-size:13px;line-height:1.5;}
     @media (max-width:900px){ .sub{font-size:12px;} }
     @media (max-width:932px) and (orientation:landscape){ .sub{font-size:10.5px !important; line-height:1.45;} }
@@ -98,7 +96,6 @@
     .features-rows .td.arrow,.features-head .th.arrow{text-align:center;color:#64748b;}
     .features-head .th:last-child,.features-rows .td.res{text-align:right;}
     .compact-table input[type="number"],.compact-table input[type="text"]{padding:6px 8px;font-size:13px;border-radius:8px;}
-
     .features-head .th.kind, .features-rows .td.kind{padding-left:2px;margin-left:-2px;}
 
     .feat-link{color:var(--accent); text-decoration:underline; text-underline-offset:2px;}
@@ -122,7 +119,7 @@
     .bulk-label{display:flex; align-items:center; justify-content:center; gap:6px; color:var(--muted); font-size:12px; user-select:none;}
     .bulk-label input{ transform:scale(1.1); }
 
-    /* グラフ */
+    /* グラフ（横向き） */
     .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
     .chart-title{font-weight:800;color:var(--accent);font-size:clamp(16px,2.6vw,20px);}
     .chart-sub{color:var(--muted);font-size:12px;}
@@ -132,18 +129,15 @@
     canvas{width:100%;height:220px;display:block;}
     @media (max-width:720px){ .chart-grid{grid-template-columns:1fr;} canvas{height:200px;} }
 
-    .credit{margin:28px 0 0;text-align:center;color:#475569;font-size:12px;}
-    .credit small{opacity:.9;}
-
-    @media (max-width:720px){
-      .kpi{grid-template-columns:1fr;}
-      .thead{display:none;}
+    /* フッター（ミニ・1行） */
+    footer.mk-mini{
+      margin-top:22px; padding:12px 0; text-align:center; color:#475569; font-size:12px;
     }
+    footer.mk-mini a{ color:inherit; text-decoration:underline; }
     @media print{
-      .btns,#copyBtn,#csvBtn,#printBtn,#footerBtns{display:none!important;}
+      .btns,#copyBtn,#csvBtn,#printBtn,#footerBtns, footer.mk-mini{display:none!important;}
       body{background:#fff;}
       .card{box-shadow:none;border:1px solid #e5e7eb;}
-      .credit{display:none;}
     }
   </style>
 </head>
@@ -151,7 +145,7 @@
 <div class="wrap" id="app">
   <header>
     <div class="brand">
-      <a href="https://www.matsumoto-kaikei.or.jp/" aria-label="松本会計 公式サイト">
+      <a href="https://www.matsumoto-kaikei.or.jp/" aria-label="松本会計 公式サイト" target="_blank" rel="noopener">
         <img src="./ロゴ.jpg" alt="税理士法人松本会計事務所 ロゴ" decoding="async" loading="eager">
       </a>
       <h1>自動化効果試算ツール</h1>
@@ -161,10 +155,9 @@
     </div>
   </header>
 
-  <!-- 試算前提 -->
+  <!-- 試算前提（見出しと下線は削除済み） -->
   <section class="card">
     <div class="grid" style="grid-template-columns:repeat(12,1fr);">
-      <div class="thead th" style="grid-column:span 12;">試算前提</div>
 
       <div class="td field" style="grid-column:span 6;">
         <label>給与の単位を選択して入力（社保等<strong>事業主負担16%</strong>は換算時に自動加算）</label>
@@ -294,7 +287,7 @@
     </div>
   </section>
 
-  <!-- 削減率（グラフ先） -->
+  <!-- 削減率（横向きグラフを先に表示） -->
   <section class="card">
     <div class="chart-head">
       <div class="chart-title">削減率 <span id="chartRate">0.00%</span></div>
@@ -312,7 +305,7 @@
     </div>
   </section>
 
-  <!-- 結果（クラスタ後） -->
+  <!-- 結果（クラスタを後に表示） -->
   <section class="card">
     <div class="kpi">
       <div class="item">
@@ -350,13 +343,17 @@
     <button class="outline" id="printBtn" onclick="printPage()">印刷</button>
   </div>
 
-  <div class="credit" style="text-align:center;color:#475569;font-size:12px;margin-top:28px">
-    <small>Copyright (c) <span id="creditYear"></span> <span id="creditCompany">税理士法人松本会計事務所</span> All Rights Reserved. / <span id="creditRev">r58</span></small>
-  </div>
-
-  <div id="toast" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;"></div>
+  <!-- フッター（ミニ・CC表記/最終更新/Rev） -->
+  <footer class="mk-mini">
+    © <span id="cpy-year">2025</span>
+    <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">税理士法人松本会計事務所</a> ｜ 
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
+    <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
+    <span id="build-rev">r59</span>（<span id="last-updated-date"></span>）
+  </footer>
 </div>
 
+<!-- ======================= JS ======================= -->
 <script>
   /* ========= ユーティリティ ========= */
   const $ = (id)=>document.getElementById(id);
@@ -367,9 +364,28 @@
   const num = (id)=> parseNum($(id).value);
   function formatLive(el){ const raw=(el.value||'').replace(/[^\d]/g,''); el.value = raw? Number(raw).toLocaleString('ja-JP'):''; }
 
-  (function(){ const y=new Date().getFullYear(); $('creditYear').textContent=y; })();
+  /* フッター：年・更新日・Rev */
+  (function(){
+    const y = new Date().getFullYear();
+    const d = new Date(document.lastModified);
+    const pad = (x)=> String(x).padStart(2,'0');
+    const yyyy_mm_dd = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const yEl = $('cpy-year'), uEl = $('last-updated-date'), rEl = $('build-rev');
+    if(yEl) yEl.textContent = y;
+    if(uEl) uEl.textContent = yyyy_mm_dd;
+    if(rEl) rEl.textContent = 'r59';
+  })();
 
-  function toast(m){ const t=$('toast'); t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1600); }
+  function toast(m){
+    let t = document.getElementById('toast');
+    if(!t){
+      t = document.createElement('div');
+      t.id='toast';
+      t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:9999;font-size:13px;';
+      document.body.appendChild(t);
+    }
+    t.textContent=m; t.style.opacity=1; setTimeout(()=>t.style.opacity=0,1600);
+  }
 
   function syncOther(){ $('ta_other').value = $('tb_other').value; }
   function recalcOther(){
@@ -488,7 +504,7 @@
     const full = r.mods.map(m=> m.label+':'+safeFixed(m.hSaved)+'h').join(' / ') || '—';
     const bd = $('kpiBreakdown'); bd.textContent = full; bd.title = full;
 
-    drawChartsAnimated(r);
+    drawChartsAnimated(r); // 横向きバーで再描画
     syncKPIHeights();
     refreshBulkCheckbox();
   }
@@ -507,69 +523,75 @@
     all.checked = (cnt===total);
   }
 
-  /* ===== グラフ描画・アニメ ===== */
-  function easeInOutCubic(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
-  const chartState = { init:false, time:{before:0, after:0}, cost:{before:0, after:0}, rate:0, animId:null };
+  /* ========== 横向きグラフ描画・アニメーション ========== */
 
-  function drawBar(canvasId, beforeVal, afterVal, formatter, topLabel){
-    const c = $(canvasId);
-    if(!c) return;
+  function drawBarH(canvasId, beforeVal, afterVal, formatter, topLabel){
+    const c = $(canvasId); if(!c) return;
     const ctx = c.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const cssW = c.clientWidth, cssH = c.clientHeight;
     c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
 
-    const pad = 28, barW = 44, gap = 58;
+    const padL = 28, padR = 28, padT = 24, padB = 28;
+    const barH = 36, gap = 22;
+    const plotW = cssW - padL - padR;
+    const plotH = cssH - padT - padB;
+
     ctx.clearRect(0,0,cssW,cssH);
     ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto';
-    ctx.fillStyle = '#64748b';
+    ctx.textBaseline = 'middle';
 
     const max = Math.max(beforeVal, afterVal, 1);
-    const chartH = cssH - pad*2;
-    const baseY = cssH - pad;
+    const row1Y = padT + barH/2;
+    const row2Y = row1Y + barH + gap;
 
+    // ガイド線（縦）
     ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
     for(let i=0;i<=4;i++){
-      const y = baseY - chartH*(i/4);
-      ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(cssW-pad,y); ctx.stroke();
+      const x = padL + plotW*(i/4);
+      ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH); ctx.stroke();
     }
 
-    const x0 = cssW/2 - gap/2 - barW;
-    const x1 = cssW/2 + gap/2;
-
-    const h0 = chartH * (beforeVal/max);
-    const h1 = chartH * (afterVal/max);
-
+    // 導入なし
+    const w0 = plotW * (beforeVal/max);
     ctx.fillStyle = '#cbd5e1';
-    ctx.fillRect(x0, baseY - h0, barW, h0);
+    ctx.fillRect(padL, row1Y - barH/2, w0, barH);
 
+    // 導入あり
+    const w1 = plotW * (afterVal/max);
     ctx.fillStyle = '#2084A8';
-    ctx.fillRect(x1, baseY - h1, barW, h1);
+    ctx.fillRect(padL, row2Y - barH/2, w1, barH);
 
+    // ラベル
     ctx.fillStyle = '#334155';
-    ctx.textAlign = 'center';
-    ctx.fillText('導入なし', x0 + barW/2, baseY + 16);
-    ctx.fillText('導入あり', x1 + barW/2, baseY + 16);
+    ctx.textAlign = 'left';
+    ctx.fillText('導入なし', padL, row1Y - barH/2 - 8);
+    ctx.fillText('導入あり', padL, row2Y - barH/2 - 8);
 
+    // 値ラベル
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 13px system-ui, -apple-system';
-    ctx.fillText(formatter(beforeVal), x0 + barW/2, baseY - h0 - 6);
-    ctx.fillText(formatter(afterVal),  x1 + barW/2, baseY - h1 - 6);
+    ctx.textAlign = 'right';
+    ctx.fillText(formatter(beforeVal), padL + w0, row1Y);
+    ctx.fillText(formatter(afterVal),  padL + w1, row2Y);
 
+    // 右上タイトル（例：時間短縮 xxh / 人件費削減 ¥xx）
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
-    ctx.fillText(topLabel, cssW - pad, pad + 2);
+    ctx.fillText(topLabel, cssW - padR, padT - 8);
   }
+
+  const chartState = { init:false, time:{before:0, after:0}, cost:{before:0, after:0}, rate:0, animId:null };
 
   function drawChartsOnce(res){
     const rate = res.hBefore > 0 ? (res.hBefore - res.hChosen) / res.hBefore * 100 : 0;
     const rateStr = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
     const rateEl = $('chartRate'); if(rateEl) rateEl.textContent = rateStr;
 
-    drawBar('chartTime', res.hBefore, res.hChosen, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(res.hSaved,2)}h`);
-    drawBar('chartCost', res.costBefore, res.costChosen, v=>yen(v), `人件費削減 ${yen(res.monthlySaving)}`);
+    drawBarH('chartTime', res.hBefore, res.hChosen, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(res.hSaved,2)}h`);
+    drawBarH('chartCost', res.costBefore, res.costChosen, v=>yen(v), `人件費削減 ${yen(res.monthlySaving)}`);
   }
 
   function drawChartsAnimated(res){
@@ -588,11 +610,7 @@
       return;
     }
 
-    const prev = {
-      time:{...chartState.time},
-      cost:{...chartState.cost},
-      rate: chartState.rate
-    };
+    const prev = { time:{...chartState.time}, cost:{...chartState.cost}, rate: chartState.rate };
 
     if(chartState.animId){ cancelAnimationFrame(chartState.animId); chartState.animId = null; }
 
@@ -614,8 +632,8 @@
       const timeSaved = Math.max(0, timeB - timeA);
       const costSaved = Math.max(0, costB - costA);
 
-      drawBar('chartTime', timeB, timeA, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(timeSaved,2)}h`);
-      drawBar('chartCost', costB, costA, v=>yen(v), `人件費削減 ${yen(costSaved)}`);
+      drawBarH('chartTime', timeB, timeA, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(timeSaved,2)}h`);
+      drawBarH('chartCost', costB, costA, v=>yen(v), `人件費削減 ${yen(costSaved)}`);
 
       if(t < 1){
         chartState.animId = requestAnimationFrame(step);
@@ -630,6 +648,7 @@
     chartState.animId = requestAnimationFrame(step);
   }
 
+  /* ===== コピー / CSV / 印刷 ===== */
   async function copySummary(){
     const r = compute();
     const lines = [];
