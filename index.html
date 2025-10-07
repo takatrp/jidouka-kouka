@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>自動化効果試算ツール（r59・5機能・一括チェック＋横向きグラフ）</title>
+  <title>自動化効果試算ツール（r60・5機能・一括チェック＋横向きグラフ）</title>
 
   <!-- ファビコン：192×192 PNG -->
   <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
@@ -19,6 +19,9 @@
       --cols:.9fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
       --row-gap:6px; --col-gap:4px;
       --kpiRowH:auto;
+
+      /* グラフの導入ありカラー（視認性のため薄め） */
+      --bar-after:#4fb3c1;
     }
     @media (max-width:900px){ :root{ --cols:.8fr .95fr 2.6fr .95fr 1.05fr .3fr 1.05fr .75fr; } }
     @media (max-width:740px){ :root{ --cols:.75fr .9fr 2.5fr .9fr 1.0fr .28fr 1.0fr .7fr; } }
@@ -126,14 +129,14 @@
     .chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
     .chartbox{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;}
     .chartbox h4{margin:0 0 8px;font-size:12px;color:var(--muted);}
-    canvas{width:100%;height:220px;display:block;}
-    @media (max-width:720px){ .chart-grid{grid-template-columns:1fr;} canvas{height:200px;} }
+    /* 高さを下げて下の余白感を圧縮 */
+    canvas{width:100%;height:200px;display:block;}
+    @media (max-width:720px){ .chart-grid{grid-template-columns:1fr;} canvas{height:190px;} }
 
     /* フッター（ミニ・1行） */
-    footer.mk-mini{
-      margin-top:22px; padding:12px 0; text-align:center; color:#475569; font-size:12px;
-    }
+    footer.mk-mini{ margin-top:22px; padding:12px 0; text-align:center; color:#475569; font-size:12px; }
     footer.mk-mini a{ color:inherit; text-decoration:underline; }
+
     @media print{
       .btns,#copyBtn,#csvBtn,#printBtn,#footerBtns, footer.mk-mini{display:none!important;}
       body{background:#fff;}
@@ -155,7 +158,7 @@
     </div>
   </header>
 
-  <!-- 試算前提（見出しと下線は削除済み） -->
+  <!-- 入力（見出し線なし） -->
   <section class="card">
     <div class="grid" style="grid-template-columns:repeat(12,1fr);">
 
@@ -349,7 +352,7 @@
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">税理士法人松本会計事務所</a> ｜ 
     <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
     <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-    <span id="build-rev">r59</span>（<span id="last-updated-date"></span>）
+    <span id="build-rev">r60</span>（<span id="last-updated-date"></span>）
   </footer>
 </div>
 
@@ -373,7 +376,7 @@
     const yEl = $('cpy-year'), uEl = $('last-updated-date'), rEl = $('build-rev');
     if(yEl) yEl.textContent = y;
     if(uEl) uEl.textContent = yyyy_mm_dd;
-    if(rEl) rEl.textContent = 'r59';
+    if(rEl) rEl.textContent = 'r60';
   })();
 
   function toast(m){
@@ -523,8 +526,7 @@
     all.checked = (cnt===total);
   }
 
-  /* ========== 横向きグラフ描画・アニメーション ========== */
-
+  /* ========== 横向きグラフ描画・アニメーション（余白圧縮・色薄め） ========== */
   function drawBarH(canvasId, beforeVal, afterVal, formatter, topLabel){
     const c = $(canvasId); if(!c) return;
     const ctx = c.getContext('2d');
@@ -533,34 +535,36 @@
     c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
 
-    const padL = 28, padR = 28, padT = 24, padB = 28;
-    const barH = 36, gap = 22;
+    const padL = 28, padR = 28, padT = 18, padB = 10;     // 下余白を小さく
+    const barH = 32;
     const plotW = cssW - padL - padR;
     const plotH = cssH - padT - padB;
+
+    const row1Y = padT + barH/2 + 2;               // 上段（導入なし）
+    const row2Y = cssH - padB - barH/2 - 2;        // 下段（導入あり）
 
     ctx.clearRect(0,0,cssW,cssH);
     ctx.font = '12px system-ui, -apple-system, "Segoe UI", Roboto';
     ctx.textBaseline = 'middle';
 
     const max = Math.max(beforeVal, afterVal, 1);
-    const row1Y = padT + barH/2;
-    const row2Y = row1Y + barH + gap;
 
     // ガイド線（縦）
     ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
     for(let i=0;i<=4;i++){
       const x = padL + plotW*(i/4);
-      ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,padT+plotH); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,padT); ctx.lineTo(x,cssH-padB); ctx.stroke();
     }
 
-    // 導入なし
     const w0 = plotW * (beforeVal/max);
-    ctx.fillStyle = '#cbd5e1';
+    const w1 = plotW * (afterVal/max);
+
+    // 棒
+    ctx.fillStyle = '#cbd5e1';                                 // 導入なし
     ctx.fillRect(padL, row1Y - barH/2, w0, barH);
 
-    // 導入あり
-    const w1 = plotW * (afterVal/max);
-    ctx.fillStyle = '#2084A8';
+    const afterColor = getComputedStyle(document.documentElement).getPropertyValue('--bar-after').trim() || '#4fb3c1';
+    ctx.fillStyle = afterColor;                                // 導入あり（薄色）
     ctx.fillRect(padL, row2Y - barH/2, w1, barH);
 
     // ラベル
@@ -576,11 +580,11 @@
     ctx.fillText(formatter(beforeVal), padL + w0, row1Y);
     ctx.fillText(formatter(afterVal),  padL + w1, row2Y);
 
-    // 右上タイトル（例：時間短縮 xxh / 人件費削減 ¥xx）
+    // 右上タイトル
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
-    ctx.fillText(topLabel, cssW - padR, padT - 8);
+    ctx.fillText(topLabel, cssW - padR, padT - 4);
   }
 
   const chartState = { init:false, time:{before:0, after:0}, cost:{before:0, after:0}, rate:0, animId:null };
