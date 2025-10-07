@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>自動化効果試算ツール（r61・5機能・一括チェック＋横向きグラフ）</title>
+  <title>自動化効果試算ツール（r62・5機能・横向きグラフ最適化）</title>
 
   <!-- ファビコン：192×192 PNG -->
   <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
@@ -19,8 +19,7 @@
       --cols:.9fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
       --row-gap:6px; --col-gap:4px;
       --kpiRowH:auto;
-      /* グラフの導入ありカラー（視認性のため薄め） */
-      --bar-after:#4fb3c1;
+      --bar-after:#4fb3c1; /* 導入あり（薄め） */
     }
     @media (max-width:900px){ :root{ --cols:.8fr .95fr 2.6fr .95fr 1.05fr .3fr 1.05fr .75fr; } }
     @media (max-width:740px){ :root{ --cols:.75fr .9fr 2.5fr .9fr 1.0fr .28fr 1.0fr .7fr; } }
@@ -29,7 +28,6 @@
     body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;margin:0;color:var(--ink);background:var(--bg);}
     .wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px;}
     header{margin-bottom:16px;}
-
     h1{font-size:clamp(18px,2.4vw,24px);margin:0 0 6px;}
     .sub{color:var(--muted);font-size:13px;line-height:1.5;}
     @media (max-width:900px){ .sub{font-size:12px;} }
@@ -99,7 +97,6 @@
     .features-head .th:last-child,.features-rows .td.res{text-align:right;}
     .compact-table input[type="number"],.compact-table input[type="text"]{padding:6px 8px;font-size:13px;border-radius:8px;}
     .features-head .th.kind, .features-rows .td.kind{padding-left:2px;margin-left:-2px;}
-
     .feat-link{color:var(--accent); text-decoration:underline; text-underline-offset:2px;}
     .feat-link:hover{color:var(--accent-600);}
 
@@ -122,18 +119,18 @@
     .bulk-label input{ transform:scale(1.1); }
 
     /* グラフ（横向き） */
-    .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+    .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;}
     .chart-title{font-weight:800;color:var(--accent);font-size:clamp(16px,2.6vw,20px);}
     .chart-sub{color:var(--muted);font-size:12px;}
-    .chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
-    .chartbox{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:10px;}
-    .chartbox h4{margin:0 0 8px;font-size:12px;color:var(--muted);}
-    /* 高さを少し低くして下の余白感を圧縮 */
-    canvas{width:100%;height:200px;display:block;}
-    @media (max-width:720px){ .chart-grid{grid-template-columns:1fr;} canvas{height:190px;} }
+    .chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+    .chartbox{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:8px;}
+    .chartbox h4{margin:0 0 6px;font-size:12px;color:var(--muted);}
+    /* ★ キャンバスをコンパクトに（下の余白を削減） */
+    canvas{width:100%;height:120px;display:block;}
+    @media (max-width:720px){ .chart-grid{grid-template-columns:1fr;} canvas{height:110px;} }
 
     /* フッター（ミニ・1行） */
-    footer.mk-mini{ margin-top:22px; padding:12px 0; text-align:center; color:#475569; font-size:12px; }
+    footer.mk-mini{ margin-top:18px; padding:10px 0; text-align:center; color:#475569; font-size:12px; }
     footer.mk-mini a{ color:inherit; text-decoration:underline; }
 
     @media print{
@@ -160,7 +157,6 @@
   <!-- 入力 -->
   <section class="card">
     <div class="grid" style="grid-template-columns:repeat(12,1fr);">
-
       <div class="td field" style="grid-column:span 6;">
         <label>給与の単位を選択して入力（社保等<strong>事業主負担16%</strong>は換算時に自動加算）</label>
         <div class="comp-row">
@@ -298,11 +294,11 @@
     <div class="chart-grid">
       <div class="chartbox">
         <h4>総時間（時間）</h4>
-        <canvas id="chartTime" width="600" height="300"></canvas>
+        <canvas id="chartTime" width="600" height="240"></canvas>
       </div>
       <div class="chartbox">
         <h4>人件費（円）</h4>
-        <canvas id="chartCost" width="600" height="300"></canvas>
+        <canvas id="chartCost" width="600" height="240"></canvas>
       </div>
     </div>
   </section>
@@ -351,13 +347,11 @@
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">税理士法人松本会計事務所</a> ｜ 
     <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
     <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-    <span id="build-rev">r61</span>（<span id="last-updated-date"></span>）
+    <span id="build-rev">r62</span>（<span id="last-updated-date"></span>）
   </footer>
 </div>
 
-<!-- ======================= JS ======================= -->
 <script>
-  /* ========= ユーティリティ ========= */
   const $ = (id)=>document.getElementById(id);
   const safeFixed = (n,d=2)=> (Number.isFinite(n)? n.toFixed(d) : (0).toFixed(d));
   const yen = (n)=> Number.isFinite(n) ? n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}) : '¥0';
@@ -366,16 +360,14 @@
   const num = (id)=> parseNum($(id).value);
   function formatLive(el){ const raw=(el.value||'').replace(/[^\d]/g,''); el.value = raw? Number(raw).toLocaleString('ja-JP'):''; }
 
-  /* フッター：年・更新日・Rev */
   (function(){
     const y = new Date().getFullYear();
     const d = new Date(document.lastModified);
     const pad = (x)=> String(x).padStart(2,'0');
     const yyyy_mm_dd = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    const yEl = $('cpy-year'), uEl = $('last-updated-date'), rEl = $('build-rev');
-    if(yEl) yEl.textContent = y;
-    if(uEl) uEl.textContent = yyyy_mm_dd;
-    if(rEl) rEl.textContent = 'r61';
+    $('cpy-year').textContent = y;
+    $('last-updated-date').textContent = yyyy_mm_dd;
+    $('build-rev').textContent = 'r62';
   })();
 
   function toast(m){
@@ -399,13 +391,8 @@
     $('sumOther').textContent = String(other);
     $('sumTotal').textContent = String(sumFeat + other);
     const m = $('deltaMsg');
-    if(other < 0){
-      m.textContent = '合計が総数を超過しています（その他が負値）。件数配分を見直してください。';
-      m.className = 'warn';
-    }else{
-      m.textContent = 'その他は自動調整されます。合計は常に総数と一致します。';
-      m.className = 'ok';
-    }
+    if(other < 0){ m.textContent='合計が総数を超過しています（その他が負値）。件数配分を見直してください。'; m.className='warn'; }
+    else{ m.textContent='その他は自動調整されます。合計は常に総数と一致します。'; m.className='ok'; }
   }
 
   const HOURS_PER_MONTH = 160;
@@ -511,7 +498,7 @@
     refreshBulkCheckbox();
   }
 
-  /* ===== 一括チェック ===== */
+  /* 一括チェック */
   function toggleAll(checked){
     document.querySelectorAll('.feat-cb').forEach(cb => cb.checked = checked);
     calc();
@@ -525,18 +512,18 @@
     all.checked = (cnt===total);
   }
 
-  /* ========== 横向きグラフ描画・アニメーション ========== */
-  // ★ 導入なし/導入あり の間隔を「元の幅」に戻す（固定ギャップ）
+  /* ===== 横向きグラフ（下余白ゼロ設計） ===== */
   function drawBarH(canvasId, beforeVal, afterVal, formatter, topLabel){
     const c = $(canvasId); if(!c) return;
     const ctx = c.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const cssW = c.clientWidth, cssH = c.clientHeight;
+    const cssW = c.clientWidth, cssH = c.clientHeight;  // heightはCSSで120px
     c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
 
-    const padL = 28, padR = 28, padT = 18, padB = 10;
-    const barH = 32, gap = 22; // ← 元の間隔
+    // 余白
+    const padL = 28, padR = 28, padT = 16, padB = 6;
+    const barH = 24, gap = 22;               // 「導入なし/あり」の間隔は従来幅
     const plotW = cssW - padL - padR;
 
     ctx.clearRect(0,0,cssW,cssH);
@@ -545,9 +532,9 @@
 
     const max = Math.max(beforeVal, afterVal, 1);
 
-    // 上下の中央付近に2本を近接配置（元の見た目）
-    const row1Y = padT + barH/2 + 2;
-    const row2Y = row1Y + barH + gap;
+    // 下端を詰める：下バーの下辺がpadBに接するように配置
+    const row2Y = cssH - padB - barH/2;          // 導入あり（下）
+    const row1Y = row2Y - (barH + gap);          // 導入なし（上）
 
     // ガイド線（縦）
     ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
@@ -559,18 +546,18 @@
     const w0 = plotW * (beforeVal/max);
     const w1 = plotW * (afterVal/max);
 
-    ctx.fillStyle = '#cbd5e1'; // 導入なし
+    // 棒
+    ctx.fillStyle = '#cbd5e1';                               // 導入なし
     ctx.fillRect(padL, row1Y - barH/2, w0, barH);
-
     const afterColor = getComputedStyle(document.documentElement).getPropertyValue('--bar-after').trim() || '#4fb3c1';
-    ctx.fillStyle = afterColor; // 導入あり
+    ctx.fillStyle = afterColor;                              // 導入あり
     ctx.fillRect(padL, row2Y - barH/2, w1, barH);
 
     // ラベル
     ctx.fillStyle = '#334155';
     ctx.textAlign = 'left';
-    ctx.fillText('導入なし', padL, row1Y - barH/2 - 8);
-    ctx.fillText('導入あり', padL, row2Y - barH/2 - 8);
+    ctx.fillText('導入なし', padL, row1Y - barH/2 - 6);
+    ctx.fillText('導入あり', padL, row2Y - barH/2 - 6);
 
     // 値ラベル
     ctx.fillStyle = '#0f172a';
@@ -583,7 +570,7 @@
     ctx.textAlign = 'right';
     ctx.font = 'bold 14px system-ui, -apple-system';
     ctx.fillStyle = '#166b8a';
-    ctx.fillText(topLabel, cssW - padR, padT - 4);
+    ctx.fillText(topLabel, cssW - padR, padT - 2);
   }
 
   const chartState = { init:false, time:{before:0, after:0}, cost:{before:0, after:0}, rate:0, animId:null };
@@ -591,8 +578,7 @@
   function drawChartsOnce(res){
     const rate = res.hBefore > 0 ? (res.hBefore - res.hChosen) / res.hBefore * 100 : 0;
     const rateStr = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
-    const rateEl = $('chartRate'); if(rateEl) rateEl.textContent = rateStr;
-
+    $('chartRate').textContent = rateStr;
     drawBarH('chartTime', res.hBefore, res.hChosen, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(res.hSaved,2)}h`);
     drawBarH('chartCost', res.costBefore, res.costChosen, v=>yen(v), `人件費削減 ${yen(res.monthlySaving)}`);
   }
@@ -614,12 +600,9 @@
     }
 
     const prev = { time:{...chartState.time}, cost:{...chartState.cost}, rate: chartState.rate };
-
     if(chartState.animId){ cancelAnimationFrame(chartState.animId); chartState.animId = null; }
 
-    const dur = 500;
-    const t0 = performance.now();
-
+    const dur = 500, t0 = performance.now();
     const step = (now)=>{
       const t = Math.min(1, (now - t0) / dur);
       const e = (t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2);
@@ -630,28 +613,22 @@
       const costA = prev.cost.after  + (next.cost.after  - prev.cost.after ) * e;
       const rate  = prev.rate + (next.rate - prev.rate) * e;
 
-      const rateEl = $('chartRate'); if(rateEl) rateEl.textContent = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
+      $('chartRate').textContent = (Number.isFinite(rate)? rate.toFixed(2):'0.00') + '%';
+      drawBarH('chartTime', timeB, timeA, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(Math.max(0,timeB-timeA),2)}h`);
+      drawBarH('chartCost', costB, costA, v=>yen(v), `人件費削減 ${yen(Math.max(0,costB-costA))}`);
 
-      const timeSaved = Math.max(0, timeB - timeA);
-      const costSaved = Math.max(0, costB - costA);
-
-      drawBarH('chartTime', timeB, timeA, v=>`${safeFixed(v,2)}h`, `時間短縮 ${safeFixed(timeSaved,2)}h`);
-      drawBarH('chartCost', costB, costA, v=>yen(v), `人件費削減 ${yen(costSaved)}`);
-
-      if(t < 1){
-        chartState.animId = requestAnimationFrame(step);
-      }else{
+      if(t < 1){ chartState.animId = requestAnimationFrame(step); }
+      else{
         chartState.time = {...next.time};
         chartState.cost = {...next.cost};
         chartState.rate = next.rate;
         chartState.animId = null;
       }
     };
-
     chartState.animId = requestAnimationFrame(step);
   }
 
-  /* ===== コピー / CSV / 印刷 ===== */
+  /* コピー / CSV / 印刷 */
   async function copySummary(){
     const r = compute();
     const lines = [];
