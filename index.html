@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>自動化効果試算ツール（r64・チュートリアル搭載）</title>
+  <title>自動化効果試算ツール（r65・フォーカス型チュートリアル）</title>
 
   <!-- ファビコン：192×192 PNG -->
   <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
@@ -37,7 +37,7 @@
     header .brand{display:flex; align-items:center; gap:10px;}
     header .brand img{height:48px; width:auto; display:block;}
 
-    /* ヘルプボタン */
+    /* チュートリアル起動ボタン */
     .help-btn{align-self:flex-start; background:#fff; color:var(--accent); border:1px solid rgba(32,132,168,.45);
       border-radius:999px; padding:8px 12px; font-size:13px; cursor:pointer;
       box-shadow:0 1px 6px rgba(2,6,23,.05);}
@@ -161,33 +161,39 @@
       .card{box-shadow:none;border:1px solid #e5e7eb;}
     }
 
-    /* ===== チュートリアル（フルスクリーン） ===== */
+    /* ===== フォーカス型チュートリアル ===== */
     .tour{position:fixed; inset:0; z-index:9998; display:none;}
     .tour.show{display:block;}
-    .tour .shade{position:absolute; inset:0; background:rgba(2,6,23,.55); backdrop-filter:blur(2px);}
+    .tour .click{position:absolute; inset:0; cursor:pointer;} /* クリックで次へ */
+    /* スポット（周辺を暗くした“穴あき”風） */
+    #tourSpot{
+      position:absolute; left:0; top:0; width:0; height:0;
+      border:2px solid var(--accent); border-radius:12px;
+      box-shadow:0 0 0 9999px rgba(2,6,23,.55), 0 8px 24px rgba(32,132,168,.35);
+      pointer-events:none; transition:all .25s ease;
+    }
     .tour .panel{
       position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-      width:min(760px,92vw); background:#fff; border-radius:16px; padding:18px;
+      width:min(760px,92vw); background:#fff; border-radius:16px; padding:16px;
       box-shadow:0 20px 60px rgba(2,6,23,.35), 0 0 0 4px rgba(32,132,168,.25);
       color:#0f172a;
     }
-    .tour h3{margin:0 0 8px; font-size:clamp(18px,2.6vw,22px); color:var(--accent);}
+    .tour h3{margin:0 0 6px; font-size:clamp(18px,2.6vw,22px); color:var(--accent);}
     .tour p{margin:0; font-size:14px; line-height:1.7; color:#334155;}
-    .tour .hint{margin-top:10px; font-size:12px; color:#64748b;}
-    .tour .bar{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
-    .tour .skip{background:#fff; color:#64748b; border:1px solid #cbd5e1; border-radius:10px; padding:6px 10px; font-size:12px;}
-    .tour .skip:hover{background:#f8fafc;}
-    .tour .dots{display:flex; gap:6px;}
+    .tour .footer{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:12px;}
+    .tour .hint{font-size:12px; color:#64748b;}
+    .tour .tnav{display:flex; gap:8px;}
+    .tour .tbtn{background:var(--accent); color:#fff; border:none; border-radius:10px; padding:8px 14px; font-size:13px;}
+    .tour .tbtn.outline{background:#fff; color:var(--accent); border:1px solid rgba(32,132,168,.45);}
+    .tour .dots{display:flex; gap:6px; margin-bottom:8px;}
     .tour .dot{width:8px; height:8px; border-radius:999px; background:#cbd5e1;}
     .tour .dot.on{background:var(--accent);}
-    .tour .footer{display:flex; align-items:center; justify-content:space-between; margin-top:10px;}
-    .tour .noshow{font-size:12px; color:#64748b;}
   </style>
 </head>
 <body>
 <div class="wrap" id="app">
   <header>
-    <div class="brand">
+    <div class="brand" id="hdrBrand">
       <a href="https://www.matsumoto-kaikei.or.jp/" aria-label="松本会計 公式サイト" target="_blank" rel="noopener">
         <img src="./ロゴ.jpg" alt="税理士法人松本会計事務所 ロゴ" decoding="async" loading="eager">
       </a>
@@ -198,13 +204,13 @@
         </div>
       </div>
     </div>
-    <button class="help-btn" id="helpBtn" type="button" title="このツールの使い方を表示">使い方</button>
+    <button class="help-btn" id="helpBtn" type="button" title="チュートリアルを表示">チュートリアル</button>
   </header>
 
   <!-- 入力 -->
-  <section class="card">
+  <section class="card" id="premiseCard">
     <div class="grid" style="grid-template-columns:repeat(12,1fr);">
-      <div class="td field" style="grid-column:span 6;">
+      <div class="td field" style="grid-column:span 6;" id="payUnitBlock">
         <label>給与の単位を選択して入力（社保等<strong>事業主負担16%</strong>は換算時に自動加算）</label>
         <div class="comp-row">
           <div class="seg sm" role="tablist" aria-label="給与単位">
@@ -220,7 +226,7 @@
         <input type="hidden" id="wage" value="2888" />
       </div>
 
-      <div class="td field" style="grid-column:span 6;">
+      <div class="td field" style="grid-column:span 6;" id="journalsBlock">
         <label>月間仕訳数（<span class="note">総数</span>）</label>
         <input id="totalJournals" type="number" inputmode="numeric" value="320" min="0" oninput="calc()" />
       </div>
@@ -228,7 +234,7 @@
   </section>
 
   <!-- 機能別（コンパクト化済み） -->
-  <section class="card compact-table">
+  <section class="card compact-table" id="featuresCard">
     <div class="headbar">
       <div class="thead">機能別（チェックで導入状態を切替）</div>
       <div class="headnote">※各数値は社内の実測値を入れてください。</div>
@@ -333,7 +339,7 @@
   </section>
 
   <!-- 削減率（横向きグラフ） -->
-  <section class="card">
+  <section class="card" id="chartArea">
     <div class="chart-head">
       <div class="chart-title">削減率 <span id="chartRate">0.00%</span></div>
       <div class="chart-sub">Before → After 可視化</div>
@@ -351,7 +357,7 @@
   </section>
 
   <!-- 結果 -->
-  <section class="card">
+  <section class="card" id="kpiArea">
     <div class="kpi">
       <div class="item">
         <h3>仕訳自動化率</h3>
@@ -367,15 +373,14 @@
 
       <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
       <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
-      <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
-
-      <div class="item item--emph savings">
+      <div class="item item--emph savings" id="kpiSavings">
         <h3>人件費削減</h3>
         <div class="krow">
           <div class="val-main" id="kpiYen">¥0</div>
           <div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div>
         </div>
       </div>
+      <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
 
       <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val breakdown" id="kpiBreakdown">—</div></div>
     </div>
@@ -394,23 +399,25 @@
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">税理士法人松本会計事務所</a> ｜ 
     <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
     <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-    <span id="build-rev">r64</span>（<span id="last-updated-date"></span>）
+    <span id="build-rev">r65</span>（<span id="last-updated-date"></span>）
   </footer>
 </div>
 
-<!-- ===== チュートリアル（クリック or Enter で次へ） ===== -->
+<!-- ===== フォーカス型チュートリアル（クリック/Enterで次へ） ===== -->
 <div class="tour" id="tour" aria-hidden="true">
-  <div class="shade" id="tourShade"></div>
+  <div class="click" id="tourClick" title="クリックで次へ"></div>
+  <div id="tourSpot" aria-hidden="true"></div>
   <div class="panel" id="tourPanel" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
-    <div class="bar">
-      <button class="skip" id="tourSkip" type="button" title="閉じる（Esc）">スキップ</button>
-      <div class="dots" id="tourDots"></div>
-    </div>
+    <div class="dots" id="tourDots"></div>
     <h3 id="tourTitle">ようこそ</h3>
     <p id="tourBody"></p>
     <div class="footer">
-      <div class="hint">Enter または画面クリックで次へ ／ ← → でも移動 ／ Escで閉じる</div>
-      <label class="noshow"><input type="checkbox" id="tourNoShow"> 次回から表示しない</label>
+      <div class="hint">Enter / 画面クリックで<strong>次へ</strong>　←で<strong>戻る</strong>　Escで<strong>終了</strong></div>
+      <div class="tnav">
+        <button type="button" class="tbtn outline" id="tourPrev">戻る</button>
+        <button type="button" class="tbtn" id="tourNext">次へ</button>
+        <button type="button" class="tbtn outline" id="tourEnd">終了</button>
+      </div>
     </div>
   </div>
 </div>
@@ -431,7 +438,7 @@
     const yyyy_mm_dd = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
     $('cpy-year').textContent = y;
     $('last-updated-date').textContent = yyyy_mm_dd;
-    $('build-rev').textContent = 'r64';
+    $('build-rev').textContent = 'r65';
   })();
 
   function toast(m){
@@ -777,41 +784,33 @@
 
   window.addEventListener('DOMContentLoaded', ()=>{
     resetAll(); calc();
-    // 初回のみチュートリアル自動表示
     if(localStorage.getItem('mk_auto_tour_seen')!=='1'){ startTour(); }
   });
   window.addEventListener('resize', ()=>{ const r=compute(); drawChartsOnce(r); setTimeout(syncKPIHeights,0); });
 
-  /* ====== チュートリアル ====== */
+  /* ====== フォーカス型チュートリアル ====== */
   const TOUR_STEPS = [
-    {
-      t:'このツールの狙い（TKC方式・自動化促進）',
-      b:'TKC方式では「自計化＋自動化」が基本。5つの自動化機能（証憑保存／銀行信販データ受信／給与計算（仕訳含む）／販売管理（売上計上・請求）／レジからのデータ受信）を活用すると、月次処理の<strong>時間</strong>と<strong>人件費</strong>がどれだけ削減できるかを、このツールで素早く試算します。'
-    },
-    {
-      t:'① 人件費の前提を設定',
-      b:'上部で <strong>時給・月給・年収</strong> のいずれかを選択し金額を入力。<strong>事業主負担16％</strong>は自動で織り込み、時給へ換算して計算に反映します。'
-    },
-    {
-      t:'② 月間仕訳数を入力',
-      b:'「月間仕訳数（総数）」に対象先の仕訳総数を入力。機能ごとの件数合計との差分は<strong>「その他」</strong>に自動配分され、必ず総数と一致します。'
-    },
-    {
-      t:'③ 機能ごとの導入可否と分数を設定',
-      b:'機能別カードでチェックを付けると<strong>導入（自動化）</strong>、外すと<strong>未導入（手作業）</strong>として計算。件数／手作業分／自動化分を調整すると、下部の結果が即時更新されます。各機能名のリンクから公式解説に遷移できます。'
-    },
-    {
-      t:'④ 結果を見る',
-      b:'「導入なし／導入あり」の総時間、人件費相当額、<strong>時間短縮</strong>、<strong>人件費削減</strong>（月・年）、<strong>仕訳自動化率</strong>が表示されます。右の「機能別 削減時間」には各機能の寄与もまとめています。'
-    },
-    {
-      t:'⑤ Before→After グラフ',
-      b:'上の横棒グラフはチェックや分数を変えるとアニメーションで再描画。タイトルには<strong>削減率</strong>、各グラフ右上には「時間短縮」「人件費削減」の合計値を表示します。'
-    },
-    {
-      t:'⑥ 出力（報告・提案に）',
-      b:'画面下部の「コピー／CSV出力／印刷」ボタンで、試算結果を共有・資料化できます。CSVは<strong>UTF-8（BOM付）</strong>で文字化け対策済みです。'
-    }
+    { t:'このツールの狙い（TKC自動化の可視化）',
+      b:'TKCの5つの自動化機能を使うと、どれだけ<strong>時間</strong>と<strong>人件費</strong>が削減できるかを即時計算し、提案・運用に活かすためのツールです。',
+      sel:'#hdrBrand' },
+    { t:'① 人件費の前提（給与→時給換算）',
+      b:'<strong>時給／月給／年収</strong>から入力します。<strong>事業主負担16％</strong>は自動加算して時給化されます。既定は年収<code>4,780,000</code>円です。',
+      sel:'#payUnitBlock' },
+    { t:'② 月間仕訳数（総数）',
+      b:'対象先の月間仕訳総数を入力。機能ごとの件数合計との差分は自動で<strong>「その他」</strong>に入り、総数と一致します。',
+      sel:'#journalsBlock' },
+    { t:'③ 機能ごとの導入・分数設定',
+      b:'各行のチェックで<strong>導入（自動化）</strong>／未導入（手作業）を切替。件数・分/件を調整すると下部の結果とグラフが即時更新されます。機能名は公式解説にリンクしています。',
+      sel:'#featuresCard' },
+    { t:'④ Before → After を可視化',
+      b:'横棒グラフで<strong>総時間</strong>と<strong>人件費</strong>のBefore/Afterを表示。タイトルには削減率、右上には合計の「時間短縮」「人件費削減」を表示します。',
+      sel:'#chartArea' },
+    { t:'⑤ 人件費削減・自動化率を確認',
+      b:'月間・年間の<strong>人件費削減</strong>、<strong>仕訳自動化率</strong>、機能別の寄与を確認できます。提案の要点を一目で把握。',
+      sel:'#kpiSavings' },
+    { t:'⑥ 共有・保存（出力）',
+      b:'下部の「コピー／CSV出力／印刷」で共有や資料化ができます。CSVは<strong>UTF-8（BOM付き）</strong>で文字化け対策済みです。',
+      sel:'#footerBtns' }
   ];
   let tourIndex = 0;
   let tourActive = false;
@@ -822,22 +821,67 @@
       const d = document.createElement('div'); d.className='dot' + (i===tourIndex?' on':''); dots.appendChild(d);
     });
   }
+
+  function placeSpotAndPanel(){
+    const step = TOUR_STEPS[tourIndex];
+    const el = document.querySelector(step.sel);
+    if(!el){ // セレクタが見つからなければ中央にパネル
+      $('tourPanel').style.left='50%'; $('tourPanel').style.top='50%'; $('tourPanel').style.transform='translate(-50%,-50%)';
+      $('tourSpot').style.width='0px'; $('tourSpot').style.height='0px';
+      return;
+    }
+    el.scrollIntoView({behavior:'smooth', block:'center', inline:'center'});
+    requestAnimationFrame(()=>{
+      const r = el.getBoundingClientRect();
+      const pad = 8;
+      const x = Math.max(8, r.left - pad);
+      const y = Math.max(8, r.top  - pad);
+      const w = Math.min(window.innerWidth - x - 8, r.width  + pad*2);
+      const h = Math.min(window.innerHeight - y - 8, r.height + pad*2);
+      const spot = $('tourSpot');
+      spot.style.left   = x+'px';
+      spot.style.top    = y+'px';
+      spot.style.width  = w+'px';
+      spot.style.height = h+'px';
+
+      // パネルをスポットの上下どちらかに配置（はみ出し補正）
+      const panel = $('tourPanel');
+      const belowSpace = window.innerHeight - (y + h) - 16;
+      const aboveSpace = y - 16;
+      let top;
+      if(belowSpace >= 180 || belowSpace > aboveSpace){
+        top = y + h + 12; // 下側
+      }else{
+        top = Math.max(12, y - panel.offsetHeight - 12); // 上側
+      }
+      let left = x + w/2;
+      left = Math.min(window.innerWidth - panel.offsetWidth/2 - 12, Math.max(panel.offsetWidth/2 + 12, left));
+      panel.style.left = left+'px';
+      panel.style.top  = top+'px';
+      panel.style.transform='translate(-50%,0)';
+    });
+  }
+
   function showTourStep(){
     const step = TOUR_STEPS[tourIndex];
     $('tourTitle').innerHTML = step.t;
     $('tourBody').innerHTML  = step.b;
     renderTourDots();
+    placeSpotAndPanel();
+    // ボタンの表示切替
+    $('tourPrev').disabled = (tourIndex===0);
+    $('tourNext').textContent = (tourIndex===TOUR_STEPS.length-1)?'終了':'次へ';
   }
-  function startTour(force=false){
+
+  function startTour(){
     tourIndex=0; showTourStep();
     $('tour').classList.add('show'); $('tour').setAttribute('aria-hidden','false');
     tourActive = true;
-    if(force!==true){ /* 初回自動表示時のみ既定は未チェック */ $('tourNoShow').checked=false; }
   }
   function endTour(){
     $('tour').classList.remove('show'); $('tour').setAttribute('aria-hidden','true');
     tourActive = false;
-    if($('tourNoShow').checked){ localStorage.setItem('mk_auto_tour_seen','1'); }
+    localStorage.setItem('mk_auto_tour_seen','1');
   }
   function nextTour(){
     if(!tourActive) return;
@@ -849,15 +893,12 @@
     if(tourIndex > 0){ tourIndex--; showTourStep(); }
   }
 
-  // 画面クリックで次へ（パネル内外どちらでもOK）
-  $('tour').addEventListener('click', (e)=>{
-    if(!tourActive) return;
-    // スキップボタンやチェックボックスクリックは除外
-    if(e.target.id==='tourSkip' || e.target.id==='tourNoShow') return;
-    nextTour();
-  });
-  $('tourSkip').addEventListener('click', (e)=>{ e.stopPropagation(); endTour(); });
-  $('helpBtn').addEventListener('click', ()=> startTour(true));
+  // 発火
+  $('helpBtn').addEventListener('click', ()=> startTour());
+  $('tourClick').addEventListener('click', nextTour);
+  $('tourNext').addEventListener('click', nextTour);
+  $('tourPrev').addEventListener('click', prevTour);
+  $('tourEnd').addEventListener('click', endTour);
 
   // キー操作：Enter/Space/→ 次、← 前、Esc 終了
   document.addEventListener('keydown', (e)=>{
@@ -869,7 +910,7 @@
 
   /* ====== 初期化 ====== */
   function calc(){ syncOther(); recalcOther(); const r=compute(); updateUI(r); }
-  window.addEventListener('resize', ()=>{ const r=compute(); drawChartsOnce(r); setTimeout(syncKPIHeights,0); });
+  window.addEventListener('resize', ()=>{ const r=compute(); drawChartsOnce(r); setTimeout(()=>{ if(tourActive) placeSpotAndPanel(); syncKPIHeights(); },0); });
 </script>
 </body>
 </html>
