@@ -118,16 +118,22 @@ button{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-size
 canvas{width:100%;height:120px;display:block}
 @media (max-width:720px){.chart-grid{grid-template-columns:1fr}canvas{height:110px}}
 
-/* フォーカス型チュートリアル（price-up-down風：下部シート＋ハイライト） */
+/* ===== フローティング型チュートリアル（ハイライト＋吹き出し） ===== */
 .tour{position:fixed;inset:0;z-index:9998;display:none}
 .tour.show{display:block}
 #tourShade{position:absolute;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(2px)}
 #tourSpot{
   position:absolute;left:0;top:0;width:0;height:0;border:2px solid var(--accent);border-radius:12px;
   box-shadow:0 0 0 9999px rgba(2,6,23,.55);pointer-events:none;transition:all .18s ease}
+/* ここをボトムシート→フローティングに変更 */
 #tourSheet{
-  position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;
-  box-shadow:0 -12px 30px rgba(2,6,23,.25);padding:14px 16px}
+  position:absolute;left:0;top:0;background:#fff;border-radius:12px;
+  box-shadow:0 12px 30px rgba(2,6,23,.35);padding:14px 16px;
+  width:min(92vw,420px);max-width:420px
+}
+#tourSheet::after{content:"";position:absolute;width:0;height:0;border:8px solid transparent}
+#tourSheet[data-pos="bottom"]::after{top:-16px;left:24px;border-bottom-color:#fff;filter:drop-shadow(0 -2px 2px rgba(2,6,23,.1))}
+#tourSheet[data-pos="top"]::after{bottom:-16px;left:24px;border-top-color:#fff;filter:drop-shadow(0 2px 2px rgba(2,6,23,.1))}
 #tourStep{color:#475569;font-size:12px}
 #tourTitle{margin:4px 0 4px;font-size:18px;color:var(--accent)}
 #tourBody{margin:0 0 8px;font-size:14px;color:#334155;line-height:1.7}
@@ -140,7 +146,7 @@ canvas{width:100%;height:120px;display:block}
 .tHint{font-size:12px;color:#64748b;margin-top:6px}
 
 /* print */
-@media print{.btns,#footerBtns,footer.mk-mini{display:none!important}.card{box-shadow:none;border:1px solid #e5e7eb}}
+@media print{.btns,#footerBtns,footer.mk-mini,.tour{display:none!important}.card{box-shadow:none;border:1px solid #e5e7eb}}
 footer.mk-mini{margin-top:18px;padding:10px 0;text-align:center;color:#475569;font-size:12px}
 footer.mk-mini a{color:inherit;text-decoration:underline}
 </style>
@@ -310,8 +316,12 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
       </div>
       <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
       <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
-      <div class="item item--emph savings" id="kpiSavings"><h3>人件費削減</h3><div class="krow"><div class="val-main" id="kpiYen">¥0</div><div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div></div></div>
+
+      <!-- ▼ ここで「時間短縮」と「人件費削減」を入れ替え -->
       <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
+      <div class="item item--emph savings" id="kpiSavings"><h3>人件費削減</h3><div class="krow"><div class="val-main" id="kpiYen">¥0</div><div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div></div></div>
+      <!-- ▲ 入れ替え完了 -->
+
       <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val" id="kpiBreakdown">—</div></div>
     </div>
   </section>
@@ -331,11 +341,11 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
   </footer>
 </div>
 
-<!-- ===== Tutorial (bottom sheet + focus) ===== -->
+<!-- ===== Tutorial (floating + focus) ===== -->
 <div class="tour" id="tour" aria-hidden="true">
   <div id="tourShade"></div>
   <div id="tourSpot" aria-hidden="true"></div>
-  <div id="tourSheet" role="dialog" aria-modal="true">
+  <div id="tourSheet" role="dialog" aria-modal="true" aria-live="polite" data-pos="bottom">
     <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
       <span id="tourStep">1/7</span>
       <div class="dots" id="tourDots"></div>
@@ -478,7 +488,7 @@ function calc(){syncOther();recalcOther();const r=compute();updateUI(r);}
 window.addEventListener('DOMContentLoaded',()=>{resetAll();calc(); if(localStorage.getItem('mk_auto_tour_seen')!=='1'){startTour();}});
 window.addEventListener('resize',()=>{const r=compute();drawChartsOnce(r); if(tourActive) spotTick(); setTimeout(syncKPIHeights,0);});
 
-/* ---- Tutorial (price-up-down-like) ---- */
+/* ---- Tutorial (floating) ---- */
 const STEPS=[
  {sel:'#hdrBrand', t:'ツールの狙い', b:'TKCの5つの自動化機能で、どれだけ<strong>時間</strong>と<strong>人件費</strong>が削減できるかを可視化します。'},
  {sel:'#payUnitBlock', t:'① 人件費の前提', b:'<strong>時給／月給／年収</strong>から入力。<strong>事業主負担16%</strong>は自動加算し時給化します。'},
@@ -495,25 +505,63 @@ function nextStep(){ if(step<STEPS.length-1){step++; showStep();} else{ endTour(
 function prevStep(){ if(step>0){step--; showStep();} }
 function renderDots(){const d=$('tourDots'); d.innerHTML=''; STEPS.forEach((_,i)=>{const n=document.createElement('div'); n.className='dot'+(i===step?' on':''); d.appendChild(n);})}
 function showStep(){ renderDots(); $('tourStep').textContent=`${step+1}/${STEPS.length}`; $('tourTitle').innerHTML=STEPS[step].t; $('tourBody').innerHTML=STEPS[step].b; focusTo(STEPS[step].sel); $('tourPrev').disabled=(step===0); $('tourNext').textContent=(step===STEPS.length-1)?'終了':'次へ'; }
+
+/* フローティング配置：対象要素の直下（はみ出す場合は上）に吹き出しを配置 */
+function placeSheetForRect(r){
+  const sheet=$('tourSheet');
+  // 一旦左上に置いてサイズ計測
+  sheet.style.left='0px'; sheet.style.top='0px';
+  const sh=sheet.getBoundingClientRect();
+  const margin=12, vw=window.innerWidth, vh=window.innerHeight;
+
+  // 既定は「下に配置」
+  let top=r.bottom + margin, pos='bottom';
+  if(top + sh.height > vh - 8){ // 収まらなければ上に
+    top = Math.max(8, r.top - sh.height - margin);
+    pos='top';
+  }
+  let left = Math.min(Math.max(8, r.left), vw - sh.width - 8);
+
+  sheet.style.top = `${Math.round(top)}px`;
+  sheet.style.left = `${Math.round(left)}px`;
+  sheet.setAttribute('data-pos', pos);
+}
+
 function focusTo(sel){
   const el=document.querySelector(sel); if(!el){$('tourSpot').style.width='0px';$('tourSpot').style.height='0px';return;}
   el.scrollIntoView({behavior:'smooth',block:'center'}); // 一旦スクロール
-  // スクロールが落ち着くまで追従し続ける（ズレ対策）
-  let settleCount=0; function follow(){
+
+  let last={x:0,y:0,w:0,h:0}, stable=0;
+  function follow(){
     if(!tourActive) return;
     const r=el.getBoundingClientRect(), pad=8;
     const x=Math.max(8, r.left-pad), y=Math.max(8, r.top-pad);
     const w=Math.min(window.innerWidth-x-8, r.width+pad*2);
     const h=Math.min(window.innerHeight-y-8, r.height+pad*2);
     const spot=$('tourSpot'); spot.style.left=x+'px'; spot.style.top=y+'px'; spot.style.width=w+'px'; spot.style.height=h+'px';
-    // 5フレーム連続で座標がほぼ変化しなければ「安定」とみなす
-    if(++settleCount<20){rafId=requestAnimationFrame(follow);} // 約 ~300ms 追従
+
+    // フローティング説明カードの位置決定
+    placeSheetForRect(r);
+
+    // 連続して位置が変わらなければ安定
+    const dx=Math.abs(x-last.x)+Math.abs(y-last.y)+Math.abs(w-last.w)+Math.abs(h-last.h);
+    if(dx<0.5) stable++; else stable=0;
+    last={x,y,w,h};
+    if(stable<20){rafId=requestAnimationFrame(follow);} // 約300ms追従
   }
   cancelAnimationFrame(rafId); rafId=requestAnimationFrame(follow);
 }
 function spotTick(){ // リサイズ・スクロール時の再配置
   if(!tourActive) return;
-  focusTo(STEPS[step].sel);
+  const sel=STEPS[step].sel;
+  const el=document.querySelector(sel);
+  if(!el) return;
+  const r=el.getBoundingClientRect(), pad=8;
+  const x=Math.max(8, r.left-pad), y=Math.max(8, r.top-pad);
+  const w=Math.min(window.innerWidth-x-8, r.width+pad*2);
+  const h=Math.min(window.innerHeight-y-8, r.height+pad*2);
+  const spot=$('tourSpot'); spot.style.left=x+'px'; spot.style.top=y+'px'; spot.style.width=w+'px'; spot.style.height=h+'px';
+  placeSheetForRect(r);
 }
 $('helpBtn').addEventListener('click',startTour);
 $('tourEnd').addEventListener('click',endTour);
@@ -527,6 +575,7 @@ document.addEventListener('keydown',e=>{
   else if(e.key==='Escape'){e.preventDefault();endTour();}
 });
 window.addEventListener('scroll',()=>{spotTick();},{passive:true});
+
 /* init */
 function calc(){syncOther();recalcOther();const r=compute();updateUI(r);}
 window.addEventListener('load',()=>{calc();});
