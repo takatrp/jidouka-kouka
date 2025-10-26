@@ -32,7 +32,7 @@ h1{font-size:clamp(18px,2.4vw,24px);margin:0 0 6px}
 @media (max-width:932px) and (orientation:landscape){
   .sub{font-size:10.5px;line-height:1.45}
 }
-/* 「チュートリアル」ボタンを一行で小さく */
+/* 「チュートリアル」ボタン（1行・小さめ） */
 .help-btn{
   white-space:nowrap;
   align-self:flex-start;background:#fff;color:var(--accent);
@@ -121,11 +121,19 @@ canvas{width:100%;height:120px;display:block}
 /* ===== フローティング型チュートリアル（ハイライト＋吹き出し） ===== */
 .tour{position:fixed;inset:0;z-index:9998;display:none}
 .tour.show{display:block}
-#tourShade{position:absolute;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(2px)}
+/* ぼかしを完全無効化（対象UIをくっきり表示） */
+#tourShade{
+  position:absolute;inset:0;
+  background:transparent !important;
+  backdrop-filter:none !important;
+  pointer-events:none;
+}
 #tourSpot{
   position:absolute;left:0;top:0;width:0;height:0;border:2px solid var(--accent);border-radius:12px;
-  box-shadow:0 0 0 9999px rgba(2,6,23,.55);pointer-events:none;transition:all .18s ease}
-/* ここをボトムシート→フローティングに変更 */
+  /* 外側のみ暗転：内側は無加工でクッキリ */
+  box-shadow:0 0 0 9999px rgba(2,6,23,.55);
+  pointer-events:none;transition:all .18s ease
+}
 #tourSheet{
   position:absolute;left:0;top:0;background:#fff;border-radius:12px;
   box-shadow:0 12px 30px rgba(2,6,23,.35);padding:14px 16px;
@@ -317,10 +325,9 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
       <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
       <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
 
-      <!-- ▼ ここで「時間短縮」と「人件費削減」を入れ替え -->
+      <!-- 入替：時間短縮 → 左、人件費削減（強調） → 右 -->
       <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
       <div class="item item--emph savings" id="kpiSavings"><h3>人件費削減</h3><div class="krow"><div class="val-main" id="kpiYen">¥0</div><div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div></div></div>
-      <!-- ▲ 入れ替え完了 -->
 
       <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val" id="kpiBreakdown">—</div></div>
     </div>
@@ -396,9 +403,10 @@ function compute(){
   const m2=mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),w);
   const m3=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),w);
   const m4=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),w);
-  const m5=mod('レジからのデータ受信',$('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),w);
+  const m5=mod('レジからのデータ受信') , cbp=$('cb_pos').checked, np=num('n_pos'), tbp=num('tb_pos'), tap=num('ta_pos');
+  const m5obj=mod('レジからのデータ受信',cbp,np,tbp,tap,w);
   const hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
-  const arr=[m1,m2,m3,m4,m5];
+  const arr=[m1,m2,m3,m4,m5obj];
   const hB=arr.reduce((s,m)=>s+m.hBefore,0)+hOther;
   const hC=arr.reduce((s,m)=>s+m.hChosen,0)+hOther;
   const saveH=Math.max(0,hB-hC), costB=hB*w, costC=hC*w, saveY=costB-costC;
@@ -443,8 +451,8 @@ function drawChartsAnimated(r){
     const tb=prev.time.before+(next.time.before-prev.time.before)*e, ta=prev.time.after+(next.time.after-prev.time.after)*e;
     const cb=prev.cost.before+(next.cost.before-prev.cost.before)*e, ca=prev.cost.after+(next.cost.after-prev.cost.after)*e;
     const rate=prev.rate+(next.rate-prev.rate)*e; $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
-    drawBarH('chartTime',tb,ta,v=>`${safeFixed(v,2)}h`,`時間短縮 ${safeFixed(Math.max(0,tb-ta),2)}h`);
-    drawBarH('chartCost',cb,ca,v=>yen(v),`人件費削減 ${yen(Math.max(0,cb-ca))}`);
+    drawBarH('chartTime',tb,ta,v=>`${safeFixed(Math.max(tb,0),2)}h`,`時間短縮 ${safeFixed(Math.max(0,tb-ta),2)}h`);
+    drawBarH('chartCost',cb,ca,v=>yen(Math.max(cb,0)),`人件費削減 ${yen(Math.max(0,cb-ca))}`);
     if(t<1){chartState.animId=requestAnimationFrame(step);}else{chartState.time={...next.time};chartState.cost={...next.cost};chartState.rate=next.rate;chartState.animId=null;}
   }; chartState.animId=requestAnimationFrame(step);
 }
@@ -485,10 +493,7 @@ function resetAll(){
 }
 function calc(){syncOther();recalcOther();const r=compute();updateUI(r);}
 
-window.addEventListener('DOMContentLoaded',()=>{resetAll();calc(); if(localStorage.getItem('mk_auto_tour_seen')!=='1'){startTour();}});
-window.addEventListener('resize',()=>{const r=compute();drawChartsOnce(r); if(tourActive) spotTick(); setTimeout(syncKPIHeights,0);});
-
-/* ---- Tutorial (floating) ---- */
+/* ---- Tutorial（フローティング） ---- */
 const STEPS=[
  {sel:'#hdrBrand', t:'ツールの狙い', b:'TKCの5つの自動化機能で、どれだけ<strong>時間</strong>と<strong>人件費</strong>が削減できるかを可視化します。'},
  {sel:'#payUnitBlock', t:'① 人件費の前提', b:'<strong>時給／月給／年収</strong>から入力。<strong>事業主負担16%</strong>は自動加算し時給化します。'},
@@ -499,6 +504,7 @@ const STEPS=[
  {sel:'#footerBtns', t:'⑥ 出力', b:'「コピー／CSV出力／印刷」で共有・資料化。CSVはUTF-8（BOM付）で文字化け対策済み。'}
 ];
 let tourActive=false, step=0, rafId=null;
+
 function startTour(){tourActive=true; step=0; renderDots(); showStep(); $('tour').classList.add('show');}
 function endTour(){tourActive=false; $('tour').classList.remove('show'); localStorage.setItem('mk_auto_tour_seen','1'); cancelAnimationFrame(rafId); rafId=null;}
 function nextStep(){ if(step<STEPS.length-1){step++; showStep();} else{ endTour(); } }
@@ -506,17 +512,15 @@ function prevStep(){ if(step>0){step--; showStep();} }
 function renderDots(){const d=$('tourDots'); d.innerHTML=''; STEPS.forEach((_,i)=>{const n=document.createElement('div'); n.className='dot'+(i===step?' on':''); d.appendChild(n);})}
 function showStep(){ renderDots(); $('tourStep').textContent=`${step+1}/${STEPS.length}`; $('tourTitle').innerHTML=STEPS[step].t; $('tourBody').innerHTML=STEPS[step].b; focusTo(STEPS[step].sel); $('tourPrev').disabled=(step===0); $('tourNext').textContent=(step===STEPS.length-1)?'終了':'次へ'; }
 
-/* フローティング配置：対象要素の直下（はみ出す場合は上）に吹き出しを配置 */
+/* 吹き出しの配置：対象要素の下に置き、はみ出す場合は上に */
 function placeSheetForRect(r){
   const sheet=$('tourSheet');
-  // 一旦左上に置いてサイズ計測
   sheet.style.left='0px'; sheet.style.top='0px';
   const sh=sheet.getBoundingClientRect();
   const margin=12, vw=window.innerWidth, vh=window.innerHeight;
 
-  // 既定は「下に配置」
   let top=r.bottom + margin, pos='bottom';
-  if(top + sh.height > vh - 8){ // 収まらなければ上に
+  if(top + sh.height > vh - 8){
     top = Math.max(8, r.top - sh.height - margin);
     pos='top';
   }
@@ -540,10 +544,8 @@ function focusTo(sel){
     const h=Math.min(window.innerHeight-y-8, r.height+pad*2);
     const spot=$('tourSpot'); spot.style.left=x+'px'; spot.style.top=y+'px'; spot.style.width=w+'px'; spot.style.height=h+'px';
 
-    // フローティング説明カードの位置決定
     placeSheetForRect(r);
 
-    // 連続して位置が変わらなければ安定
     const dx=Math.abs(x-last.x)+Math.abs(y-last.y)+Math.abs(w-last.w)+Math.abs(h-last.h);
     if(dx<0.5) stable++; else stable=0;
     last={x,y,w,h};
@@ -551,11 +553,9 @@ function focusTo(sel){
   }
   cancelAnimationFrame(rafId); rafId=requestAnimationFrame(follow);
 }
-function spotTick(){ // リサイズ・スクロール時の再配置
+function spotTick(){
   if(!tourActive) return;
-  const sel=STEPS[step].sel;
-  const el=document.querySelector(sel);
-  if(!el) return;
+  const el=document.querySelector(STEPS[step].sel); if(!el) return;
   const r=el.getBoundingClientRect(), pad=8;
   const x=Math.max(8, r.left-pad), y=Math.max(8, r.top-pad);
   const w=Math.min(window.innerWidth-x-8, r.width+pad*2);
@@ -567,7 +567,9 @@ $('helpBtn').addEventListener('click',startTour);
 $('tourEnd').addEventListener('click',endTour);
 $('tourNext').addEventListener('click',nextStep);
 $('tourPrev').addEventListener('click',prevStep);
-$('tourShade').addEventListener('click',nextStep);
+/* どこでもクリックで次へ（カード内は除外） */
+$('tour').addEventListener('click',(e)=>{ if(!e.target.closest('#tourSheet')) nextStep(); });
+
 document.addEventListener('keydown',e=>{
   if(!tourActive) return;
   if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){e.preventDefault();nextStep();}
@@ -577,8 +579,8 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('scroll',()=>{spotTick();},{passive:true});
 
 /* init */
-function calc(){syncOther();recalcOther();const r=compute();updateUI(r);}
-window.addEventListener('load',()=>{calc();});
+window.addEventListener('DOMContentLoaded',()=>{resetAll();calc(); if(localStorage.getItem('mk_auto_tour_seen')!=='1'){startTour();}});
+window.addEventListener('resize',()=>{const r=compute();drawChartsOnce(r); if(tourActive) spotTick(); setTimeout(syncKPIHeights,0);});
 </script>
 </body>
 </html>
