@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>価格改定検討ツール r24</title>
+<title>価格改定検討ツール r25</title>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
@@ -32,7 +32,7 @@
   input[type="text"],textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-size:1rem;background:#fff;outline:none}
   input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
   .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
-  input::placeholder{color:#c7ccd3} /* 例）を薄く */
+  input::placeholder{color:#c7ccd3}
   .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
 
   /* ボタン／チップ */
@@ -89,24 +89,17 @@
   }
 
   /* ミニフッター（ポータル仕様） */
-  .mk-mini{
-    margin:16px auto 10px;
-    max-width:1100px;
-    color:#374151;
-    font-size:.84rem;
-    text-align:center;
-  }
+  .mk-mini{margin:16px auto 10px;max-width:1100px;color:#374151;font-size:.84rem;text-align:center}
   .mk-mini a{color:inherit;text-decoration:underline}
   .note{font-size:.8rem;color:#6b7280;text-align:center;margin-bottom:24px}
+
   @media print{.slider input[type="range"],button{display:none !important}.wrap{max-width:900px}}
 
-  /* ===== チュートリアル（ガイド） ===== */
-  .tour-overlay{position:fixed;inset:0;background:transparent;z-index:9998;display:none}
+  /* ===== チュートリアル：対象クリア＋周囲暗転、STEP表示 ===== */
+  .tour-overlay{position:fixed;inset:0;z-index:9998;display:none}
   .tour-overlay.active{display:block}
-  /* ぼかし無し・穴あきマスク（周囲を暗く、対象はクリア） */
   .tour-hole{position:fixed;pointer-events:none;border-radius:12px;box-shadow:0 0 0 9999px rgba(15,23,42,.55);z-index:9998;transition:all .18s ease}
   .tour-spot{position:fixed;border:2px solid #fff;border-radius:12px;box-shadow:0 0 0 8px rgba(255,255,255,.18),0 10px 30px rgba(0,0,0,.35);z-index:9999;pointer-events:none;transition:all .18s ease}
-
   .tour-box{position:fixed;max-width:420px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:14px;z-index:10000}
   .tour-stepBadge{font-size:.75rem;color:#6b7280;letter-spacing:.02em;font-weight:700;margin-bottom:4px}
   .tour-title{font-weight:800;margin:2px 0 6px;color:#0f172a}
@@ -129,9 +122,8 @@
   </div>
   <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
-  <!-- 以降、アプリ本体（前回版 r24 と同じ） -->
-  <!-- --- 左カラム（STEP1/2・アクション） --- -->
   <div class="dashboard">
+    <!-- 左 -->
     <div class="colL">
       <div class="card step1" id="step1Card">
         <div class="cardHeader">
@@ -321,12 +313,12 @@
   </div>
 </div>
 
-<!-- ▼ ミニフッター -->
+<!-- ▼ フッター（ツールポータル仕様） -->
 <footer class="mk-mini">
   © <span id="cpy-year">2025</span> <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
   <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
   <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-  <span id="build-rev">r24</span>（<span id="last-updated-date"></span>）
+  <span id="build-rev">r25</span>（<span id="last-updated-date"></span>）
 </footer>
 <div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
 
@@ -348,7 +340,7 @@
 
 <script>
 (function(){
-  /* ====== ユーティリティ（本体計算・UI） ====== */
+  /* ===== ユーティリティ ===== */
   const yen = n => isFinite(n) ? new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n) : '—';
   const pct = x => isFinite(x) ? (x*100).toFixed(1).replace(/\.0$/,'') + '%' : '—';
   const toNum=v=>{const s=String(v||'').replace(/,/g,'').replace(/[^\d.-]/g,'');const n=parseFloat(s);return isFinite(n)?n:NaN;}
@@ -359,10 +351,11 @@
     else{const raw=String(el.value).replace(/,/g,'');const hasDot=raw.includes('.');el.value=hasDot?n.toLocaleString('ja-JP',{maximumFractionDigits:6}):Math.round(n).toLocaleString('ja-JP');}
   };
 
+  /* ===== 状態 ===== */
   let costMode='cost', volMode='qty', chgMode='rate';
 
-  /* ====== 要素参照（省略せず） ====== */
-  const price = document.getElementById('price');
+  /* ===== 要素 ===== */
+  const price=document.getElementById('price');
   const chipCost=document.getElementById('chipCost'), chipMrate=document.getElementById('chipMrate');
   const chipQty=document.getElementById('chipQty'), chipRev=document.getElementById('chipRev');
   const chipRate=document.getElementById('chipRate'), chipAbs=document.getElementById('chipAbs');
@@ -384,17 +377,14 @@
   const kpi_price2=document.getElementById('kpi_price2');
   const kpi_rev2=document.getElementById('kpi_rev2');
   const kpi_rev2diff=document.getElementById('kpi_rev2diff');
-
   const kpi_m2=document.getElementById('kpi_m2');
   const kpi_T2=document.getElementById('kpi_T2');
   const delta_m=document.getElementById('delta_m');
   const delta_T=document.getElementById('delta_T');
-
   const kpi_reqRev=document.getElementById('kpi_reqRev');
   const kpi_reqRevDiff=document.getElementById('kpi_reqRevDiff');
   const kpi_reqQty=document.getElementById('kpi_reqQty');
   const kpi_reqQtyDiff=document.getElementById('kpi_reqQtyDiff');
-
   const dangerMsg=document.getElementById('dangerMsg');
   const sensBody=document.querySelector('#sensTable tbody');
   const actions=document.getElementById('actions');
@@ -407,28 +397,24 @@
 
   const revChart=document.getElementById('revChart');
   const qtyChart=document.getElementById('qtyChart');
-  const lgRevOk=document.getElementById('lgRevOk');
-  const lgRevOkLbl=document.getElementById('lgRevOkLbl');
-  const lgRevWarn=document.getElementById('lgRevWarn');
-  const lgRevWarnLbl=document.getElementById('lgRevWarnLbl');
-  const lgQtyOk=document.getElementById('lgQtyOk');
-  const lgQtyOkLbl=document.getElementById('lgQtyOkLbl');
-  const lgQtyWarn=document.getElementById('lgQtyWarn');
-  const lgQtyWarnLbl=document.getElementById('lgQtyWarnLbl');
+  const lgRevOk=document.getElementById('lgRevOk'), lgRevOkLbl=document.getElementById('lgRevOkLbl');
+  const lgRevWarn=document.getElementById('lgRevWarn'), lgRevWarnLbl=document.getElementById('lgRevWarnLbl');
+  const lgQtyOk=document.getElementById('lgQtyOk'), lgQtyOkLbl=document.getElementById('lgQtyOkLbl');
+  const lgQtyWarn=document.getElementById('lgQtyWarn'), lgQtyWarnLbl=document.getElementById('lgQtyWarnLbl');
 
-  /* ====== レイアウト（スマホ横で2カラム保持） ====== */
-  function isTwoCol(){return matchMedia('(min-width:1024px)').matches||matchMedia('(orientation:landscape)').matches;}
+  /* ===== レイアウト（スマホ横で2カラム） ===== */
+  const isTwoCol=()=>matchMedia('(min-width:1024px)').matches||matchMedia('(orientation:landscape)').matches;
   function relocateActions(){
     if(isTwoCol()){
       const step2=document.querySelector('.step2');
-      if(actionsCard.previousElementSibling!==step2){ step2.insertAdjacentElement('afterend',actionsCard); }
+      if(actionsCard.previousElementSibling!==step2) step2.insertAdjacentElement('afterend',actionsCard);
     }else{
-      if(actionsCard.previousElementSibling!==sensCard){ sensCard.insertAdjacentElement('afterend',actionsCard); }
+      if(actionsCard.previousElementSibling!==sensCard) sensCard.insertAdjacentElement('afterend',actionsCard);
     }
   }
   addEventListener('resize', ()=>{relocateActions(); compute();});
 
-  /* ====== 範囲設定 ====== */
+  /* ===== 範囲設定 ===== */
   function updateRanges(){
     const P=toNum(price.value);
     const priceOk=isFinite(P)&&P>0;
@@ -455,8 +441,8 @@
     clampIO(revRange,revenue);
   }
 
-  /* ====== チャート ====== */
-  function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
+  /* ===== SVGチャート ===== */
+  const clearSVG=svg=>{while(svg.firstChild)svg.removeChild(svg.firstChild);};
   function drawPairBar(svg,cur,req,isRev){
     if(!isFinite(cur)){ clearSVG(svg); return; }
     if(!isFinite(req)) req = cur;
@@ -489,117 +475,309 @@
     else{lgQtyOk.style.display=up?'none':'inline-block';lgQtyOkLbl.style.display=up?'none':'inline';lgQtyWarn.style.display=up?'inline-block':'none';lgQtyWarnLbl.style.display=up?'inline':'none';}
   }
 
-  /* ====== 感度/テンプレ/アクション（省略無し） ====== */
+  /* ===== 感度・テンプレ・アクション ===== */
   function safetyGauge(m,r){ if(!isFinite(m)||!isFinite(r)){safetyBar.style.width='0%';return;} const x=(r-(-m))/(0.3-(-m)); safetyBar.style.width=Math.min(100,Math.max(0,x*100)).toFixed(1)+'%'; }
   function buildSensitivity(base,steps){ const {P,C,Q,R0}=base, T0=(P-C)*Q; sensBody.innerHTML='';
     steps.forEach(s=>{ const r=s/100, P2=P*(1+r), CM2=P2-C; let Qreq=NaN, Rreq=NaN, rr=NaN, rq=NaN; if(CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; rr=R0>0?(Rreq/R0-1):NaN; rq=Q>0?(Qreq/Q-1):NaN; }
       const tr=document.createElement('tr'); tr.innerHTML=`<td>${s>0?'+':''}${s}%</td><td>${isFinite(Rreq)?yen(Rreq):'—'}</td><td>${isFinite(rr)?(rr>=0?'+':'')+(rr*100).toFixed(1)+'%':'—'}</td><td>${isFinite(Qreq)?(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位':'—'}</td><td>${isFinite(rq)?(rq>=0?'+':'')+(rq*100).toFixed(1)+'%':'—'}</td>`; sensBody.appendChild(tr); });}
-  function buildTemplate(o){ /*（中略：前ブロックの内容と同じ）*/ }
-  function buildActions(r,m){ const list=[]; if(!isFinite(r)||!isFinite(m)){actions.innerHTML='';return;}
+
+  function buildTemplate({r,P,P2,R0,Rreq,Q,Qreq,m,m2,T0,T2}){
+    if(![r,P,P2].every(x=>isFinite(x))){ templateArea.value=''; return; }
+    const rPct=(r*100).toFixed(1);
+    const signR = r>=0?'+':'';
+    const Qfmt = v => (Math.round(v*100)/100).toLocaleString('ja-JP');
+    const R2 = isFinite(Q) ? P2*Q : NaN;
+    const T0v = isFinite(T0) ? T0 : (isFinite(P)&&isFinite(Q)&&isFinite(m)? (P-(P*(1-m)))*Q : NaN);
+    const T2v = isFinite(T2) ? T2 : (isFinite(P2)&&isFinite(Q)&&isFinite(m2)? (P2-(P2*(1-m2)))*Q : NaN);
+
+    const impactBlock = [
+      `・売上高（現状 → 改定後）　${isFinite(R0)?yen(R0):'—'} → ${isFinite(R2)?yen(R2):'—'}`,
+      `・限界利益率（現状 → 改定後）　${isFinite(m)?(m*100).toFixed(1)+'%':'—'} → ${isFinite(m2)?(m2*100).toFixed(1)+'%':'—'}`,
+      `・限界利益額（現状 → 改定後）　${isFinite(T0v)?yen(T0v):'—'} → ${isFinite(T2v)?yen(T2v):'—'}`
+    ].join('\n');
+
+    const keepBlock = (isFinite(Rreq)||isFinite(Qreq)) ? `
+【同じ限界利益額を維持するために必要な水準（参考）】
+・必要売上　${isFinite(Rreq)?yen(Rreq):'—'}
+・必要数量　${isFinite(Qreq)?Qfmt(Qreq)+' 単位':'—'}
+` : '';
+
+    templateArea.value =
+`件名：価格改定のご案内（適用開始日：＿＿＿年＿＿月＿＿日）
+
+いつも大変お世話になっております。
+＿＿＿＿（御社名）＿＿＿＿の＿＿（自社名）＿＿でございます。
+
+このたび、誠に心苦しいお願いではございますが、下記のとおり価格改定を実施させていただきたく存じます。
+
+【改定内容】
+・改定率　：${signR}${rPct}%　
+・単価　　：${yen(P)} → ${yen(P2)}（税抜）
+・対象　　：＿＿＿＿（商品・サービス名、型番 等）
+・適用開始：＿＿＿年＿＿月＿＿日ご注文分より
+
+【改定の背景】
+・原材料費、物流費、人件費等の上昇が継続
+・品質・供給安定・サポート体制の維持向上を優先
+・内部効率化やコスト吸収の努力を続けて参りましたが、自助努力のみでは吸収が困難な水準となったため
+
+【お取引条件の変更点】
+・単価改定（上記）
+・（任意）ボリュームディスカウント／セット価格／送料条件 等の見直し
+・既存お見積の取扱い：有効期限内は旧価格を適用（＿＿月＿＿日まで）。以降は新価格に更新いたします。
+
+【お客様への影響（目安）】
+${impactBlock}
+
+${keepBlock}【代替案／ご協議の選択肢】
+・長期契約／定期発注による価格据置や緩和
+・まとめ買い条件、仕様簡素化、納期調整 等のご提案
+・運用支援／教育の無償化など、総コスト低減の取り組み
+
+【よくあるご質問（抜粋）】
+Q1. いつから適用ですか？  
+A. ＿＿＿年＿＿月＿＿日ご注文（または出荷）分より適用いたします。
+
+Q2. 見積書・価格表・ECサイトはいつ更新されますか？  
+A. 適用開始日に合わせて同時更新いたします。
+
+Q3. 既に頂いているご注文／長期案件はどうなりますか？  
+A. 個別に契約条件を確認し、出来る限りご負担のない形で調整いたします。
+
+Q4. 特別なお取引条件（ボリューム・前払い等）で緩和できますか？  
+A. 可能です。担当までお気軽にご相談ください。
+
+【お問い合わせ】
+担当：＿＿＿＿　TEL：＿＿＿＿　Mail：＿＿＿＿
+
+何卒ご理解を賜りますようお願い申し上げます。
+
+――――――――――――――――――――――――
+（社名）＿＿＿＿＿＿＿＿＿＿＿＿
+（住所）＿＿＿＿＿＿＿＿＿＿＿＿
+（TEL）＿＿＿＿＿＿／（Mail）＿＿＿＿＿＿
+（Web）＿＿＿＿＿＿＿＿＿＿＿＿
+――――――――――――――――――――――――
+
+＜店頭掲示・見積書注記の短縮版＞
+${signR}${rPct}%の価格改定を＿＿年＿＿月＿＿日より実施いたします（${yen(P)} → ${yen(P2)} 税抜）。
+ご不明点は担当までお問い合わせください。`;
+  }
+
+  function buildActions(r,m){
+    const list=[]; if(!isFinite(r)||!isFinite(m)){actions.innerHTML='';return;}
     if(r<0){list.push('最低受注金額・最低ロットを即日設定（無償作業の抑止）');list.push('値引きの代替：納期延長／仕様簡素化／数量条件（価格は死守）');list.push('Top10顧客の割引承認フロー導入（根拠を記録）');}
     else if(r>0){list.push('主要顧客へ30日前告知：改定率・適用日・背景を明文化');list.push('まとめ買い・長期契約等の代替案で軟着陸');list.push('見積・価格表・EC・店頭の同時更新（チェックリスト運用）');}
     else{list.push('商品別の限界利益率を棚卸し：下位20%の値付け/条件見直し');list.push('割引上限1%/案件・累計3%/月のレビュー制');list.push('四半期ごとに原価変動の自動転嫁シナリオ作成');}
-    actions.innerHTML=list.map(x=>`<li>${x}</li>`).join(''); }
+    actions.innerHTML=list.map(x=>`<li>${x}</li>`).join('');
+  }
 
-  /* ====== 入力→計算（本体は前回 r24 と同じ） ====== */
-  function getInputs(){ /* 省略：前回版と同じロジック */ 
+  /* ===== 入力→計算 ===== */
+  function getInputs(){
     const P=toNum(price.value);
     let m=null,C=null;
     if(costMode==='cost'){ const Cval=toNum(cost.value); if(isFinite(P)&&isFinite(Cval)&&P>0&&Cval>=0&&Cval<=P){ C=Cval; m=(P-C)/P; } }
     else{ const mr=toNum(mrate.value); if(isFinite(P)&&isFinite(mr)&&P>0&&mr>=0&&mr<100){ m=mr/100; C=P*(1-m); } }
+
     let Q=null,R0=null;
     if(volMode==='qty'){ const Qv=toNum(qty.value); if(isFinite(P)&&isFinite(Qv)&&P>0&&Qv>=0){ Q=Qv; R0=P*Q; } }
     else{ const Rv=toNum(revenue.value); if(isFinite(P)&&isFinite(Rv)&&P>0&&Rv>=0){ R0=Rv; Q=R0/P; } }
-    let r=NaN,P2=NaN;
-    if(chgMode==='rate'){ const raw=String(chgPct.value).trim().replace(/[％%]/g,''); const partial=/^-?$|^-?\d+\.?$/.test(raw); if(!partial){const num=parseFloat(raw); if(isFinite(num)) r=clamp(num,-70,70)/100;} if(isFinite(P)&&isFinite(r)) P2=P*(1+r); }
-    else{ const A=toNum(chgAbs.value); if(isFinite(P)&&isFinite(A)&&P>0){ P2=A; r=P2/P-1; } }
+
+    // 値改定率（手入力の途中は許容）
+    let r=NaN, P2=NaN;
+    if(chgMode==='rate'){
+      const raw=String(chgPct.value).trim().replace(/[％%]/g,'');
+      const partial=/^-?$|^-?\d+\.?$/.test(raw);
+      if(!partial){ const num=parseFloat(raw); if(isFinite(num)) r=clamp(num,-70,70)/100; }
+      if(isFinite(P)&&isFinite(r)) P2=P*(1+r);
+    } else {
+      const A=toNum(chgAbs.value);
+      if(isFinite(P)&&isFinite(A)&&P>0){ P2=A; r=P2/P-1; }
+    }
     return {P,C,m,Q,R0,r,P2};
   }
 
   function compute(){
     updateRanges();
+
     const {P,C,m,Q,R0,r,P2}=getInputs();
 
+    // STEP1クイック
     if(isFinite(P)&&isFinite(C)&&P>0&&C>=0&&C<=P){
-      document.getElementById('statM').classList.remove('hide'); stat_m_val.textContent=pct((P-C)/P);
-      const Qv=isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);
-      if(isFinite(Qv)){ const T0=(P-C)*Qv; document.getElementById('statT').classList.remove('hide'); stat_t_val.textContent=yen(T0); const Rv0=P*Qv; document.getElementById('statR').classList.remove('hide'); stat_r_val.textContent=yen(Rv0); }
-      else{ ['statT','statR'].forEach(id=>document.getElementById(id).classList.add('hide')); stat_t_val.textContent='—'; stat_r_val.textContent='—'; }
-    }else{ ['statM','statT','statR'].forEach(id=>document.getElementById(id).classList.add('hide')); stat_m_val.textContent='—'; stat_t_val.textContent='—'; stat_r_val.textContent='—'; }
+      statM.classList.remove('hide'); stat_m_val.textContent=pct((P-C)/P);
+      const Qv = isFinite(Q) ? Q : (isFinite(R0)&&isFinite(P)?R0/P:NaN);
+      if(isFinite(Qv)){
+        const T0=(P-C)*Qv; statT.classList.remove('hide'); stat_t_val.textContent=yen(T0);
+        const Rv0=P*Qv; statR.classList.remove('hide'); stat_r_val.textContent=yen(Rv0);
+      }else{ statT.classList.add('hide'); statR.classList.add('hide'); stat_t_val.textContent='—'; stat_r_val.textContent='—'; }
+    }else{
+      [statM,statT,statR].forEach(x=>x.classList.add('hide'));
+      stat_m_val.textContent='—'; stat_t_val.textContent='—'; stat_r_val.textContent='—';
+    }
 
-    document.getElementById('kpi_price2').textContent=isFinite(P2)?yen(P2):'—';
+    // 改定後単価
+    kpi_price2.textContent = isFinite(P2)?yen(P2):'—';
 
-    if(chgMode==='rate'&&isFinite(P)&&isFinite(r)){ const P2s=P*(1+r); const cl=clamp(P2s, Number(chgAbsRange.min), Number(chgAbsRange.max)); chgAbs.value=Math.round(cl).toLocaleString('ja-JP'); chgAbsRange.value=cl; }
-    if(chgMode==='abs'&&isFinite(P)&&isFinite(P2)){ const rCalc=(P2/P-1)*100; chgRange.value=rCalc.toFixed(1); if(document.activeElement!==chgPct){ chgPct.value=rCalc.toFixed(1); } }
+    // 率↔額 同期
+    if(chgMode==='rate' && isFinite(P) && isFinite(r)){
+      const P2s=P*(1+r);
+      const cl = clamp(P2s, Number(chgAbsRange.min), Number(chgAbsRange.max));
+      chgAbs.value = Math.round(cl).toLocaleString('ja-JP'); chgAbsRange.value=cl;
+    }
+    if(chgMode==='abs' && isFinite(P) && isFinite(P2)){
+      const rCalc=(P2/P-1)*100;
+      chgRange.value=rCalc.toFixed(1);
+      if(document.activeElement!==chgPct){ chgPct.value=rCalc.toFixed(1); }
+    }
 
-    ['kpi_m2','kpi_T2','kpi_reqRev','kpi_reqRevDiff','kpi_reqQty','kpi_reqQtyDiff','delta_m','delta_T'].forEach(id=>{const el=document.getElementById(id); el.textContent= id.includes('delta')?'現状比 —':'—';});
-    kpi_rev2.textContent='—'; kpi_rev2diff.textContent='現状比 —'; dangerMsg.classList.add('hide');
+    // 初期化
+    [kpi_m2,kpi_T2,kpi_reqRev,kpi_reqRevDiff,kpi_reqQty,kpi_reqQtyDiff,delta_m,delta_T].forEach(el=>{el.textContent = el.id.includes('delta')?'現状比 —':'—';});
+    kpi_rev2.textContent='—'; kpi_rev2diff.textContent='現状比 —';
+    dangerMsg.classList.add('hide');
 
-    const Qv=isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);
-    const Rv0=isFinite(P)&&isFinite(Qv)?P*Qv:NaN;
+    const Qv = isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);
+    const Rv0 = isFinite(P)&&isFinite(Qv)?P*Qv:NaN;
 
-    drawPairBar(revChart,Rv0,NaN,true);
-    drawPairBar(qtyChart,Qv,NaN,false);
+    drawPairBar(revChart, Rv0, NaN, true);
+    drawPairBar(qtyChart, Qv, NaN, false);
 
-    if(!(isFinite(P)&&isFinite(C)&&isFinite(P2)&&isFinite(Qv))){ safetyBar.style.width='0%'; sensBody.innerHTML=''; actions.innerHTML=''; templateArea.value=''; return; }
+    if(!(isFinite(P)&&isFinite(C)&&isFinite(P2)&&isFinite(Qv))){ 
+      safetyBar.style.width='0%'; sensBody.innerHTML=''; actions.innerHTML=''; templateArea.value='';
+      return; 
+    }
 
     const CM=P-C, CM2=P2-C, m2=CM2/P2, rEff=(P2/P-1);
-    const T0=CM*Qv, T2=CM2*Qv;
-    const R2=P2*Qv;
-    kpi_rev2.textContent=yen(R2); if(isFinite(Rv0)) kpi_rev2diff.textContent='現状比 '+(R2-Rv0>=0?'+':'')+yen(R2-Rv0);
+    const T0 = CM*Qv; const T2 = CM2*Qv;
+
+    // 改定後売上高（現状比）
+    const R2 = P2*Qv;
+    kpi_rev2.textContent = yen(R2);
+    if(isFinite(Rv0)) kpi_rev2diff.textContent = '現状比 ' + (R2-Rv0>=0?'+':'') + yen(R2 - Rv0);
 
     safetyGauge(m,rEff);
 
-    kpi_m2.textContent=pct(m2);
-    const dm=(m2-m)*100; delta_m.textContent='現状比 '+(dm>=0?'+':'')+dm.toFixed(1)+'pt';
-    kpi_T2.textContent=yen(T2);
-    const dT=T2-T0; delta_T.textContent='現状比 '+(dT>=0?'+':'')+yen(dT);
+    kpi_m2.textContent = pct(m2);
+    const dm = (m2 - m)*100; delta_m.textContent = '現状比 ' + (dm>=0?'+':'') + dm.toFixed(1) + 'pt';
+    kpi_T2.textContent = yen(T2);
+    const dT = T2 - T0; delta_T.textContent = '現状比 ' + (dT>=0?'+':'') + yen(dT);
+
     if(m2<=0||!isFinite(m2)){ dangerMsg.classList.remove('hide'); dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。'; }
 
+    // 同じ限界利益額を維持するための必要指標
     let Qreq,Rreq,dQ,dR;
     if(CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; dQ=Qreq-Qv; dR=Rreq-Rv0; }
-    if(isFinite(Rreq)){ kpi_reqRev.textContent=yen(Rreq); const ratioR=Rv0>0?(Rreq/Rv0-1):0; kpi_reqRevDiff.textContent=(ratioR>=0?'現状比 +':'現状比 ')+(ratioR*100).toFixed(1)+'% （差額 '+yen(dR)+'）'; }
-    if(isFinite(Qreq)){ kpi_reqQty.textContent=(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位'; const ratioQ=Qv>0?(Qreq/Qv-1):0, sign=ratioQ>=0?'+':''; kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`; }
 
-    drawPairBar(revChart,Rv0,Rreq,true);
-    drawPairBar(qtyChart,Qv,Qreq,false);
+    if(isFinite(Rreq)){
+      kpi_reqRev.textContent=yen(Rreq);
+      const ratioR=Rv0>0?(Rreq/Rv0-1):0;
+      kpi_reqRevDiff.textContent=(ratioR>=0?'現状比 +':'現状比 ')+(ratioR*100).toFixed(1)+'% （差額 '+yen(dR)+'）';
+    }
+    if(isFinite(Qreq)){
+      kpi_reqQty.textContent=(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位';
+      const ratioQ=Qv>0?(Qreq/Qv-1):0, sign=ratioQ>=0?'+':'';
+      kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`;
+    }
 
+    // グラフ確定
+    drawPairBar(revChart, Rv0, Rreq, true);
+    drawPairBar(qtyChart, Qv, Qreq, false);
+
+    // 感度・アクション・テンプレ
     buildSensitivity({P,C,m,Q:Qv,R0:Rv0},[-10,-5,-1,1,5,10]);
     buildActions(rEff,m);
-    // buildTemplate は上で省略した関数本文をそのまま入れてください（前回版と同じ）
+    buildTemplate({r:rEff,P,P2,R0:Rv0,Rreq,Q:Qv,Qreq,m,m2,T0,T2});
   }
 
-  /* ====== 入力同期 ====== */
+  /* ===== 入出力同期（1回だけ定義） ===== */
   const bind=(rangeEl,inputEl,dec=null)=>{
     rangeEl.addEventListener('input',()=>{const v=Number(rangeEl.value); inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP'); compute();});
-    inputEl.addEventListener('input',()=>{ if(inputEl.value===''){ compute(); return; } comma(inputEl,dec); const v=toNum(inputEl.value); if(isFinite(v)) rangeEl.value=clamp(v, Number(rangeEl.min), Number(rangeEl.max)); compute();});
+    inputEl.addEventListener('input',()=>{
+      if(inputEl.value===''){ compute(); return; }
+      comma(inputEl,dec); const v=toNum(inputEl.value);
+      if(isFinite(v)) rangeEl.value=clamp(v, Number(rangeEl.min), Number(rangeEl.max));
+      compute();
+    });
   };
-  bind(costRange,cost); bind(mrateRange,mrate); bind(qtyRange,qty,0); bind(revRange,revenue); bind(chgAbsRange,chgAbs);
+  bind(costRange,cost);
+  bind(mrateRange,mrate);
+  bind(qtyRange,qty,0);
+  bind(revRange,revenue);
+  bind(chgAbsRange,chgAbs);
 
-  function onRateTextInput(){ const raw=chgPct.value.trim().replace(/[％%]/g,''); if(/^-?$|^-?\d+\.?$/.test(raw)){ compute(); return; } const num=parseFloat(raw); if(isFinite(num)){ const cl=clamp(num,-70,70); chgRange.value=cl.toFixed(1);} compute(); }
-  function onRateTextCommit(){ const num=parseFloat(String(chgPct.value).replace(/[,%％]/g,'')); if(isFinite(num)){ const cl=clamp(num,-70,70); chgPct.value=cl.toFixed(1); chgRange.value=cl.toFixed(1);} compute(); }
-  chgPct.addEventListener('input',onRateTextInput); chgPct.addEventListener('change',onRateTextCommit); chgPct.addEventListener('blur',onRateTextCommit);
-  chgRange.addEventListener('input',()=>{ if(document.activeElement!==chgPct){ chgPct.value=Number(chgRange.value).toFixed(1);} compute(); });
+  // 値改定率テキスト：リアルタイム
+  function onRateTextInput(){
+    const raw = chgPct.value.trim().replace(/[％%]/g,'');
+    if (/^-?$|^-?\d+\.?$/.test(raw)) { compute(); return; } // 途中入力
+    const num = parseFloat(raw);
+    if (isFinite(num)){
+      const cl = clamp(num, -70, 70);
+      chgRange.value = cl.toFixed(1);
+    }
+    compute();
+  }
+  function onRateTextCommit(){
+    const num = parseFloat(String(chgPct.value).replace(/[,%％]/g,''));
+    if (isFinite(num)){
+      const cl = clamp(num, -70, 70);
+      chgPct.value   = cl.toFixed(1);
+      chgRange.value = cl.toFixed(1);
+    }
+    compute();
+  }
+  chgPct.addEventListener('input', onRateTextInput);
+  chgPct.addEventListener('change', onRateTextCommit);
+  chgPct.addEventListener('blur', onRateTextCommit);
+  chgRange.addEventListener('input',()=>{ if(document.activeElement!==chgPct){ chgPct.value=Number(chgRange.value).toFixed(1); } compute(); });
 
   price.addEventListener('input',()=>{ if(price.value!=='') comma(price); updateRanges(); compute(); });
 
-  function setCostMode(m){ costMode=m; if(m==='cost'){ chipCost.classList.add('active'); chipMrate.classList.remove('active'); blockCost.classList.remove('hide'); blockMrate.classList.add('hide'); }else{ chipMrate.classList.add('active'); chipCost.classList.remove('active'); blockCost.classList.add('hide'); blockMrate.classList.remove('hide'); } updateRanges(); compute();}
-  function setVolMode(m){ volMode=m; if(m==='qty'){ chipQty.classList.add('active'); chipRev.classList.remove('active'); blockQty.classList.remove('hide'); blockRev.classList.add('hide'); }else{ chipRev.classList.add('active'); chipQty.classList.remove('active'); blockQty.classList.add('hide'); blockRev.classList.remove('hide'); } updateRanges(); compute();}
-  function setChgMode(m){ chgMode=m; if(m==='rate'){ chipRate.classList.add('active'); chipAbs.classList.remove('active'); document.getElementById('rateInputs').classList.remove('hide'); document.getElementById('absInputs').classList.add('hide'); }else{ chipAbs.classList.add('active'); chipRate.classList.remove('active'); document.getElementById('rateInputs').classList.add('hide'); document.getElementById('absInputs').classList.remove('hide'); if(!chgAbs.value){ const P=toNum(price.value); if(isFinite(P)&&P>0){ chgAbs.value=Math.round(P).toLocaleString('ja-JP'); } } } updateRanges(); compute();}
+  function setCostMode(mode){ costMode=mode;
+    if(mode==='cost'){ chipCost.classList.add('active'); chipMrate.classList.remove('active'); blockCost.classList.remove('hide'); blockMrate.classList.add('hide'); }
+    else{ chipMrate.classList.add('active'); chipCost.classList.remove('active'); blockCost.classList.add('hide'); blockMrate.classList.remove('hide'); }
+    updateRanges(); compute();
+  }
+  function setVolMode(mode){ volMode=mode;
+    if(mode==='qty'){ chipQty.classList.add('active'); chipRev.classList.remove('active'); blockQty.classList.remove('hide'); blockRev.classList.add('hide'); }
+    else{ chipRev.classList.add('active'); chipQty.classList.remove('active'); blockQty.classList.add('hide'); blockRev.classList.remove('hide'); }
+    updateRanges(); compute();
+  }
+  function setChgMode(mode){ chgMode=mode;
+    if(mode==='rate'){ chipRate.classList.add('active'); chipAbs.classList.remove('active'); document.getElementById('rateInputs').classList.remove('hide'); document.getElementById('absInputs').classList.add('hide'); }
+    else{ chipAbs.classList.add('active'); chipRate.classList.remove('active'); document.getElementById('rateInputs').classList.add('hide'); document.getElementById('absInputs').classList.remove('hide'); if(!chgAbs.value){ const P=toNum(price.value); if(isFinite(P)&&P>0){ chgAbs.value=Math.round(P).toLocaleString('ja-JP'); } } }
+    updateRanges(); compute();
+  }
 
-  chipCost.addEventListener('click',()=>setCostMode('cost')); chipMrate.addEventListener('click',()=>setCostMode('mrate'));
-  chipQty.addEventListener('click',()=>setVolMode('qty')); chipRev.addEventListener('click',()=>setVolMode('rev'));
-  chipRate.addEventListener('click',()=>setChgMode('rate')); chipAbs.addEventListener('click',()=>setChgMode('abs'));
+  chipCost.addEventListener('click',()=>setCostMode('cost'));
+  chipMrate.addEventListener('click',()=>setCostMode('mrate'));
+  chipQty.addEventListener('click',()=>setVolMode('qty'));
+  chipRev.addEventListener('click',()=>setVolMode('rev'));
+  chipRate.addEventListener('click',()=>setChgMode('rate'));
+  chipAbs.addEventListener('click',()=>setChgMode('abs'));
 
-  document.getElementById('sampleBtn').addEventListener('click',()=>{ setCostMode('cost'); setVolMode('qty'); setChgMode('rate'); price.value='1,200'; cost.value='720'; qty.value='1,000'; chgRange.value='-5.0'; chgPct.value='-5.0'; chgAbs.value=''; updateRanges(); costRange.value=720; qtyRange.value=1000; compute();});
-  document.getElementById('resetBtn').addEventListener('click',()=>{ [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value=''); chgRange.value='0.0'; setCostMode('cost'); setVolMode('qty'); setChgMode('rate'); updateRanges(); compute();});
+  document.getElementById('sampleBtn').addEventListener('click',()=>{
+    setCostMode('cost'); setVolMode('qty'); setChgMode('rate');
+    price.value='1,200'; cost.value='720'; qty.value='1,000';
+    chgRange.value='-5.0'; chgPct.value='-5.0'; chgAbs.value='';
+    updateRanges(); costRange.value=toNum(cost.value); qtyRange.value=toNum(qty.value); compute();
+  });
+  document.getElementById('resetBtn').addEventListener('click',()=>{
+    [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value='');
+    chgRange.value='0.0'; setCostMode('cost'); setVolMode('qty'); setChgMode('rate'); updateRanges(); compute();
+  });
 
   document.getElementById('printBtn').addEventListener('click',()=>{ try{ window.print(); }catch(e){} });
+  document.getElementById('copyResultBtn').addEventListener('click',()=>{ const text=document.getElementById('resultCard').innerText||''; if(navigator.clipboard){ navigator.clipboard.writeText(text); }});
+  document.getElementById('copyTemplateBtn').addEventListener('click',()=>{ if(navigator.clipboard){ navigator.clipboard.writeText(templateArea.value||''); }});
 
-  // フッター（年・更新日）
-  try{ document.getElementById('cpy-year').textContent=String(new Date().getFullYear()); const ld=new Date(document.lastModified); const z=n=>String(n).padStart(2,'0'); const ymd=isNaN(ld.getTime())?'':`${ld.getFullYear()}-${z(ld.getMonth()+1)}-${z(ld.getDate())}`; document.getElementById('last-updated-date').textContent=ymd; }catch(e){}
+  /* ===== フッター自動（年・更新日） ===== */
+  try{
+    document.getElementById('cpy-year').textContent = String(new Date().getFullYear());
+    const ld=new Date(document.lastModified); const z=n=>String(n).padStart(2,'0');
+    const ymd=isNaN(ld.getTime())?'':`${ld.getFullYear()}-${z(ld.getMonth()+1)}-${z(ld.getDate())}`;
+    document.getElementById('last-updated-date').textContent=ymd;
+  }catch(e){}
 
-  /* ====== チュートリアル（穴あき＋STEP表示） ====== */
+  /* ===== チュートリアル（対象クリア表示・STEP表示・Enter/枠外クリックで次へ） ===== */
   const helpBtn=document.getElementById('helpBtn');
   const tourOverlay=document.getElementById('tourOverlay');
   const tourHole=document.getElementById('tourHole');
@@ -613,15 +791,15 @@
   const tourEnd=document.getElementById('tourEnd');
 
   const steps=[
-    { el:'#chipsCostGroup', title:'原価/限界利益率の切替', text:'まずは入力方法を選びます。原価（変動費）か、限界利益率のいずれか。', align:'bottom', ensure:()=>setCostMode('cost') },
-    { el:'#blockCost', title:'原価（変動費）', text:'スライダー/直接入力で原価を設定。現在の単価が上限です。', align:'right', ensure:()=>setCostMode('cost') },
+    { el:'#price', title:'現在の単価（税抜）', text:'まず「現在の単価」を入力。カンマ整形・範囲調整は自動です。', align:'bottom' },
+    { el:'#chipsCostGroup', title:'原価/限界利益率の選択', text:'「原価（変動費）」または「限界利益率」で入力方法を切り替えます。', align:'bottom', ensure:()=>setCostMode('cost') },
+    { el:'#blockCost', title:'原価（変動費）', text:'現在の単価を上限にスライダー/直接入力で設定できます。', align:'right', ensure:()=>setCostMode('cost') },
     { el:'#chipsVolGroup', title:'数量 or 売上高', text:'ボリュームは「数量」か「売上高」で入力します。', align:'bottom', ensure:()=>setVolMode('qty') },
-    { el:'#blockRev', title:'売上高（S）', text:'数値またはスライダーで調整。リアルタイムにカンマ整形・グラフへ反映されます。', align:'bottom', ensure:()=>setVolMode('rev') },
-    { el:'#chipsChgGroup', title:'改定方法', text:'「値改定率」か「改定後単価」を選択。どちらで入力しても相互に同期します。', align:'bottom', ensure:()=>setChgMode('rate') },
-    { el:'#rateInputs', title:'値改定率', text:'キーボード入力でもリアルタイム計算。-70%〜+70% / 小数1位対応。', align:'right', ensure:()=>setChgMode('rate') },
-    { el:'#resultCard', title:'結果の読み方', text:'改定後単価・改定後売上高・限界利益率/額（改定後）と現状比を表示します。', align:'top' }
+    { el:'#blockRev', title:'売上高（S）', text:'スライダーでも直接入力でもOK。リアルタイムでグラフに反映。', align:'bottom', ensure:()=>setVolMode('rev') },
+    { el:'#chipsChgGroup', title:'改定方法', text:'「値改定率」か「改定後単価」を選択。相互に同期します。', align:'bottom', ensure:()=>setChgMode('rate') },
+    { el:'#rateInputs', title:'値改定率', text:'キーボード入力でも即時計算（-70%〜+70%、小数1位）。', align:'right', ensure:()=>setChgMode('rate') },
+    { el:'#resultCard', title:'結果の見方', text:'改定後単価/売上高と、限界利益率・限界利益額（改定後）＋現状比を表示します。', align:'top' }
   ];
-
   let cur=0, active=false;
 
   const getVP=()=>{const vv=visualViewport;return vv?{w:vv.width,h:vv.height}:{w:innerWidth,h:innerHeight};};
@@ -638,14 +816,11 @@
     if(!el) return;
     const r=el.getBoundingClientRect(), pad=6;
     const x=r.left-pad, y=r.top-pad, w=Math.max(0,r.width)+pad*2, h=Math.max(0,r.height)+pad*2;
-    // 穴と枠
     Object.assign(tourHole.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
     Object.assign(tourSpot.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
-    // 文言
     tourStepBadge.textContent=`STEP ${cur+1} / ${steps.length}`;
-    tourTitle.textContent=step.title||'';
-    tourText.textContent=step.text||'';
-    // ポップの位置
+    tourTitle.textContent=step.title||''; tourText.textContent=step.text||'';
+
     const box=tourBox.getBoundingClientRect(), vp=getVP();
     let bx=r.left, by=r.bottom+12;
     if(step.align==='top') by=r.top-(box.height+12);
@@ -654,6 +829,7 @@
     bx=Math.max(12,Math.min(bx,vp.w-(box.width+12)));
     by=Math.max(12,Math.min(by,vp.h-(box.height+12)));
     tourBox.style.left=bx+'px'; tourBox.style.top=by+'px';
+
     tourBack.disabled=cur===0;
     tourNext.textContent=(cur===steps.length-1)?'完了':'次へ';
   }
@@ -673,18 +849,21 @@
   tourBack.addEventListener('click', ()=>show(cur-1));
   tourEnd .addEventListener('click', end);
 
-  // オーバーレイ（枠外クリック）や Enter でも次へ
-  tourOverlay.addEventListener('click', (e)=>{ if(!active) return; if(!tourBox.contains(e.target)) nextOrEnd(); });
-  addEventListener('keydown', (e)=>{ if(!active) return; if(e.key==='Enter'){ e.preventDefault(); nextOrEnd(); } if(e.key==='Escape'){ end(); } });
+  // 枠外クリック or Enter で次へ
+  tourOverlay.addEventListener('click',(e)=>{ if(!active) return; if(!tourBox.contains(e.target)) nextOrEnd(); });
+  addEventListener('keydown',(e)=>{ if(!active) return; if(e.key==='Enter'){ e.preventDefault(); nextOrEnd(); } if(e.key==='Escape'){ end(); } });
 
-  // 反映系
-  const bind=(rangeEl,inputEl,dec=null)=>{ rangeEl.addEventListener('input',()=>{const v=Number(rangeEl.value); inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP'); compute();});
-    inputEl.addEventListener('input',()=>{ if(inputEl.value===''){ compute(); return; } comma(inputEl,dec); const v=toNum(inputEl.value); if(isFinite(v)) rangeEl.value=clamp(v, Number(rangeEl.min), Number(rangeEl.max)); compute();}); };
+  // 画面変化時も位置を更新
+  addEventListener('resize', ()=>{ if(active) show(cur); }, {passive:true});
+  addEventListener('orientationchange', ()=>{ if(active) setTimeout(()=>show(cur), 200); });
+  if (window.visualViewport){
+    visualViewport.addEventListener('resize', ()=>{ if(active) setTimeout(()=>show(cur), 50); }, {passive:true});
+  }
 
-  // （上ですでに bind 済み。ここでは省略）
-
-  // 初期化
-  relocateActions(); updateRanges(); compute();
+  /* ===== 初期化 ===== */
+  relocateActions();
+  updateRanges();
+  compute();
 })();
 </script>
 </body>
