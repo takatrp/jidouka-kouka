@@ -3,584 +3,689 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>自動化効果試算ツール（r66）</title>
+<title>価格改定検討ツール r24</title>
 
 <!-- Favicon -->
-<link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
-<meta name="theme-color" content="#2084A8"/>
+<link rel="icon" type="image/png" sizes="192x192" href="favicon192192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="favicon192192.png">
+<link rel="shortcut icon" href="favicon192192.png">
 
 <style>
-:root{
-  --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
-  --accent:#2084A8; --accent-600:#1b7899; --accent-700:#166b8a;
-  --ring:rgba(32,132,168,.18);
-  --good:#059669; --warn:#b45309; --radius:14px;
-  --cols:.9fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
-  --row-gap:6px; --col-gap:4px; --kpiRowH:auto;
-  --bar-after:#4fb3c1;
-}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font-family:system-ui,-apple-system,"Segoe UI",Roboto,
-  "Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif}
-.wrap{max-width:1000px;margin:24px auto 64px;padding:0 16px}
-header{display:flex;justify-content:space-between;gap:8px;margin-bottom:16px}
-header .brand{display:flex;align-items:center;gap:10px}
-header .brand img{height:48px;width:auto;display:block}
-h1{font-size:clamp(18px,2.4vw,24px);margin:0 0 6px}
-.sub{color:var(--muted);font-size:13px;line-height:1.5}
-@media (max-width:932px) and (orientation:landscape){
-  .sub{font-size:10.5px;line-height:1.45}
-}
-/* 「チュートリアル」ボタン（1行・小さめ） */
-.help-btn{
-  white-space:nowrap;
-  align-self:flex-start;background:#fff;color:var(--accent);
-  border:1px solid rgba(32,132,168,.45);border-radius:999px;
-  padding:6px 10px;font-size:12px;letter-spacing:.02em;cursor:pointer;
-  box-shadow:0 1px 6px rgba(2,6,23,.05)
-}
-.help-btn:hover{background:#f3f9fc;box-shadow:0 8px 18px rgba(32,132,168,.18);transform:translateY(-1px)}
-.help-btn:active{transform:translateY(0)}
+  :root{--brand:#578899;--ink:#1f2937;--muted:#6b7280;--bg:#f7fafc;--ok:#10b981;--warn:#ef4444;--card:#fff;--grid:#e5e7eb;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;}
+  .wrap{max-width:1100px;margin:0 auto;padding:12px}
 
-.card{background:var(--card);border-radius:var(--radius);
-  box-shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(2,6,23,.08);
-  padding:16px;margin:12px 0}
-.grid{display:grid;gap:12px;grid-template-columns:repeat(12,1fr)}
-label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
-input[type="number"],input[type="text"]{
-  width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e7eb;
-  background:#fff;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s}
-input[type="number"]:focus,input[type="text"]:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--ring)}
-input[readonly]{background:#f8fafc;color:#334155}
-.thead{color:var(--muted);font-size:12px;font-weight:600;border-bottom:1px solid #e3edf4}
-.td.res{text-align:right;font-variant-numeric:tabular-nums}
-.note{font-size:12px;color:var(--muted)}
-.note-right{font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
-.btns{display:flex;gap:10px;flex-wrap:wrap}
-button{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-size:14px;transition:.15s}
-.outline{background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);box-shadow:0 1px 6px rgba(2,6,23,.05)}
-.outline:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(32,132,168,.18);background:#f3f9fc}
-.outline:active{transform:translateY(0);background:#eef7fb}
+  /* ヘッダー */
+  .header{display:flex;align-items:center;gap:12px;margin:6px 0 8px}
+  .logo{height:56px;width:auto;object-fit:contain;border-radius:8px}
+  .title{font-weight:800;font-size:1.25rem;color:#0f172a;display:flex;align-items:center;gap:6px}
+  .headRight{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .sub{font-size:.85rem;color:var(--muted);margin:0 0 8px}
 
-/* KPI */
-.kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.kpi .item{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:8px;min-height:var(--kpiRowH);display:flex;flex-direction:column;justify-content:space-between}
-.kpi h3{margin:0 0 4px;font-size:11.5px;color:var(--muted)}
-.kpi .val{font-size:clamp(16px,2.4vw,20px)}
-.krow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
-.aside{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-.aside .label{font-size:10.5px;color:var(--muted)}
-.aside .yen{font-size:clamp(13px,2.0vw,17px);color:#0f5132}
+  /* カード */
+  .card{background:var(--card);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);padding:12px}
+  .pill{display:inline-block;background:rgba(87,136,153,.1);color:var(--brand);font-weight:700;border-radius:999px;padding:5px 9px;font-size:.8rem}
+  .cardHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 
-/* 人件費削減を枠で強調 */
-.item--emph{border:2px solid rgba(32,132,168,.9)!important;box-shadow:none}
-.savings .val-main{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:#059669;line-height:1}
+  /* 入力 */
+  label{display:block;font-size:.86rem;color:#374151;margin:6px 0 6px;font-weight:600}
+  input[type="text"],textarea{width:100%;box-sizing:border-box;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-size:1rem;background:#fff;outline:none}
+  input:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(87,136,153,.15)}
+  .primaryInput{border:2px solid var(--brand)!important;background:#f3f8fb}
+  input::placeholder{color:#c7ccd3} /* 例）を薄く */
+  .hint{font-size:.76rem;color:var(--muted);margin-top:4px}
 
-/* 自動化率を大きく */
-.rate-hero{font-size:clamp(21px,3.2vw,29px);font-weight:800;color:var(--accent)}
-#kpiBreakdown{font-size:10.5px;line-height:1.35;-webkit-line-clamp:2;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+  /* ボタン／チップ */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:10px;padding:10px 12px;font-weight:700;font-size:.92rem;cursor:pointer}
+  .btn.alt{background:#e5e7eb;color:#111827}
+  .btn.ghost{background:transparent;color:#374151;border:1px solid #d1d5db}
+  .btn.sm{padding:6px 8px;font-size:.82rem;border-radius:8px}
+  .miniActions{display:flex;gap:6px}
 
-/* 機能別テーブル（詰め） */
-.compact-table{ --row-gap:2px }
-.headbar{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
-.headnote{font-size:12px;color:var(--muted);white-space:nowrap}
-.features-head,.features-rows{
-  display:grid;grid-template-columns:var(--cols);gap:var(--row-gap) var(--col-gap);align-items:center;font-size:12px}
-.features-rows .td,.features-head .th{padding:3px 4px}
-.features-rows .c-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.features-rows .td.arrow,.features-head .th.arrow{text-align:center;color:#64748b}
-.features-head .th:last-child,.features-rows .td.res{text-align:right}
-.features-head .th.kind,.features-rows .td.kind{padding-left:2px;margin-left:-2px}
-.feat-link{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
-.adopt-box{display:flex;justify-content:center;width:22px}
-.adopt-dash{display:inline-block;width:22px;text-align:center;color:#94a3b8}
-.bulk-label{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:12px}
-.comp-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.seg{display:flex;gap:6px}
-.seg.sm .segbtn{padding:6px 10px;font-size:12px;border-radius:10px}
-.segbtn{background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);padding:10px 14px;border-radius:12px;cursor:pointer}
-.segbtn.active{background:var(--accent);color:#fff}
-.comp-row input[type="text"]{flex:1 1 280px;min-width:180px}
-.calc-note{margin-top:6px;color:var(--muted);font-size:12px}
-.hourly-badge{margin-top:6px;font-weight:700}
+  .chipGroup{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;margin-bottom:2px}
+  .chip{border:1px solid #d1d5db;background:#fff;border-radius:999px;padding:6px 10px;font-size:.85rem;font-weight:700;color:#374151;cursor:pointer}
+  .chip.active{border-color:var(--brand);background:#eef6fa;color:#0f172a}
 
-.sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px}
-.ok{color:var(--good)} .warn{color:var(--warn)}
+  /* スライダー */
+  .slider{display:flex;align-items:center;gap:8px;margin-top:6px}
+  input[type="range"]{width:100%}
 
-/* グラフ */
-.chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
-.chart-title{font-weight:800;color:var(--accent);font-size:clamp(16px,2.6vw,20px)}
-.chart-sub{color:var(--muted);font-size:12px}
-.chart-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-.chartbox{background:#fff;border:1px dashed #e2e8f0;border-radius:12px;padding:8px}
-.chartbox h4{margin:0 0 6px;font-size:12px;color:var(--muted)}
-canvas{width:100%;height:120px;display:block}
-@media (max-width:720px){.chart-grid{grid-template-columns:1fr}canvas{height:110px}}
+  /* STEP1クイック表示 */
+  .inlineStats{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .stat{font-size:.9rem;color:#374151;background:#f0f4f8;border:1px solid #e5e7eb;padding:6px 10px;border-radius:8px}
+  .hide{display:none}
 
-/* ===== フローティング型チュートリアル（ハイライト＋吹き出し） ===== */
-.tour{position:fixed;inset:0;z-index:9998;display:none}
-.tour.show{display:block}
-/* ぼかしを完全無効化（対象UIをくっきり表示） */
-#tourShade{
-  position:absolute;inset:0;
-  background:transparent !important;
-  backdrop-filter:none !important;
-  pointer-events:none;
-}
-#tourSpot{
-  position:absolute;left:0;top:0;width:0;height:0;border:2px solid var(--accent);border-radius:12px;
-  /* 外側のみ暗転：内側は無加工でクッキリ */
-  box-shadow:0 0 0 9999px rgba(2,6,23,.55);
-  pointer-events:none;transition:all .18s ease
-}
-#tourSheet{
-  position:absolute;left:0;top:0;background:#fff;border-radius:12px;
-  box-shadow:0 12px 30px rgba(2,6,23,.35);padding:14px 16px;
-  width:min(92vw,420px);max-width:420px
-}
-#tourSheet::after{content:"";position:absolute;width:0;height:0;border:8px solid transparent}
-#tourSheet[data-pos="bottom"]::after{top:-16px;left:24px;border-bottom-color:#fff;filter:drop-shadow(0 -2px 2px rgba(2,6,23,.1))}
-#tourSheet[data-pos="top"]::after{bottom:-16px;left:24px;border-top-color:#fff;filter:drop-shadow(0 2px 2px rgba(2,6,23,.1))}
-#tourStep{color:#475569;font-size:12px}
-#tourTitle{margin:4px 0 4px;font-size:18px;color:var(--accent)}
-#tourBody{margin:0 0 8px;font-size:14px;color:#334155;line-height:1.7}
-.tnav{display:flex;gap:8px;align-items:center;justify-content:flex-end}
-.tbtn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:13px}
-.tbtn.outline{background:#fff;color:var(--accent);border:1px solid rgba(32,132,168,.45)}
-.dots{display:flex;gap:6px;margin-right:auto}
-.dot{width:8px;height:8px;border-radius:50%;background:#cbd5e1}
-.dot.on{background:var(--accent)}
-.tHint{font-size:12px;color:#64748b;margin-top:6px}
+  /* KPI/カード */
+  .kpi{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .kpi .item{flex:1 1 160px;min-width:160px;background:#fff;border:1px solid #eef2f7;border-radius:10px;padding:10px}
+  .kpi .lbl{font-size:.76rem;color:#6b7280}
+  .kpi .val{font-size:1.2rem;font-weight:800;margin-top:2px}
+  .kpi .sub{font-size:.78rem;color:#6b7280;margin-top:2px}
+  .danger{color:var(--warn);font-weight:700;margin-top:8px}
 
-/* print */
-@media print{.btns,#footerBtns,footer.mk-mini,.tour{display:none!important}.card{box-shadow:none;border:1px solid #e5e7eb}}
-footer.mk-mini{margin-top:18px;padding:10px 0;text-align:center;color:#475569;font-size:12px}
-footer.mk-mini a{color:inherit;text-decoration:underline}
+  /* サブカード（改定後＋現状比） */
+  .subgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px}
+  .subcard{border:1px solid #eef2f7;border-radius:10px;padding:10px;background:#fff}
+  .subttl{font-size:.82rem;color:#6b7280;font-weight:700;margin-bottom:6px}
+  .bigVal{font-size:1.25rem;font-weight:800}
+  .delta{font-size:.82rem;color:#6b7280;margin-top:4px}
+
+  /* グラフ */
+  .chartWrap{display:flex;flex-direction:column;gap:8px}
+  .chart{width:100%;height:116px;border:1px solid var(--grid);border-radius:10px;padding:8px;box-sizing:border-box}
+  svg{width:100%;height:100%}
+  .legend{display:flex;gap:8px;align-items:center;font-size:.82rem;color:#374151;margin-top:4px}
+  .lg{display:inline-block;width:14px;height:10px;border-radius:3px}
+  .lg.cur{background:var(--brand)} .lg.req.ok{background:#10b981} .lg.req.warn{background:#ef4444}
+
+  /* レイアウト：デフォ1カラム／横向きは2カラム */
+  .dashboard{display:block}
+  .colL,.colR{display:flex;flex-direction:column;gap:10px}
+  @media (orientation:landscape){
+    .dashboard{display:grid;grid-template-columns:minmax(300px,42%) 1fr;gap:10px;align-items:start}
+  }
+  @media (min-width:1024px){
+    .dashboard{display:grid;grid-template-columns:380px 1fr;gap:10px;align-items:start}
+  }
+
+  /* ミニフッター（ポータル仕様） */
+  .mk-mini{
+    margin:16px auto 10px;
+    max-width:1100px;
+    color:#374151;
+    font-size:.84rem;
+    text-align:center;
+  }
+  .mk-mini a{color:inherit;text-decoration:underline}
+  .note{font-size:.8rem;color:#6b7280;text-align:center;margin-bottom:24px}
+  @media print{.slider input[type="range"],button{display:none !important}.wrap{max-width:900px}}
+
+  /* ===== チュートリアル（ガイド） ===== */
+  .tour-overlay{position:fixed;inset:0;background:transparent;z-index:9998;display:none}
+  .tour-overlay.active{display:block}
+  /* ぼかし無し・穴あきマスク（周囲を暗く、対象はクリア） */
+  .tour-hole{position:fixed;pointer-events:none;border-radius:12px;box-shadow:0 0 0 9999px rgba(15,23,42,.55);z-index:9998;transition:all .18s ease}
+  .tour-spot{position:fixed;border:2px solid #fff;border-radius:12px;box-shadow:0 0 0 8px rgba(255,255,255,.18),0 10px 30px rgba(0,0,0,.35);z-index:9999;pointer-events:none;transition:all .18s ease}
+
+  .tour-box{position:fixed;max-width:420px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:14px;z-index:10000}
+  .tour-stepBadge{font-size:.75rem;color:#6b7280;letter-spacing:.02em;font-weight:700;margin-bottom:4px}
+  .tour-title{font-weight:800;margin:2px 0 6px;color:#0f172a}
+  .tour-text{font-size:.92rem;color:#374151;line-height:1.55}
+  .tour-controls{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px}
+  .tour-btn{padding:6px 10px;border-radius:8px;font-weight:700;font-size:.85rem;border:1px solid #d1d5db;background:#fff;color:#111827;cursor:pointer}
+  .tour-btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
 </style>
 </head>
 <body>
-<div class="wrap" id="app">
-  <header>
-    <div class="brand" id="hdrBrand">
-      <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">
-        <img src="./ロゴ.jpg" alt="松本会計ロゴ">
-      </a>
-      <div>
-        <h1>自動化効果試算ツール</h1>
-        <div class="sub">5機能のチェックで<strong>導入（自動化後）/未導入（手作業）</strong>を切替。導入効果（時間・人件費）を算出します。月間仕訳総数との差分は<strong>「その他」</strong>として自動調整。</div>
-      </div>
+<div class="wrap">
+  <div class="header">
+    <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener noreferrer">
+      <img src="ロゴ.jpg" alt="ロゴ" class="logo">
+    </a>
+    <div class="title">価格改定検討ツール</div>
+    <div class="headRight">
+      <button id="helpBtn" class="btn ghost sm" type="button" aria-label="チュートリアルを開始">チュートリアル</button>
     </div>
-    <button id="helpBtn" class="help-btn" type="button" title="チュートリアル">チュートリアル</button>
-  </header>
-
-  <!-- 入力 -->
-  <section class="card" id="premiseCard">
-    <div class="grid">
-      <div class="td field" style="grid-column:span 6" id="payUnitBlock">
-        <label>給与の単位を選択して入力（社保等<strong>事業主負担16%</strong>は換算時に自動加算）</label>
-        <div class="comp-row">
-          <div class="seg sm" role="tablist" aria-label="給与単位">
-            <button type="button" class="segbtn" data-unit="hour"  onclick="setUnit('hour')">時給</button>
-            <button type="button" class="segbtn" data-unit="month" onclick="setUnit('month')">月給</button>
-            <button type="button" class="segbtn active" data-unit="year" onclick="setUnit('year')">年収</button>
-          </div>
-          <input id="baseComp" type="text" inputmode="numeric" value="4,780,000" oninput="formatLive(this);updateWage()">
-        </div>
-        <div class="calc-note">※初期値：令和6年民間給与実態統計調査の平均年収<strong>478万円</strong>をベースに算出。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
-        <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,888 / 時</span>（16％込み）</div>
-        <input type="hidden" id="wage" value="2888">
-      </div>
-
-      <div class="td field" style="grid-column:span 6" id="journalsBlock">
-        <label>月間仕訳数（<span class="note">総数</span>）</label>
-        <input id="totalJournals" type="number" value="320" min="0" oninput="calc()">
-      </div>
-    </div>
-  </section>
-
-  <!-- 機能別 -->
-  <section class="card compact-table" id="featuresCard">
-    <div class="headbar">
-      <div class="thead">機能別（チェックで導入状態を切替）</div>
-      <div class="headnote">※各数値は社内の実測値を入れてください。</div>
-    </div>
-    <div class="features-head">
-      <div class="th bulk">
-        <label class="bulk-label"><span>一括</span><input id="cb_all" type="checkbox" onclick="toggleAll(this.checked)"></label>
-      </div>
-      <div class="th kind">取引種類</div>
-      <div class="th c-name">機能</div>
-      <div class="th">件数/月</div>
-      <div class="th">手作業 分/件</div>
-      <div class="th arrow"></div>
-      <div class="th">自動化 分/件</div>
-      <div class="th">削減h</div>
-    </div>
-
-    <div class="features-rows">
-      <!-- 証憑 -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_receipts" type="checkbox" checked onchange="calc()"></div></div>
-      <div class="td kind">現金</div>
-      <div class="td c-name"><a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-tds" target="_blank" rel="noopener">証憑保存機能（スマホで経費）</a></div>
-      <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_receipts" type="number" value="3" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_receipts" type="number" value="2" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td res" id="sv_receipts">0.00</div>
-
-      <!-- 銀行信販 -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_bank" type="checkbox" checked onchange="calc()"></div></div>
-      <div class="td kind">預金・カード</div>
-      <div class="td c-name"><a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-FinTech" target="_blank" rel="noopener">銀行信販データ受信機能</a></div>
-      <div class="td"><input id="n_bank" type="number" value="260" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_bank" type="number" value="2" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_bank" type="number" value="0.5" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td res" id="sv_bank">0.00</div>
-
-      <!-- 給与 -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_payroll" type="checkbox" checked onchange="calc()"></div></div>
-      <div class="td kind">給与</div>
-      <div class="td c-name"><a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-system012" target="_blank" rel="noopener">給与計算機能（仕訳含む）</a></div>
-      <div class="td"><input id="n_payroll" type="number" value="10" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_payroll" type="number" value="8" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_payroll" type="number" value="3" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td res" id="sv_payroll">0.00</div>
-
-      <!-- 販売管理 -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_sales" type="checkbox" checked onchange="calc()"></div></div>
-      <div class="td kind">売上</div>
-      <div class="td c-name"><a class="feat-link" href="https://www.tkc.jp/file.jsp?id=166750" target="_blank" rel="noopener">販売管理機能（売上計上・請求）</a></div>
-      <div class="td"><input id="n_sales" type="number" value="12" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_sales" type="number" value="10" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_sales" type="number" value="5" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td res" id="sv_sales">0.00</div>
-
-      <!-- レジ -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_pos" type="checkbox" checked onchange="calc()"></div></div>
-      <div class="td kind">レジ</div>
-      <div class="td c-name"><a class="feat-link" href="https://www.tkc.jp/fx/#:~:text=%E3%81%97%E3%81%8F%E3%81%AF%E3%81%93%E3%81%A1%E3%82%89-,%E5%A3%B2%E4%B8%8A%E4%BB%95%E8%A8%B3%E3%81%AE%E5%85%A5%E5%8A%9B%E6%A5%AD%E5%8B%99%E3%82%92%E5%A4%A7%E5%B9%85%E3%81%AB%E7%9C%81%E5%8A%9B%E5%8C%96,-%E3%82%BF%E3%83%96%E3%83%AC%E3%83%83%E3%83%88POS%E3%83%AC%E3%82%B8" target="_blank" rel="noopener">レジからのデータ受信</a></div>
-      <div class="td"><input id="n_pos" type="number" value="0" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_pos" type="number" value="3" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_pos" type="number" value="0.5" min="0" step="0.1" oninput="calc()"></div>
-      <div class="td res" id="sv_pos">0.00</div>
-
-      <!-- その他 -->
-      <div class="td"><div class="adopt-box"><span class="adopt-dash">—</span></div></div>
-      <div class="td kind">その他</div>
-      <div class="td c-name">その他（自動調整・対象外）</div>
-      <div class="td"><input id="n_other" type="number" value="0" readonly></div>
-      <div class="td"><input id="tb_other" type="number" value="3" min="0" step="0.1" oninput="syncOther();calc()"></div>
-      <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_other" type="number" value="3" readonly></div>
-      <div class="td res" id="sv_other">0.00</div>
-    </div>
-
-    <div class="sumline">
-      <div>入力合計（5機能）＝ <strong id="sumFeat">312</strong> 件 ／ その他＝ <strong id="sumOther">8</strong> 件 ／ 総合計＝ <strong id="sumTotal">320</strong> 件</div>
-      <div id="deltaMsg" class="ok">その他は自動調整されます。合計は常に総数と一致します。</div>
-    </div>
-
-    <div class="btns" style="margin-top:8px">
-      <button class="outline" onclick="resetAll();calc()">リセット</button>
-    </div>
-  </section>
-
-  <!-- グラフ -->
-  <section class="card" id="chartArea">
-    <div class="chart-head">
-      <div class="chart-title">削減率 <span id="chartRate">0.00%</span></div>
-      <div class="chart-sub">Before → After 可視化</div>
-    </div>
-    <div class="chart-grid">
-      <div class="chartbox">
-        <h4>総時間（時間）</h4>
-        <canvas id="chartTime" width="600" height="240"></canvas>
-      </div>
-      <div class="chartbox">
-        <h4>人件費（円）</h4>
-        <canvas id="chartCost" width="600" height="240"></canvas>
-      </div>
-    </div>
-  </section>
-
-  <!-- 結果 -->
-  <section class="card" id="kpiArea">
-    <div class="kpi">
-      <div class="item">
-        <h3>仕訳自動化率</h3>
-        <div class="krow">
-          <div class="rate-hero" id="kpiRate">0.00%</div>
-          <div class="aside">
-            <div class="label">導入機能数</div>
-            <div class="val" id="kpiAdopt">0 / 5</div>
-            <div class="note-right">チェックあり＆件数>0を採用としてカウント</div>
-          </div>
-        </div>
-      </div>
-      <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
-      <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
-
-      <!-- 入替：時間短縮 → 左、人件費削減（強調） → 右 -->
-      <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
-      <div class="item item--emph savings" id="kpiSavings"><h3>人件費削減</h3><div class="krow"><div class="val-main" id="kpiYen">¥0</div><div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div></div></div>
-
-      <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val" id="kpiBreakdown">—</div></div>
-    </div>
-  </section>
-
-  <div class="btns" id="footerBtns" style="justify-content:center;margin-top:8px">
-    <button class="outline" id="copyBtn" onclick="copySummary()">コピー</button>
-    <button class="outline" id="csvBtn" onclick="exportCSV()">CSV出力</button>
-    <button class="outline" id="printBtn" onclick="printPage()">印刷</button>
   </div>
+  <div class="sub">値引き/値上げの「現場インパクト」を<b>限界利益</b>で数値化＆グラフ化。</div>
 
-  <footer class="mk-mini">
-    © <span id="cpy-year">2025</span>
-    <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">税理士法人松本会計事務所</a> ｜ 
-    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
-    <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-    <span id="build-rev">r66</span>（<span id="last-updated-date"></span>）
-  </footer>
+  <!-- 以降、アプリ本体（前回版 r24 と同じ） -->
+  <!-- --- 左カラム（STEP1/2・アクション） --- -->
+  <div class="dashboard">
+    <div class="colL">
+      <div class="card step1" id="step1Card">
+        <div class="cardHeader">
+          <div class="pill">STEP 1：現状を入力</div>
+          <div class="miniActions">
+            <button class="btn alt sm" id="sampleBtn" type="button">サンプル読込</button>
+            <button class="btn alt sm" id="resetBtn" type="button">リセット</button>
+          </div>
+        </div>
+
+        <label for="price">現在の単価（税抜）</label>
+        <input type="text" id="price" class="primaryInput" inputmode="decimal" placeholder="例）1,200" />
+
+        <div class="chipGroup" id="chipsCostGroup" aria-label="コスト入力方法">
+          <button class="chip active" id="chipCost" type="button">原価（変動費）</button>
+          <button class="chip" id="chipMrate" type="button">限界利益率</button>
+        </div>
+        <div id="blockCost">
+          <label for="cost">1単位あたり原価（変動費）</label>
+          <div class="slider">
+            <input type="range" id="costRange" min="0" max="100000" step="1" />
+            <input type="text" id="cost" inputmode="decimal" placeholder="例）720" />
+          </div>
+        </div>
+        <div id="blockMrate" class="hide">
+          <label for="mrate">限界利益率（%）</label>
+          <div class="slider">
+            <input type="range" id="mrateRange" min="0" max="90" step="0.1" />
+            <input type="text" id="mrate" inputmode="decimal" placeholder="例）40" />
+            <span class="hint">%</span>
+          </div>
+        </div>
+
+        <div class="chipGroup" id="chipsVolGroup" aria-label="ボリューム入力方法">
+          <button class="chip active" id="chipQty" type="button">数量</button>
+          <button class="chip" id="chipRev" type="button">売上高</button>
+        </div>
+        <div id="blockQty">
+          <label for="qty">月間販売数量（単位）</label>
+          <div class="slider">
+            <input type="range" id="qtyRange" min="0" max="10000" step="1" />
+            <input type="text" id="qty" inputmode="numeric" placeholder="例）1,000" />
+          </div>
+        </div>
+        <div id="blockRev" class="hide">
+          <label for="revenue">月間売上高（税抜）</label>
+          <div class="slider">
+            <input type="range" id="revRange" min="0" max="3000000" step="1000" />
+            <input type="text" id="revenue" inputmode="decimal" placeholder="例）1,200,000" />
+          </div>
+        </div>
+
+        <div class="hint">※固定費は扱いません（「同じ限界利益額を維持するために必要な売上/数量」を算出）。</div>
+
+        <div class="inlineStats" id="inlineStats">
+          <div class="stat hide" id="statM">限界利益率：<span id="stat_m_val">—</span></div>
+          <div class="stat hide" id="statT">限界利益額：<span id="stat_t_val">—</span></div>
+          <div class="stat hide" id="statR">売上高：<span id="stat_r_val">—</span></div>
+        </div>
+      </div>
+
+      <div class="card step2" id="step2Card">
+        <div class="pill">STEP 2：値改定を設定</div>
+        <div class="chipGroup" id="chipsChgGroup">
+          <button class="chip active" id="chipRate" type="button" aria-selected="true">値改定率</button>
+          <button class="chip" id="chipAbs" type="button" aria-selected="false">改定後単価</button>
+        </div>
+
+        <div id="rateInputs">
+          <label for="chgPct">値改定率（%） <span class="hint">マイナス=値引き、プラス=値上げ</span></label>
+          <div class="slider">
+            <input type="range" id="chgRange" min="-70" max="70" step="0.1" value="0" />
+            <input type="text" id="chgPct" style="width:120px" inputmode="text" value="0" />
+            <span class="hint">%</span>
+          </div>
+        </div>
+
+        <div id="absInputs" class="hide">
+          <label for="chgAbs">改定後単価（税抜）</label>
+          <div class="slider">
+            <input type="range" id="chgAbsRange" min="0" max="200000" step="1" />
+            <input type="text" id="chgAbs" inputmode="decimal" placeholder="例）1,140" />
+          </div>
+        </div>
+
+        <div class="hint" style="margin-top:6px">安全域インジケータ（値引き率が −m を超えると原価割れ）</div>
+        <div style="height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden"><span id="safetyBar" style="display:block;height:100%;background:linear-gradient(90deg,var(--warn),#f59e0b,var(--ok));width:0%"></span></div>
+      </div>
+
+      <div class="card actions" id="actionsCard">
+        <div class="pill">今日やる3アクション</div>
+        <ol id="actions" style="margin-top:6px;padding-left:20px"></ol>
+      </div>
+    </div>
+
+    <!-- 右 -->
+    <div class="colR">
+      <div class="card result" id="resultCard">
+        <div class="pill">結果</div>
+
+        <div class="kpi" style="margin-top:6px">
+          <div class="item">
+            <div class="lbl">改定後単価</div>
+            <div class="val" id="kpi_price2">—</div>
+          </div>
+          <div class="item">
+            <div class="lbl">改定後売上高</div>
+            <div class="val" id="kpi_rev2">—</div>
+            <div class="sub" id="kpi_rev2diff">現状比 —</div>
+          </div>
+        </div>
+
+        <div class="subgrid">
+          <div class="subcard">
+            <div class="subttl">限界利益率</div>
+            <div class="bigVal" id="kpi_m2">—</div>
+            <div class="delta" id="delta_m">現状比 —</div>
+          </div>
+          <div class="subcard">
+            <div class="subttl">限界利益額</div>
+            <div class="bigVal" id="kpi_T2">—</div>
+            <div class="delta" id="delta_T">現状比 —</div>
+          </div>
+        </div>
+
+        <div class="kpi">
+          <div class="item">
+            <div class="lbl">同じ限界利益額を維持するための必要売上</div>
+            <div class="val" id="kpi_reqRev">—</div>
+            <div class="hint" id="kpi_reqRevDiff"></div>
+          </div>
+          <div class="item">
+            <div class="lbl">同じ限界利益額を維持するための必要数量</div>
+            <div class="val" id="kpi_reqQty">—</div>
+            <div class="hint" id="kpi_reqQtyDiff"></div>
+          </div>
+        </div>
+
+        <div id="dangerMsg" class="danger hide"></div>
+      </div>
+
+      <div class="card graph" id="graphCard">
+        <div class="pill">グラフで確認</div>
+        <div class="chartWrap">
+          <div>
+            <div class="hint">売上：現状 vs 必要（同じ限界利益額を維持）</div>
+            <div class="chart"><svg id="revChart" viewBox="0 0 360 116" preserveAspectRatio="none"></svg></div>
+            <div class="legend">
+              <span class="lg cur"></span>現状
+              <span class="lg req ok" id="lgRevOk" style="display:none"></span><span id="lgRevOkLbl" style="display:none">必要（下降＝楽）</span>
+              <span class="lg req warn" id="lgRevWarn" style="display:none"></span><span id="lgRevWarnLbl" style="display:none">必要（上昇＝厳）</span>
+            </div>
+          </div>
+          <div>
+            <div class="hint">数量：現状 vs 必要（同じ限界利益額を維持）</div>
+            <div class="chart"><svg id="qtyChart" viewBox="0 0 360 116" preserveAspectRatio="none"></svg></div>
+            <div class="legend">
+              <span class="lg cur"></span>現状
+              <span class="lg req ok" id="lgQtyOk" style="display:none"></span><span id="lgQtyOkLbl" style="display:none">必要（下降＝楽）</span>
+              <span class="lg req warn" id="lgQtyWarn" style="display:none"></span><span id="lgQtyWarnLbl" style="display:none">必要（上昇＝厳）</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card sens" id="sensCard">
+        <div class="pill">感度（±1/±5/±10% の値改定時）</div>
+        <div class="hint">「現状と同じ限界利益額を維持するために必要な売上/数量（比較）」</div>
+        <div style="overflow:auto">
+          <table class="table" id="sensTable">
+            <thead><tr><th>改定率</th><th>必要売上</th><th>現状比</th><th>必要数量</th><th>現状比</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card template" id="templateCard">
+        <div class="pill">顧客向け告知テンプレ（メール/店頭/見積書注記）</div>
+        <textarea class="area" id="templateArea" style="min-height:180px"></textarea>
+        <div class="miniActions" style="margin-top:8px">
+          <button class="btn" id="copyResultBtn" type="button">結果をコピー</button>
+          <button class="btn" id="copyTemplateBtn" type="button">テンプレをコピー</button>
+          <button class="btn alt" id="printBtn" type="button">印刷</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- ===== Tutorial (floating + focus) ===== -->
-<div class="tour" id="tour" aria-hidden="true">
-  <div id="tourShade"></div>
-  <div id="tourSpot" aria-hidden="true"></div>
-  <div id="tourSheet" role="dialog" aria-modal="true" aria-live="polite" data-pos="bottom">
-    <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
-      <span id="tourStep">1/7</span>
-      <div class="dots" id="tourDots"></div>
-      <button class="tbtn outline" id="tourEnd" type="button">終了</button>
+<!-- ▼ ミニフッター -->
+<footer class="mk-mini">
+  © <span id="cpy-year">2025</span> <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener license">税理士法人松本会計事務所</a> ｜ 
+  <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
+  <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
+  <span id="build-rev">r24</span>（<span id="last-updated-date"></span>）
+</footer>
+<div class="note">本ツールは管理会計上の試算です。実際の価格変更は取引条件・競合状況・需要弾力性等も併せてご判断ください。</div>
+
+<!-- ===== チュートリアル DOM ===== -->
+<div id="tourOverlay" class="tour-overlay" aria-hidden="true">
+  <div id="tourHole" class="tour-hole"></div>
+  <div id="tourSpot" class="tour-spot"></div>
+  <div id="tourBox" class="tour-box" role="dialog" aria-modal="true" aria-live="polite">
+    <div class="tour-stepBadge" id="tourStepBadge">STEP 1 / 1</div>
+    <div class="tour-title" id="tourTitle">ようこそ</div>
+    <div class="tour-text" id="tourText"></div>
+    <div class="tour-controls">
+      <button class="tour-btn" id="tourBack" type="button">前へ</button>
+      <button class="tour-btn" id="tourEnd"  type="button">スキップ</button>
+      <button class="tour-btn primary" id="tourNext" type="button">次へ</button>
     </div>
-    <h3 id="tourTitle">ようこそ</h3>
-    <p id="tourBody"></p>
-    <div class="tnav">
-      <button class="tbtn outline" id="tourPrev" type="button">戻る</button>
-      <button class="tbtn" id="tourNext" type="button">次へ</button>
-    </div>
-    <div class="tHint">Enter / クリックで<strong>次へ</strong>　←で<strong>戻る</strong>　Escで<strong>終了</strong></div>
   </div>
 </div>
 
 <script>
-/* ---- utilities ---- */
-const $=id=>document.getElementById(id);
-const safeFixed=(n,d=2)=>Number.isFinite(n)?n.toFixed(d):(0).toFixed(d);
-const yen=n=>Number.isFinite(n)?n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}):'¥0';
-const num=id=>parseFloat(String($(id).value||'').replace(/[,\s]/g,''))||0;
-function formatLive(el){const raw=(el.value||'').replace(/[^\d]/g,'');el.value=raw?Number(raw).toLocaleString('ja-JP'):'';}
-(function(){const y=new Date().getFullYear();$('cpy-year').textContent=y;
- const d=new Date(document.lastModified),p=x=>String(x).padStart(2,'0');
- $('last-updated-date').textContent=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;})();
+(function(){
+  /* ====== ユーティリティ（本体計算・UI） ====== */
+  const yen = n => isFinite(n) ? new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n) : '—';
+  const pct = x => isFinite(x) ? (x*100).toFixed(1).replace(/\.0$/,'') + '%' : '—';
+  const toNum=v=>{const s=String(v||'').replace(/,/g,'').replace(/[^\d.-]/g,'');const n=parseFloat(s);return isFinite(n)?n:NaN;}
+  const clamp=(v,min,max)=>Math.min(max,Math.max(min,v));
+  const comma=(el,dec=null)=>{const n=toNum(el.value);if(!isFinite(n))return;
+    if(dec===0)el.value=Math.round(n).toLocaleString('ja-JP');
+    else if(typeof dec==='number')el.value=n.toLocaleString('ja-JP',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    else{const raw=String(el.value).replace(/,/g,'');const hasDot=raw.includes('.');el.value=hasDot?n.toLocaleString('ja-JP',{maximumFractionDigits:6}):Math.round(n).toLocaleString('ja-JP');}
+  };
 
-/* ---- inputs / calc ---- */
-function syncOther(){ $('ta_other').value=$('tb_other').value; }
-function recalcOther(){
-  const total=num('totalJournals');
-  const sumFeat=num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales')+num('n_pos');
-  const other=total-sumFeat;
-  $('n_other').value=other; $('sumFeat').textContent=sumFeat; $('sumOther').textContent=other; $('sumTotal').textContent=sumFeat+other;
-  const m=$('deltaMsg'); if(other<0){m.textContent='合計が総数を超過しています（その他が負値）。件数配分を見直してください。';m.className='warn';}
-  else{m.textContent='その他は自動調整されます。合計は常に総数と一致します。';m.className='ok';}
-}
-const HOURS_PER_MONTH=160; let payUnit='year';
-function setUnit(u){payUnit=u;document.querySelectorAll('.segbtn').forEach(b=>{const on=b.dataset.unit===u;b.classList.toggle('active',on);});
- const base=$('baseComp'); if(u==='hour')base.value='2,500'; if(u==='month')base.value='300,000'; if(u==='year')base.value='4,780,000'; formatLive(base); updateWage();}
-function updateWage(){const v=num('baseComp'); let hourly = (payUnit==='hour')?v:(payUnit==='month')?v/HOURS_PER_MONTH:v/12/HOURS_PER_MONTH; hourly*=1.16; $('hourlyDisplay').textContent=yen(Math.round(hourly))+' / 時'; $('wage').value=Math.round(hourly); calc();}
+  let costMode='cost', volMode='qty', chgMode='rate';
 
-function mod(label,checked,n,tb,ta,w){const cnt=Math.max(0,n);const hB=(tb*cnt)/60, hA=(ta*cnt)/60; return{
-  label,checked,cnt,tb,ta,hBefore:hB,hAfter:hA,hChosen:checked?hA:hB,hSaved:Math.max(0,hB-(checked?hA:hB)),adopted:!!checked&&cnt>0,
-  cBefore:hB*w,cChosen:(checked?hA:hB)*w};}
-function compute(){
-  const w=parseFloat($('wage').value)||0;
-  const m1=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),w);
-  const m2=mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),w);
-  const m3=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),w);
-  const m4=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),w);
-  const m5=mod('レジからのデータ受信') , cbp=$('cb_pos').checked, np=num('n_pos'), tbp=num('tb_pos'), tap=num('ta_pos');
-  const m5obj=mod('レジからのデータ受信',cbp,np,tbp,tap,w);
-  const hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
-  const arr=[m1,m2,m3,m4,m5obj];
-  const hB=arr.reduce((s,m)=>s+m.hBefore,0)+hOther;
-  const hC=arr.reduce((s,m)=>s+m.hChosen,0)+hOther;
-  const saveH=Math.max(0,hB-hC), costB=hB*w, costC=hC*w, saveY=costB-costC;
-  const adopted=arr.reduce((s,m)=>s+(m.adopted?1:0),0);
-  const total=num('totalJournals'), auto=arr.reduce((s,m)=>s+(m.checked?m.cnt:0),0), rate= total>0 ? auto/total*100:0;
-  return{w,arr,hB,hC,saveH,costB,costC,saveY,adopted,rate};
-}
-function updateUI(r){
-  const id=['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos']; r.arr.forEach((m,i)=>$(id[i]).textContent=safeFixed(m.hSaved));
-  $('kpiHBefore').textContent=safeFixed(r.hB)+' 時間'; $('kpiHAfter').textContent=safeFixed(r.hC)+' 時間'; $('kpiSaved').textContent=safeFixed(r.saveH)+' 時間';
-  $('kpiCostBefore').textContent=yen(r.costB); $('kpiCostAfter').textContent=yen(r.costC); $('kpiYen').textContent=yen(r.saveY); $('kpiYenYear').textContent=yen(r.saveY*12);
-  $('kpiRate').textContent=(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%'; $('kpiAdopt').textContent=r.adopted+' / 5';
-  const txt=r.arr.map(m=>m.label+':'+safeFixed(m.hSaved)+'h').join(' / ')||'—'; $('kpiBreakdown').textContent=txt; $('kpiBreakdown').title=txt;
-  drawChartsAnimated(r); refreshBulk(); syncKPIHeights();
-}
-function toggleAll(ch){document.querySelectorAll('.feat-cb').forEach(cb=>cb.checked=ch); calc();}
-function refreshBulk(){const boxes=[...document.querySelectorAll('.feat-cb')]; const all=$('cb_all'); const on=boxes.filter(b=>b.checked).length; all.indeterminate=(on>0&&on<boxes.length); all.checked=(on===boxes.length);}
-function syncKPIHeights(){const a=$('kpiBefore'),b=$('kpiAfter'); if(!a||!b)return; const h=Math.max(a.offsetHeight,b.offsetHeight); document.documentElement.style.setProperty('--kpiRowH',h+'px');}
+  /* ====== 要素参照（省略せず） ====== */
+  const price = document.getElementById('price');
+  const chipCost=document.getElementById('chipCost'), chipMrate=document.getElementById('chipMrate');
+  const chipQty=document.getElementById('chipQty'), chipRev=document.getElementById('chipRev');
+  const chipRate=document.getElementById('chipRate'), chipAbs=document.getElementById('chipAbs');
 
-function drawBarH(id, before, after, fmt, label){
-  const c=$(id); const ctx=c.getContext('2d'); const dpr=window.devicePixelRatio||1; const w=c.clientWidth,h=c.clientHeight; c.width=w*dpr;c.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  const padL=28,padR=28,padT=16,padB=6,barH=24,gap=22,plotW=w-padL-padR; ctx.clearRect(0,0,w,h); ctx.font='12px system-ui'; ctx.textBaseline='middle';
-  const max=Math.max(before,after,1); const y2=h-padB-barH/2, y1=y2-(barH+gap); ctx.strokeStyle='#e2e8f0';
-  for(let i=0;i<=4;i++){const x=padL+plotW*(i/4);ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,h-padB);ctx.stroke();}
-  const w0=plotW*(before/max), w1=plotW*(after/max); ctx.fillStyle='#cbd5e1'; ctx.fillRect(padL,y1-barH/2,w0,barH);
-  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bar-after').trim()||'#4fb3c1'; ctx.fillRect(padL,y2-barH/2,w1,barH);
-  ctx.fillStyle='#334155'; ctx.textAlign='left'; ctx.fillText('導入なし',padL,y1-barH/2-6); ctx.fillText('導入あり',padL,y2-barH/2-6);
-  ctx.fillStyle='#0f172a'; ctx.font='bold 13px system-ui'; ctx.textAlign='right'; ctx.fillText(fmt(before),padL+w0,y1); ctx.fillText(fmt(after),padL+w1,y2);
-  ctx.textAlign='right'; ctx.font='bold 14px system-ui'; ctx.fillStyle='#166b8a'; ctx.fillText(label,w-padR,padT-2);
-}
-const chartState={init:false,time:{before:0,after:0},cost:{before:0,after:0},rate:0,animId:null};
-function drawChartsOnce(r){
-  const rate=r.hB>0?(r.hB-r.hC)/r.hB*100:0; $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
-  drawBarH('chartTime',r.hB,r.hC,v=>`${safeFixed(v,2)}h`,`時間短縮 ${safeFixed(r.saveH,2)}h`);
-  drawBarH('chartCost',r.costB,r.costC,v=>yen(v),`人件費削減 ${yen(r.saveY)}`);
-}
-function drawChartsAnimated(r){
-  const next={time:{before:Math.max(0,r.hB),after:Math.max(0,r.hC)},cost:{before:Math.max(0,r.costB),after:Math.max(0,r.costC)},rate:(r.hB>0?(r.hB-r.hC)/r.hB*100:0)};
-  if(!chartState.init){chartState.time={...next.time};chartState.cost={...next.cost};chartState.rate=next.rate;chartState.init=true;drawChartsOnce(r);return;}
-  const prev={time:{...chartState.time},cost:{...chartState.cost},rate:chartState.rate}; if(chartState.animId)cancelAnimationFrame(chartState.animId);
-  const dur=500,t0=performance.now(); const step=(now)=>{const t=Math.min(1,(now-t0)/dur); const e=(t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2);
-    const tb=prev.time.before+(next.time.before-prev.time.before)*e, ta=prev.time.after+(next.time.after-prev.time.after)*e;
-    const cb=prev.cost.before+(next.cost.before-prev.cost.before)*e, ca=prev.cost.after+(next.cost.after-prev.cost.after)*e;
-    const rate=prev.rate+(next.rate-prev.rate)*e; $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
-    drawBarH('chartTime',tb,ta,v=>`${safeFixed(Math.max(tb,0),2)}h`,`時間短縮 ${safeFixed(Math.max(0,tb-ta),2)}h`);
-    drawBarH('chartCost',cb,ca,v=>yen(Math.max(cb,0)),`人件費削減 ${yen(Math.max(0,cb-ca))}`);
-    if(t<1){chartState.animId=requestAnimationFrame(step);}else{chartState.time={...next.time};chartState.cost={...next.cost};chartState.rate=next.rate;chartState.animId=null;}
-  }; chartState.animId=requestAnimationFrame(step);
-}
+  const blockCost=document.getElementById('blockCost'), blockMrate=document.getElementById('blockMrate');
+  const blockQty=document.getElementById('blockQty'), blockRev=document.getElementById('blockRev');
 
-async function copySummary(){
-  const r=compute(); const lines=[]; lines.push('【自動化効果試算ツール（5機能）サマリー】');
-  lines.push('時給(社保16%込み): '+Math.round(r.w)+' 円/時'); lines.push('仕訳自動化率: '+(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%（導入機能: '+r.adopted+' / 5）');
-  r.arr.forEach(m=>lines.push(`${m.label} [${m.adopted?'導入':'未導入'}] 件数=${m.cnt} 手作業=${m.tb}分 自動化=${m.ta}分 削減=${safeFixed(m.hSaved)}h`));
-  lines.push('— 合計'); lines.push(`導入なし 総時間: ${safeFixed(r.hB)}h（人件費相当額: ${Math.round(r.costB)}円）`);
-  lines.push(`導入あり 総時間: ${safeFixed(r.hC)}h（人件費相当額: ${Math.round(r.costC)}円）`);
-  lines.push(`時間短縮(月): ${safeFixed(r.saveH)}h`); lines.push(`人件費削減(月): ${Math.round(r.saveY)} 円`); lines.push(`人件費削減(年): ${Math.round(r.saveY*12)} 円`);
-  const text=lines.join('\n'); try{await navigator.clipboard.writeText(text);}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
-}
-function exportCSV(){
-  const r=compute(), rows=[]; rows.push(['項目','導入','件数','手作業(分/件)','自動化(分/件)','導入あり時間(h)','導入なし時間(h)','削減時間(h)']);
-  r.arr.forEach(m=>rows.push([m.label,(m.adopted?'導入':'未導入'),m.cnt,m.tb,m.ta,safeFixed(m.hChosen),safeFixed(m.hBefore),safeFixed(m.hSaved)]));
-  rows.push([]); rows.push(['時給(社保16%込み)',Math.round(r.w)]); rows.push(['仕訳自動化率',(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%']);
-  rows.push(['導入なし 人件費相当額(円)',Math.round(r.costB)]); rows.push(['導入あり 人件費相当額(円)',Math.round(r.costC)]);
-  rows.push(['時間短縮(h/月)',safeFixed(r.saveH)]); rows.push(['人件費削減(円/月)',Math.round(r.saveY)]); rows.push(['人件費削減(円/年)',Math.round(r.saveY*12)]);
-  const csv=rows.map(cols=>cols.map(v=>{v=(v??'').toString().replace(/"/g,'""');return /[",\n\r]/.test(v)?`"${v}"`:v;}).join(',')).join('\r\n');
-  const bom=new Uint8Array([0xEF,0xBB,0xBF]); const blob=new Blob([bom,csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); const n=new Date(),p=x=>String(x).padStart(2,'0');
-  a.download=`auto_effect_${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}_${p(n.getHours())}${p(n.getMinutes())}.csv`; document.body.appendChild(a); a.click(); a.remove();
-}
-function printPage(){window.print()}
-function resetAll(){
-  setUnit('year'); $('totalJournals').value=320;
-  ['cb_receipts','cb_bank','cb_payroll','cb_sales','cb_pos'].forEach(id=>$(id).checked=true);
-  $('n_receipts').value=30; $('tb_receipts').value=3; $('ta_receipts').value=2;
-  $('n_bank').value=260; $('tb_bank').value=2; $('ta_bank').value=0.5;
-  $('n_payroll').value=10; $('tb_payroll').value=8; $('ta_payroll').value=3;
-  $('n_sales').value=12; $('tb_sales').value=10; $('ta_sales').value=5;
-  $('n_pos').value=0; $('tb_pos').value=3; $('ta_pos').value=0.5;
-  $('tb_other').value=3; $('ta_other').value=3;
-  ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos','sv_other'].forEach(id=>$(id).textContent='0.00');
-  const bc=$('baseComp'); bc.value='4,780,000'; formatLive(bc); updateWage();
-  setTimeout(()=>{refreshBulk();syncKPIHeights();},0);
-}
-function calc(){syncOther();recalcOther();const r=compute();updateUI(r);}
+  const cost=document.getElementById('cost'), costRange=document.getElementById('costRange');
+  const mrate=document.getElementById('mrate'), mrateRange=document.getElementById('mrateRange');
 
-/* ---- Tutorial（フローティング） ---- */
-const STEPS=[
- {sel:'#hdrBrand', t:'ツールの狙い', b:'TKCの5つの自動化機能で、どれだけ<strong>時間</strong>と<strong>人件費</strong>が削減できるかを可視化します。'},
- {sel:'#payUnitBlock', t:'① 人件費の前提', b:'<strong>時給／月給／年収</strong>から入力。<strong>事業主負担16%</strong>は自動加算し時給化します。'},
- {sel:'#journalsBlock', t:'② 月間仕訳数', b:'総数を入力。機能合計との差分は<strong>その他</strong>に自動配分され、合計は常に一致します。'},
- {sel:'#featuresCard', t:'③ 機能の導入と分数', b:'チェックで導入ON/OFF。件数・分/件を調整すると結果とグラフが即時更新。'},
- {sel:'#chartArea', t:'④ Before→After', b:'横棒グラフで総時間・人件費のBefore/Afterと合計の「時間短縮」「人件費削減」を表示。'},
- {sel:'#kpiSavings', t:'⑤ 人件費削減／自動化率', b:'月間・年間の<strong>人件費削減</strong>、<strong>仕訳自動化率</strong>、機能別の寄与を確認。'},
- {sel:'#footerBtns', t:'⑥ 出力', b:'「コピー／CSV出力／印刷」で共有・資料化。CSVはUTF-8（BOM付）で文字化け対策済み。'}
-];
-let tourActive=false, step=0, rafId=null;
+  const qty=document.getElementById('qty'), qtyRange=document.getElementById('qtyRange');
+  const revenue=document.getElementById('revenue'), revRange=document.getElementById('revRange');
 
-function startTour(){tourActive=true; step=0; renderDots(); showStep(); $('tour').classList.add('show');}
-function endTour(){tourActive=false; $('tour').classList.remove('show'); localStorage.setItem('mk_auto_tour_seen','1'); cancelAnimationFrame(rafId); rafId=null;}
-function nextStep(){ if(step<STEPS.length-1){step++; showStep();} else{ endTour(); } }
-function prevStep(){ if(step>0){step--; showStep();} }
-function renderDots(){const d=$('tourDots'); d.innerHTML=''; STEPS.forEach((_,i)=>{const n=document.createElement('div'); n.className='dot'+(i===step?' on':''); d.appendChild(n);})}
-function showStep(){ renderDots(); $('tourStep').textContent=`${step+1}/${STEPS.length}`; $('tourTitle').innerHTML=STEPS[step].t; $('tourBody').innerHTML=STEPS[step].b; focusTo(STEPS[step].sel); $('tourPrev').disabled=(step===0); $('tourNext').textContent=(step===STEPS.length-1)?'終了':'次へ'; }
+  const chgRange=document.getElementById('chgRange'), chgPct=document.getElementById('chgPct');
+  const chgAbs=document.getElementById('chgAbs'), chgAbsRange=document.getElementById('chgAbsRange');
 
-/* 吹き出しの配置：対象要素の下に置き、はみ出す場合は上に */
-function placeSheetForRect(r){
-  const sheet=$('tourSheet');
-  sheet.style.left='0px'; sheet.style.top='0px';
-  const sh=sheet.getBoundingClientRect();
-  const margin=12, vw=window.innerWidth, vh=window.innerHeight;
+  const safetyBar=document.getElementById('safetyBar');
 
-  let top=r.bottom + margin, pos='bottom';
-  if(top + sh.height > vh - 8){
-    top = Math.max(8, r.top - sh.height - margin);
-    pos='top';
+  const kpi_price2=document.getElementById('kpi_price2');
+  const kpi_rev2=document.getElementById('kpi_rev2');
+  const kpi_rev2diff=document.getElementById('kpi_rev2diff');
+
+  const kpi_m2=document.getElementById('kpi_m2');
+  const kpi_T2=document.getElementById('kpi_T2');
+  const delta_m=document.getElementById('delta_m');
+  const delta_T=document.getElementById('delta_T');
+
+  const kpi_reqRev=document.getElementById('kpi_reqRev');
+  const kpi_reqRevDiff=document.getElementById('kpi_reqRevDiff');
+  const kpi_reqQty=document.getElementById('kpi_reqQty');
+  const kpi_reqQtyDiff=document.getElementById('kpi_reqQtyDiff');
+
+  const dangerMsg=document.getElementById('dangerMsg');
+  const sensBody=document.querySelector('#sensTable tbody');
+  const actions=document.getElementById('actions');
+  const templateArea=document.getElementById('templateArea');
+  const actionsCard=document.getElementById('actionsCard');
+  const sensCard=document.getElementById('sensCard');
+
+  const statM=document.getElementById('statM'), statT=document.getElementById('statT'), statR=document.getElementById('statR');
+  const stat_m_val=document.getElementById('stat_m_val'), stat_t_val=document.getElementById('stat_t_val'), stat_r_val=document.getElementById('stat_r_val');
+
+  const revChart=document.getElementById('revChart');
+  const qtyChart=document.getElementById('qtyChart');
+  const lgRevOk=document.getElementById('lgRevOk');
+  const lgRevOkLbl=document.getElementById('lgRevOkLbl');
+  const lgRevWarn=document.getElementById('lgRevWarn');
+  const lgRevWarnLbl=document.getElementById('lgRevWarnLbl');
+  const lgQtyOk=document.getElementById('lgQtyOk');
+  const lgQtyOkLbl=document.getElementById('lgQtyOkLbl');
+  const lgQtyWarn=document.getElementById('lgQtyWarn');
+  const lgQtyWarnLbl=document.getElementById('lgQtyWarnLbl');
+
+  /* ====== レイアウト（スマホ横で2カラム保持） ====== */
+  function isTwoCol(){return matchMedia('(min-width:1024px)').matches||matchMedia('(orientation:landscape)').matches;}
+  function relocateActions(){
+    if(isTwoCol()){
+      const step2=document.querySelector('.step2');
+      if(actionsCard.previousElementSibling!==step2){ step2.insertAdjacentElement('afterend',actionsCard); }
+    }else{
+      if(actionsCard.previousElementSibling!==sensCard){ sensCard.insertAdjacentElement('afterend',actionsCard); }
+    }
   }
-  let left = Math.min(Math.max(8, r.left), vw - sh.width - 8);
+  addEventListener('resize', ()=>{relocateActions(); compute();});
 
-  sheet.style.top = `${Math.round(top)}px`;
-  sheet.style.left = `${Math.round(left)}px`;
-  sheet.setAttribute('data-pos', pos);
-}
+  /* ====== 範囲設定 ====== */
+  function updateRanges(){
+    const P=toNum(price.value);
+    const priceOk=isFinite(P)&&P>0;
 
-function focusTo(sel){
-  const el=document.querySelector(sel); if(!el){$('tourSpot').style.width='0px';$('tourSpot').style.height='0px';return;}
-  el.scrollIntoView({behavior:'smooth',block:'center'}); // 一旦スクロール
+    costRange.min=0; costRange.max=priceOk?Math.floor(P):100000; costRange.step=1;
+    qtyRange.min=0; qtyRange.max=10000; qtyRange.step=1;
+    revRange.min=0; revRange.max=priceOk?Math.ceil(P*10000):3000000; revRange.step=1000;
+    chgRange.min=-70; chgRange.max=70; chgRange.step=0.1;
 
-  let last={x:0,y:0,w:0,h:0}, stable=0;
-  function follow(){
-    if(!tourActive) return;
-    const r=el.getBoundingClientRect(), pad=8;
-    const x=Math.max(8, r.left-pad), y=Math.max(8, r.top-pad);
-    const w=Math.min(window.innerWidth-x-8, r.width+pad*2);
-    const h=Math.min(window.innerHeight-y-8, r.height+pad*2);
-    const spot=$('tourSpot'); spot.style.left=x+'px'; spot.style.top=y+'px'; spot.style.width=w+'px'; spot.style.height=h+'px';
+    const absMax=priceOk?Math.ceil(P*2):200000;
+    chgAbsRange.min=0; chgAbsRange.max=absMax; chgAbsRange.step=1;
 
-    placeSheetForRect(r);
-
-    const dx=Math.abs(x-last.x)+Math.abs(y-last.y)+Math.abs(w-last.w)+Math.abs(h-last.h);
-    if(dx<0.5) stable++; else stable=0;
-    last={x,y,w,h};
-    if(stable<20){rafId=requestAnimationFrame(follow);} // 約300ms追従
+    const clampIO=(rangeEl,inputEl,dec=null)=>{
+      const v=toNum(inputEl.value);
+      if(isFinite(v)){
+        const cl=clamp(v, Number(rangeEl.min), Number(rangeEl.max));
+        if (cl!==v){ inputEl.value=dec===0?Math.round(cl).toLocaleString('ja-JP'):cl.toLocaleString('ja-JP'); }
+        rangeEl.value=cl;
+      }
+      if(dec!==null) comma(inputEl,dec); else comma(inputEl);
+    };
+    clampIO(costRange,cost);
+    clampIO(qtyRange,qty,0);
+    clampIO(revRange,revenue);
   }
-  cancelAnimationFrame(rafId); rafId=requestAnimationFrame(follow);
-}
-function spotTick(){
-  if(!tourActive) return;
-  const el=document.querySelector(STEPS[step].sel); if(!el) return;
-  const r=el.getBoundingClientRect(), pad=8;
-  const x=Math.max(8, r.left-pad), y=Math.max(8, r.top-pad);
-  const w=Math.min(window.innerWidth-x-8, r.width+pad*2);
-  const h=Math.min(window.innerHeight-y-8, r.height+pad*2);
-  const spot=$('tourSpot'); spot.style.left=x+'px'; spot.style.top=y+'px'; spot.style.width=w+'px'; spot.style.height=h+'px';
-  placeSheetForRect(r);
-}
-$('helpBtn').addEventListener('click',startTour);
-$('tourEnd').addEventListener('click',endTour);
-$('tourNext').addEventListener('click',nextStep);
-$('tourPrev').addEventListener('click',prevStep);
-/* どこでもクリックで次へ（カード内は除外） */
-$('tour').addEventListener('click',(e)=>{ if(!e.target.closest('#tourSheet')) nextStep(); });
 
-document.addEventListener('keydown',e=>{
-  if(!tourActive) return;
-  if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){e.preventDefault();nextStep();}
-  else if(e.key==='ArrowLeft'){e.preventDefault();prevStep();}
-  else if(e.key==='Escape'){e.preventDefault();endTour();}
-});
-window.addEventListener('scroll',()=>{spotTick();},{passive:true});
+  /* ====== チャート ====== */
+  function clearSVG(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
+  function drawPairBar(svg,cur,req,isRev){
+    if(!isFinite(cur)){ clearSVG(svg); return; }
+    if(!isFinite(req)) req = cur;
+    clearSVG(svg);
+    const vb=(svg.getAttribute('viewBox')||'0 0 360 116').split(' ').map(Number);
+    const W=vb[2];
+    const barH=18,gap=12,left=64,right=120;
+    const maxVal=Math.max(cur,req)*1.15||1;
+    const scale=(W-left-right)/maxVal;
+    const y1=24,y2=y1+barH+gap;
 
-/* init */
-window.addEventListener('DOMContentLoaded',()=>{resetAll();calc(); if(localStorage.getItem('mk_auto_tour_seen')!=='1'){startTour();}});
-window.addEventListener('resize',()=>{const r=compute();drawChartsOnce(r); if(tourActive) spotTick(); setTimeout(syncKPIHeights,0);});
+    const mk=(x1,y1,x2,y2,s='#e5e7eb')=>{const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke',s);l.setAttribute('stroke-width','1');svg.appendChild(l);};
+    mk(left,y1-12,left,y2+barH+10);
+    [0.25,0.5,0.75,1].forEach(p=>{const xx=left+(W-left-right)*p;mk(xx,y1-12,xx,y2+barH+10);});
+
+    const txt=(x,y,t,a='end')=>{const tx=document.createElementNS('http://www.w3.org/2000/svg','text');tx.setAttribute('x',x);tx.setAttribute('y',y);tx.setAttribute('fill','#374151');tx.setAttribute('font-size','12');tx.setAttribute('text-anchor',a);tx.textContent=t;svg.appendChild(tx);};
+    txt(left-10,y1+barH-5,'現状'); txt(left-10,y2+barH-5,'必要');
+
+    const rect=(x,y,w,h,fill)=>{const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width',w);r.setAttribute('height',h);r.setAttribute('rx','6');r.setAttribute('fill',fill);svg.appendChild(r);};
+    const wCur=Math.max(2,cur*scale), wReq=Math.max(2,req*scale), up=req>cur;
+    rect(left,y1,wCur,barH,'var(--brand)');
+    rect(left,y2,wReq,barH, up?'var(--warn)':'var(--ok)');
+
+    const rightX=W-8;
+    const fmt=isRev?(v)=>yen(v):(v)=>(Math.round(v*100)/100).toLocaleString('ja-JP')+' 単位';
+    txt(rightX,y1+barH-5,fmt(cur),'end');
+    txt(rightX,y2+barH-5,fmt(req),'end');
+
+    if(isRev){lgRevOk.style.display=up?'none':'inline-block';lgRevOkLbl.style.display=up?'none':'inline';lgRevWarn.style.display=up?'inline-block':'none';lgRevWarnLbl.style.display=up?'inline':'none';}
+    else{lgQtyOk.style.display=up?'none':'inline-block';lgQtyOkLbl.style.display=up?'none':'inline';lgQtyWarn.style.display=up?'inline-block':'none';lgQtyWarnLbl.style.display=up?'inline':'none';}
+  }
+
+  /* ====== 感度/テンプレ/アクション（省略無し） ====== */
+  function safetyGauge(m,r){ if(!isFinite(m)||!isFinite(r)){safetyBar.style.width='0%';return;} const x=(r-(-m))/(0.3-(-m)); safetyBar.style.width=Math.min(100,Math.max(0,x*100)).toFixed(1)+'%'; }
+  function buildSensitivity(base,steps){ const {P,C,Q,R0}=base, T0=(P-C)*Q; sensBody.innerHTML='';
+    steps.forEach(s=>{ const r=s/100, P2=P*(1+r), CM2=P2-C; let Qreq=NaN, Rreq=NaN, rr=NaN, rq=NaN; if(CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; rr=R0>0?(Rreq/R0-1):NaN; rq=Q>0?(Qreq/Q-1):NaN; }
+      const tr=document.createElement('tr'); tr.innerHTML=`<td>${s>0?'+':''}${s}%</td><td>${isFinite(Rreq)?yen(Rreq):'—'}</td><td>${isFinite(rr)?(rr>=0?'+':'')+(rr*100).toFixed(1)+'%':'—'}</td><td>${isFinite(Qreq)?(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位':'—'}</td><td>${isFinite(rq)?(rq>=0?'+':'')+(rq*100).toFixed(1)+'%':'—'}</td>`; sensBody.appendChild(tr); });}
+  function buildTemplate(o){ /*（中略：前ブロックの内容と同じ）*/ }
+  function buildActions(r,m){ const list=[]; if(!isFinite(r)||!isFinite(m)){actions.innerHTML='';return;}
+    if(r<0){list.push('最低受注金額・最低ロットを即日設定（無償作業の抑止）');list.push('値引きの代替：納期延長／仕様簡素化／数量条件（価格は死守）');list.push('Top10顧客の割引承認フロー導入（根拠を記録）');}
+    else if(r>0){list.push('主要顧客へ30日前告知：改定率・適用日・背景を明文化');list.push('まとめ買い・長期契約等の代替案で軟着陸');list.push('見積・価格表・EC・店頭の同時更新（チェックリスト運用）');}
+    else{list.push('商品別の限界利益率を棚卸し：下位20%の値付け/条件見直し');list.push('割引上限1%/案件・累計3%/月のレビュー制');list.push('四半期ごとに原価変動の自動転嫁シナリオ作成');}
+    actions.innerHTML=list.map(x=>`<li>${x}</li>`).join(''); }
+
+  /* ====== 入力→計算（本体は前回 r24 と同じ） ====== */
+  function getInputs(){ /* 省略：前回版と同じロジック */ 
+    const P=toNum(price.value);
+    let m=null,C=null;
+    if(costMode==='cost'){ const Cval=toNum(cost.value); if(isFinite(P)&&isFinite(Cval)&&P>0&&Cval>=0&&Cval<=P){ C=Cval; m=(P-C)/P; } }
+    else{ const mr=toNum(mrate.value); if(isFinite(P)&&isFinite(mr)&&P>0&&mr>=0&&mr<100){ m=mr/100; C=P*(1-m); } }
+    let Q=null,R0=null;
+    if(volMode==='qty'){ const Qv=toNum(qty.value); if(isFinite(P)&&isFinite(Qv)&&P>0&&Qv>=0){ Q=Qv; R0=P*Q; } }
+    else{ const Rv=toNum(revenue.value); if(isFinite(P)&&isFinite(Rv)&&P>0&&Rv>=0){ R0=Rv; Q=R0/P; } }
+    let r=NaN,P2=NaN;
+    if(chgMode==='rate'){ const raw=String(chgPct.value).trim().replace(/[％%]/g,''); const partial=/^-?$|^-?\d+\.?$/.test(raw); if(!partial){const num=parseFloat(raw); if(isFinite(num)) r=clamp(num,-70,70)/100;} if(isFinite(P)&&isFinite(r)) P2=P*(1+r); }
+    else{ const A=toNum(chgAbs.value); if(isFinite(P)&&isFinite(A)&&P>0){ P2=A; r=P2/P-1; } }
+    return {P,C,m,Q,R0,r,P2};
+  }
+
+  function compute(){
+    updateRanges();
+    const {P,C,m,Q,R0,r,P2}=getInputs();
+
+    if(isFinite(P)&&isFinite(C)&&P>0&&C>=0&&C<=P){
+      document.getElementById('statM').classList.remove('hide'); stat_m_val.textContent=pct((P-C)/P);
+      const Qv=isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);
+      if(isFinite(Qv)){ const T0=(P-C)*Qv; document.getElementById('statT').classList.remove('hide'); stat_t_val.textContent=yen(T0); const Rv0=P*Qv; document.getElementById('statR').classList.remove('hide'); stat_r_val.textContent=yen(Rv0); }
+      else{ ['statT','statR'].forEach(id=>document.getElementById(id).classList.add('hide')); stat_t_val.textContent='—'; stat_r_val.textContent='—'; }
+    }else{ ['statM','statT','statR'].forEach(id=>document.getElementById(id).classList.add('hide')); stat_m_val.textContent='—'; stat_t_val.textContent='—'; stat_r_val.textContent='—'; }
+
+    document.getElementById('kpi_price2').textContent=isFinite(P2)?yen(P2):'—';
+
+    if(chgMode==='rate'&&isFinite(P)&&isFinite(r)){ const P2s=P*(1+r); const cl=clamp(P2s, Number(chgAbsRange.min), Number(chgAbsRange.max)); chgAbs.value=Math.round(cl).toLocaleString('ja-JP'); chgAbsRange.value=cl; }
+    if(chgMode==='abs'&&isFinite(P)&&isFinite(P2)){ const rCalc=(P2/P-1)*100; chgRange.value=rCalc.toFixed(1); if(document.activeElement!==chgPct){ chgPct.value=rCalc.toFixed(1); } }
+
+    ['kpi_m2','kpi_T2','kpi_reqRev','kpi_reqRevDiff','kpi_reqQty','kpi_reqQtyDiff','delta_m','delta_T'].forEach(id=>{const el=document.getElementById(id); el.textContent= id.includes('delta')?'現状比 —':'—';});
+    kpi_rev2.textContent='—'; kpi_rev2diff.textContent='現状比 —'; dangerMsg.classList.add('hide');
+
+    const Qv=isFinite(Q)?Q:(isFinite(R0)&&isFinite(P)?R0/P:NaN);
+    const Rv0=isFinite(P)&&isFinite(Qv)?P*Qv:NaN;
+
+    drawPairBar(revChart,Rv0,NaN,true);
+    drawPairBar(qtyChart,Qv,NaN,false);
+
+    if(!(isFinite(P)&&isFinite(C)&&isFinite(P2)&&isFinite(Qv))){ safetyBar.style.width='0%'; sensBody.innerHTML=''; actions.innerHTML=''; templateArea.value=''; return; }
+
+    const CM=P-C, CM2=P2-C, m2=CM2/P2, rEff=(P2/P-1);
+    const T0=CM*Qv, T2=CM2*Qv;
+    const R2=P2*Qv;
+    kpi_rev2.textContent=yen(R2); if(isFinite(Rv0)) kpi_rev2diff.textContent='現状比 '+(R2-Rv0>=0?'+':'')+yen(R2-Rv0);
+
+    safetyGauge(m,rEff);
+
+    kpi_m2.textContent=pct(m2);
+    const dm=(m2-m)*100; delta_m.textContent='現状比 '+(dm>=0?'+':'')+dm.toFixed(1)+'pt';
+    kpi_T2.textContent=yen(T2);
+    const dT=T2-T0; delta_T.textContent='現状比 '+(dT>=0?'+':'')+yen(dT);
+    if(m2<=0||!isFinite(m2)){ dangerMsg.classList.remove('hide'); dangerMsg.textContent='警告：この値引き率では限界利益が0以下（原価割れ）です。'; }
+
+    let Qreq,Rreq,dQ,dR;
+    if(CM2>0){ Qreq=T0/CM2; Rreq=P2*Qreq; dQ=Qreq-Qv; dR=Rreq-Rv0; }
+    if(isFinite(Rreq)){ kpi_reqRev.textContent=yen(Rreq); const ratioR=Rv0>0?(Rreq/Rv0-1):0; kpi_reqRevDiff.textContent=(ratioR>=0?'現状比 +':'現状比 ')+(ratioR*100).toFixed(1)+'% （差額 '+yen(dR)+'）'; }
+    if(isFinite(Qreq)){ kpi_reqQty.textContent=(Math.round(Qreq*100)/100).toLocaleString('ja-JP')+' 単位'; const ratioQ=Qv>0?(Qreq/Qv-1):0, sign=ratioQ>=0?'+':''; kpi_reqQtyDiff.textContent=`現状比 ${sign}${(ratioQ*100).toFixed(1)}% （差分 ${(Math.round(dQ*100)/100).toLocaleString('ja-JP')} 単位）`; }
+
+    drawPairBar(revChart,Rv0,Rreq,true);
+    drawPairBar(qtyChart,Qv,Qreq,false);
+
+    buildSensitivity({P,C,m,Q:Qv,R0:Rv0},[-10,-5,-1,1,5,10]);
+    buildActions(rEff,m);
+    // buildTemplate は上で省略した関数本文をそのまま入れてください（前回版と同じ）
+  }
+
+  /* ====== 入力同期 ====== */
+  const bind=(rangeEl,inputEl,dec=null)=>{
+    rangeEl.addEventListener('input',()=>{const v=Number(rangeEl.value); inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP'); compute();});
+    inputEl.addEventListener('input',()=>{ if(inputEl.value===''){ compute(); return; } comma(inputEl,dec); const v=toNum(inputEl.value); if(isFinite(v)) rangeEl.value=clamp(v, Number(rangeEl.min), Number(rangeEl.max)); compute();});
+  };
+  bind(costRange,cost); bind(mrateRange,mrate); bind(qtyRange,qty,0); bind(revRange,revenue); bind(chgAbsRange,chgAbs);
+
+  function onRateTextInput(){ const raw=chgPct.value.trim().replace(/[％%]/g,''); if(/^-?$|^-?\d+\.?$/.test(raw)){ compute(); return; } const num=parseFloat(raw); if(isFinite(num)){ const cl=clamp(num,-70,70); chgRange.value=cl.toFixed(1);} compute(); }
+  function onRateTextCommit(){ const num=parseFloat(String(chgPct.value).replace(/[,%％]/g,'')); if(isFinite(num)){ const cl=clamp(num,-70,70); chgPct.value=cl.toFixed(1); chgRange.value=cl.toFixed(1);} compute(); }
+  chgPct.addEventListener('input',onRateTextInput); chgPct.addEventListener('change',onRateTextCommit); chgPct.addEventListener('blur',onRateTextCommit);
+  chgRange.addEventListener('input',()=>{ if(document.activeElement!==chgPct){ chgPct.value=Number(chgRange.value).toFixed(1);} compute(); });
+
+  price.addEventListener('input',()=>{ if(price.value!=='') comma(price); updateRanges(); compute(); });
+
+  function setCostMode(m){ costMode=m; if(m==='cost'){ chipCost.classList.add('active'); chipMrate.classList.remove('active'); blockCost.classList.remove('hide'); blockMrate.classList.add('hide'); }else{ chipMrate.classList.add('active'); chipCost.classList.remove('active'); blockCost.classList.add('hide'); blockMrate.classList.remove('hide'); } updateRanges(); compute();}
+  function setVolMode(m){ volMode=m; if(m==='qty'){ chipQty.classList.add('active'); chipRev.classList.remove('active'); blockQty.classList.remove('hide'); blockRev.classList.add('hide'); }else{ chipRev.classList.add('active'); chipQty.classList.remove('active'); blockQty.classList.add('hide'); blockRev.classList.remove('hide'); } updateRanges(); compute();}
+  function setChgMode(m){ chgMode=m; if(m==='rate'){ chipRate.classList.add('active'); chipAbs.classList.remove('active'); document.getElementById('rateInputs').classList.remove('hide'); document.getElementById('absInputs').classList.add('hide'); }else{ chipAbs.classList.add('active'); chipRate.classList.remove('active'); document.getElementById('rateInputs').classList.add('hide'); document.getElementById('absInputs').classList.remove('hide'); if(!chgAbs.value){ const P=toNum(price.value); if(isFinite(P)&&P>0){ chgAbs.value=Math.round(P).toLocaleString('ja-JP'); } } } updateRanges(); compute();}
+
+  chipCost.addEventListener('click',()=>setCostMode('cost')); chipMrate.addEventListener('click',()=>setCostMode('mrate'));
+  chipQty.addEventListener('click',()=>setVolMode('qty')); chipRev.addEventListener('click',()=>setVolMode('rev'));
+  chipRate.addEventListener('click',()=>setChgMode('rate')); chipAbs.addEventListener('click',()=>setChgMode('abs'));
+
+  document.getElementById('sampleBtn').addEventListener('click',()=>{ setCostMode('cost'); setVolMode('qty'); setChgMode('rate'); price.value='1,200'; cost.value='720'; qty.value='1,000'; chgRange.value='-5.0'; chgPct.value='-5.0'; chgAbs.value=''; updateRanges(); costRange.value=720; qtyRange.value=1000; compute();});
+  document.getElementById('resetBtn').addEventListener('click',()=>{ [price,cost,mrate,qty,revenue,chgPct,chgAbs].forEach(el=>el.value=''); chgRange.value='0.0'; setCostMode('cost'); setVolMode('qty'); setChgMode('rate'); updateRanges(); compute();});
+
+  document.getElementById('printBtn').addEventListener('click',()=>{ try{ window.print(); }catch(e){} });
+
+  // フッター（年・更新日）
+  try{ document.getElementById('cpy-year').textContent=String(new Date().getFullYear()); const ld=new Date(document.lastModified); const z=n=>String(n).padStart(2,'0'); const ymd=isNaN(ld.getTime())?'':`${ld.getFullYear()}-${z(ld.getMonth()+1)}-${z(ld.getDate())}`; document.getElementById('last-updated-date').textContent=ymd; }catch(e){}
+
+  /* ====== チュートリアル（穴あき＋STEP表示） ====== */
+  const helpBtn=document.getElementById('helpBtn');
+  const tourOverlay=document.getElementById('tourOverlay');
+  const tourHole=document.getElementById('tourHole');
+  const tourSpot=document.getElementById('tourSpot');
+  const tourBox=document.getElementById('tourBox');
+  const tourStepBadge=document.getElementById('tourStepBadge');
+  const tourTitle=document.getElementById('tourTitle');
+  const tourText=document.getElementById('tourText');
+  const tourNext=document.getElementById('tourNext');
+  const tourBack=document.getElementById('tourBack');
+  const tourEnd=document.getElementById('tourEnd');
+
+  const steps=[
+    { el:'#chipsCostGroup', title:'原価/限界利益率の切替', text:'まずは入力方法を選びます。原価（変動費）か、限界利益率のいずれか。', align:'bottom', ensure:()=>setCostMode('cost') },
+    { el:'#blockCost', title:'原価（変動費）', text:'スライダー/直接入力で原価を設定。現在の単価が上限です。', align:'right', ensure:()=>setCostMode('cost') },
+    { el:'#chipsVolGroup', title:'数量 or 売上高', text:'ボリュームは「数量」か「売上高」で入力します。', align:'bottom', ensure:()=>setVolMode('qty') },
+    { el:'#blockRev', title:'売上高（S）', text:'数値またはスライダーで調整。リアルタイムにカンマ整形・グラフへ反映されます。', align:'bottom', ensure:()=>setVolMode('rev') },
+    { el:'#chipsChgGroup', title:'改定方法', text:'「値改定率」か「改定後単価」を選択。どちらで入力しても相互に同期します。', align:'bottom', ensure:()=>setChgMode('rate') },
+    { el:'#rateInputs', title:'値改定率', text:'キーボード入力でもリアルタイム計算。-70%〜+70% / 小数1位対応。', align:'right', ensure:()=>setChgMode('rate') },
+    { el:'#resultCard', title:'結果の読み方', text:'改定後単価・改定後売上高・限界利益率/額（改定後）と現状比を表示します。', align:'top' }
+  ];
+
+  let cur=0, active=false;
+
+  const getVP=()=>{const vv=visualViewport;return vv?{w:vv.width,h:vv.height}:{w:innerWidth,h:innerHeight};};
+  function bringIntoView(el){
+    if(!el) return;
+    const r=el.getBoundingClientRect(), vp=getVP(), m=100;
+    if(r.top>=m && r.bottom<=vp.h-m) return;
+    const pageY=pageYOffset||document.documentElement.scrollTop;
+    const to=Math.max(0, pageY + r.top - (vp.h/2 - r.height/2) - 12);
+    scrollTo({top:to,behavior:'smooth'});
+  }
+  function place(step){
+    const el=document.querySelector(step.el);
+    if(!el) return;
+    const r=el.getBoundingClientRect(), pad=6;
+    const x=r.left-pad, y=r.top-pad, w=Math.max(0,r.width)+pad*2, h=Math.max(0,r.height)+pad*2;
+    // 穴と枠
+    Object.assign(tourHole.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+    Object.assign(tourSpot.style,{left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+    // 文言
+    tourStepBadge.textContent=`STEP ${cur+1} / ${steps.length}`;
+    tourTitle.textContent=step.title||'';
+    tourText.textContent=step.text||'';
+    // ポップの位置
+    const box=tourBox.getBoundingClientRect(), vp=getVP();
+    let bx=r.left, by=r.bottom+12;
+    if(step.align==='top') by=r.top-(box.height+12);
+    if(step.align==='right'){ bx=r.right+12; by=r.top; }
+    if(step.align==='left'){ bx=r.left-(Math.min(box.width,380)+12); by=r.top; }
+    bx=Math.max(12,Math.min(bx,vp.w-(box.width+12)));
+    by=Math.max(12,Math.min(by,vp.h-(box.height+12)));
+    tourBox.style.left=bx+'px'; tourBox.style.top=by+'px';
+    tourBack.disabled=cur===0;
+    tourNext.textContent=(cur===steps.length-1)?'完了':'次へ';
+  }
+  function show(i){
+    cur=Math.max(0,Math.min(i,steps.length-1));
+    const s=steps[cur]; if(s.ensure) s.ensure();
+    const el=document.querySelector(s.el); if(el) bringIntoView(el);
+    requestAnimationFrame(()=>{ setTimeout(()=>place(s), 100); });
+  }
+  function start(){ active=true; tourOverlay.classList.add('active'); tourOverlay.setAttribute('aria-hidden','false'); show(0); }
+  function end(){ active=false; tourOverlay.classList.remove('active'); tourOverlay.setAttribute('aria-hidden','true'); }
+
+  const nextOrEnd=()=>{ if(cur<steps.length-1) show(cur+1); else end(); };
+
+  document.getElementById('helpBtn').addEventListener('click', start);
+  tourNext.addEventListener('click', nextOrEnd);
+  tourBack.addEventListener('click', ()=>show(cur-1));
+  tourEnd .addEventListener('click', end);
+
+  // オーバーレイ（枠外クリック）や Enter でも次へ
+  tourOverlay.addEventListener('click', (e)=>{ if(!active) return; if(!tourBox.contains(e.target)) nextOrEnd(); });
+  addEventListener('keydown', (e)=>{ if(!active) return; if(e.key==='Enter'){ e.preventDefault(); nextOrEnd(); } if(e.key==='Escape'){ end(); } });
+
+  // 反映系
+  const bind=(rangeEl,inputEl,dec=null)=>{ rangeEl.addEventListener('input',()=>{const v=Number(rangeEl.value); inputEl.value=dec===0?Math.round(v).toLocaleString('ja-JP'):v.toLocaleString('ja-JP'); compute();});
+    inputEl.addEventListener('input',()=>{ if(inputEl.value===''){ compute(); return; } comma(inputEl,dec); const v=toNum(inputEl.value); if(isFinite(v)) rangeEl.value=clamp(v, Number(rangeEl.min), Number(rangeEl.max)); compute();}); };
+
+  // （上ですでに bind 済み。ここでは省略）
+
+  // 初期化
+  relocateActions(); updateRanges(); compute();
+})();
 </script>
 </body>
 </html>
