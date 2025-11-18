@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>自動化効果試算ツール（r66）</title>
+<title>自動化効果試算ツール（r67）</title>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
@@ -62,6 +62,57 @@ button{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-size
 .outline{background:#fff;border:1px solid rgba(32,132,168,.45);color:var(--accent);box-shadow:0 1px 6px rgba(2,6,23,.05)}
 .outline:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(32,132,168,.18);background:#f3f9fc}
 .outline:active{transform:translateY(0);background:#eef7fb}
+
+/* ========= Buttons (primary / soft / outline) ========= */
+.btn{
+  cursor:pointer;
+  border-radius:14px;
+  padding:10px 16px;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:.02em;
+  transition:.15s;
+  border:1px solid transparent;
+}
+.btn:disabled{opacity:.65;cursor:not-allowed}
+
+/* 主ボタン：やや強めのブルーグラデ */
+.btn-primary{
+  color:#fff;
+  background:linear-gradient(180deg,#2b97b8 0%, #1f7fa3 100%);
+  border-color:#1b7899;
+  box-shadow:0 6px 16px rgba(32,132,168,.25);
+}
+.btn-primary:hover{
+  transform:translateY(-1px);
+  box-shadow:0 10px 22px rgba(32,132,168,.32);
+}
+.btn-primary:active{transform:translateY(0)}
+
+/* 淡色ボタン：薄いブルーで控えめ */
+.btn-soft{
+  color:#1b7899;
+  background:#eef6fb;
+  border-color:#d7eaf3;
+}
+.btn-soft:hover{
+  background:#e7f2f9;
+  border-color:#cbe5f2;
+  transform:translateY(-1px);
+}
+.btn-soft:active{transform:translateY(0)}
+
+/* アウトラインボタン：白地＋アクセント枠 */
+.btn-outline{
+  color:#1b7899;
+  background:#fff;
+  border-color:#1b7899;
+}
+.btn-outline:hover{
+  background:#f5fbfe;
+  transform:translateY(-1px);
+}
+.btn-outline:active{transform:translateY(0)}
 
 /* KPI */
 .kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
@@ -334,9 +385,10 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
   </section>
 
   <div class="btns" id="footerBtns" style="justify-content:center;margin-top:8px">
-    <button class="outline" id="copyBtn" onclick="copySummary()">コピー</button>
-    <button class="outline" id="csvBtn" onclick="exportCSV()">CSV出力</button>
-    <button class="outline" id="printBtn" onclick="printPage()">印刷</button>
+    <button class="btn btn-primary" id="salesBtn" onclick="jumpToSalesTool()">売上換算</button>
+    <button class="btn btn-soft"    id="copyBtn"  onclick="copySummary()">コピー</button>
+    <button class="btn btn-soft"                onclick="resetAll();calc()">リセット</button>
+    <button class="btn btn-outline" id="printBtn" onclick="printPage()">印刷</button>
   </div>
 
   <footer class="mk-mini">
@@ -344,7 +396,7 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">税理士法人松本会計事務所</a> ｜ 
     <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
     <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-    <span id="build-rev">r66</span>（<span id="last-updated-date"></span>）
+    <span id="build-rev">r67</span>（<span id="last-updated-date"></span>）
   </footer>
 </div>
 
@@ -385,113 +437,358 @@ function recalcOther(){
   const total=num('totalJournals');
   const sumFeat=num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales')+num('n_pos');
   const other=total-sumFeat;
-  $('n_other').value=other; $('sumFeat').textContent=sumFeat; $('sumOther').textContent=other; $('sumTotal').textContent=sumFeat+other;
-  const m=$('deltaMsg'); if(other<0){m.textContent='合計が総数を超過しています（その他が負値）。件数配分を見直してください。';m.className='warn';}
-  else{m.textContent='その他は自動調整されます。合計は常に総数と一致します。';m.className='ok';}
+  $('n_other').value=other;
+  $('sumFeat').textContent=sumFeat;
+  $('sumOther').textContent=other;
+  $('sumTotal').textContent=sumFeat+other;
+  const m=$('deltaMsg');
+  if(other<0){
+    m.textContent='合計が総数を超過しています（その他が負値）。件数配分を見直してください。';
+    m.className='warn';
+  }else{
+    m.textContent='その他は自動調整されます。合計は常に総数と一致します。';
+    m.className='ok';
+  }
 }
-const HOURS_PER_MONTH=160; let payUnit='year';
-function setUnit(u){payUnit=u;document.querySelectorAll('.segbtn').forEach(b=>{const on=b.dataset.unit===u;b.classList.toggle('active',on);});
- const base=$('baseComp'); if(u==='hour')base.value='2,500'; if(u==='month')base.value='300,000'; if(u==='year')base.value='4,780,000'; formatLive(base); updateWage();}
-function updateWage(){const v=num('baseComp'); let hourly = (payUnit==='hour')?v:(payUnit==='month')?v/HOURS_PER_MONTH:v/12/HOURS_PER_MONTH; hourly*=1.16; $('hourlyDisplay').textContent=yen(Math.round(hourly))+' / 時'; $('wage').value=Math.round(hourly); calc();}
 
-function mod(label,checked,n,tb,ta,w){const cnt=Math.max(0,n);const hB=(tb*cnt)/60, hA=(ta*cnt)/60; return{
-  label,checked,cnt,tb,ta,hBefore:hB,hAfter:hA,hChosen:checked?hA:hB,hSaved:Math.max(0,hB-(checked?hA:hB)),adopted:!!checked&&cnt>0,
-  cBefore:hB*w,cChosen:(checked?hA:hB)*w};}
+const HOURS_PER_MONTH=160;
+const MK_SALES_EFFECT_AMOUNT_KEY='mk_salesEffectAmount';
+const MK_SALES_EFFECT_SOURCE_KEY='mk_salesEffectSource';
+const SALES_TOOL_URL='https://takatrp.github.io/convert-to-sales/';
+let payUnit='year';
+
+function setUnit(u){
+  payUnit=u;
+  document.querySelectorAll('.segbtn').forEach(b=>{
+    const on=b.dataset.unit===u;
+    b.classList.toggle('active',on);
+  });
+  const base=$('baseComp');
+  if(u==='hour') base.value='2,500';
+  if(u==='month') base.value='300,000';
+  if(u==='year') base.value='4,780,000';
+  formatLive(base);
+  updateWage();
+}
+
+function updateWage(){
+  const v=num('baseComp');
+  let hourly = (payUnit==='hour')?v:(payUnit==='month')?v/HOURS_PER_MONTH:v/12/HOURS_PER_MONTH;
+  hourly*=1.16;
+  $('hourlyDisplay').textContent=yen(Math.round(hourly))+' / 時';
+  $('wage').value=Math.round(hourly);
+  calc();
+}
+
+function mod(label,checked,n,tb,ta,w){
+  const cnt=Math.max(0,n);
+  const hB=(tb*cnt)/60, hA=(ta*cnt)/60;
+  return{
+    label,
+    checked,
+    cnt,
+    tb,
+    ta,
+    hBefore:hB,
+    hAfter:hA,
+    hChosen:checked?hA:hB,
+    hSaved:Math.max(0,hB-(checked?hA:hB)),
+    adopted:!!checked&&cnt>0,
+    cBefore:hB*w,
+    cChosen:(checked?hA:hB)*w
+  };
+}
+
 function compute(){
   const w=parseFloat($('wage').value)||0;
   const m1=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),w);
   const m2=mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),w);
   const m3=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),w);
   const m4=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),w);
-  const m5=mod('レジからのデータ受信') , cbp=$('cb_pos').checked, np=num('n_pos'), tbp=num('tb_pos'), tap=num('ta_pos');
+  const cbp=$('cb_pos').checked, np=num('n_pos'), tbp=num('tb_pos'), tap=num('ta_pos');
   const m5obj=mod('レジからのデータ受信',cbp,np,tbp,tap,w);
+
   const hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
   const arr=[m1,m2,m3,m4,m5obj];
+
   const hB=arr.reduce((s,m)=>s+m.hBefore,0)+hOther;
   const hC=arr.reduce((s,m)=>s+m.hChosen,0)+hOther;
-  const saveH=Math.max(0,hB-hC), costB=hB*w, costC=hC*w, saveY=costB-costC;
+  const saveH=Math.max(0,hB-hC);
+  const costB=hB*w, costC=hC*w, saveY=costB-costC;
   const adopted=arr.reduce((s,m)=>s+(m.adopted?1:0),0);
-  const total=num('totalJournals'), auto=arr.reduce((s,m)=>s+(m.checked?m.cnt:0),0), rate= total>0 ? auto/total*100:0;
+
+  const total=num('totalJournals');
+  const auto=arr.reduce((s,m)=>s+(m.checked?m.cnt:0),0);
+  const rate= total>0 ? auto/total*100:0;
+
   return{w,arr,hB,hC,saveH,costB,costC,saveY,adopted,rate};
 }
+
 function updateUI(r){
-  const id=['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos']; r.arr.forEach((m,i)=>$(id[i]).textContent=safeFixed(m.hSaved));
-  $('kpiHBefore').textContent=safeFixed(r.hB)+' 時間'; $('kpiHAfter').textContent=safeFixed(r.hC)+' 時間'; $('kpiSaved').textContent=safeFixed(r.saveH)+' 時間';
-  $('kpiCostBefore').textContent=yen(r.costB); $('kpiCostAfter').textContent=yen(r.costC); $('kpiYen').textContent=yen(r.saveY); $('kpiYenYear').textContent=yen(r.saveY*12);
-  $('kpiRate').textContent=(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%'; $('kpiAdopt').textContent=r.adopted+' / 5';
-  const txt=r.arr.map(m=>m.label+':'+safeFixed(m.hSaved)+'h').join(' / ')||'—'; $('kpiBreakdown').textContent=txt; $('kpiBreakdown').title=txt;
-  drawChartsAnimated(r); refreshBulk(); syncKPIHeights();
+  const id=['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos'];
+  r.arr.forEach((m,i)=>$(id[i]).textContent=safeFixed(m.hSaved));
+
+  $('kpiHBefore').textContent=safeFixed(r.hB)+' 時間';
+  $('kpiHAfter').textContent=safeFixed(r.hC)+' 時間';
+  $('kpiSaved').textContent=safeFixed(r.saveH)+' 時間';
+
+  $('kpiCostBefore').textContent=yen(r.costB);
+  $('kpiCostAfter').textContent=yen(r.costC);
+  $('kpiYen').textContent=yen(r.saveY);
+  $('kpiYenYear').textContent=yen(r.saveY*12);
+
+  $('kpiRate').textContent=(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%';
+  $('kpiAdopt').textContent=r.adopted+' / 5';
+
+  const txt=r.arr.map(m=>m.label+':'+safeFixed(m.hSaved)+'h').join(' / ')||'—';
+  $('kpiBreakdown').textContent=txt;
+  $('kpiBreakdown').title=txt;
+
+  // 売上換算ボタンの有効／無効
+  const sb=$('salesBtn');
+  if(sb){
+    const enable=r.saveY>0;
+    sb.disabled=!enable;
+    sb.title=enable
+      ? '売上換算ツールへ（削減「月額」をプリセット）'
+      : '人件費削減（月）が0円以下のため、売上換算できる金額がありません。';
+  }
+
+  drawChartsAnimated(r);
+  refreshBulk();
+  syncKPIHeights();
 }
-function toggleAll(ch){document.querySelectorAll('.feat-cb').forEach(cb=>cb.checked=ch); calc();}
-function refreshBulk(){const boxes=[...document.querySelectorAll('.feat-cb')]; const all=$('cb_all'); const on=boxes.filter(b=>b.checked).length; all.indeterminate=(on>0&&on<boxes.length); all.checked=(on===boxes.length);}
-function syncKPIHeights(){const a=$('kpiBefore'),b=$('kpiAfter'); if(!a||!b)return; const h=Math.max(a.offsetHeight,b.offsetHeight); document.documentElement.style.setProperty('--kpiRowH',h+'px');}
+
+function toggleAll(ch){
+  document.querySelectorAll('.feat-cb').forEach(cb=>cb.checked=ch);
+  calc();
+}
+
+function refreshBulk(){
+  const boxes=[...document.querySelectorAll('.feat-cb')];
+  const all=$('cb_all');
+  const on=boxes.filter(b=>b.checked).length;
+  all.indeterminate=(on>0&&on<boxes.length);
+  all.checked=(on===boxes.length);
+}
+
+function syncKPIHeights(){
+  const a=$('kpiBefore'),b=$('kpiAfter');
+  if(!a||!b)return;
+  const h=Math.max(a.offsetHeight,b.offsetHeight);
+  document.documentElement.style.setProperty('--kpiRowH',h+'px');
+}
 
 function drawBarH(id, before, after, fmt, label){
-  const c=$(id); const ctx=c.getContext('2d'); const dpr=window.devicePixelRatio||1; const w=c.clientWidth,h=c.clientHeight; c.width=w*dpr;c.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  const padL=28,padR=28,padT=16,padB=6,barH=24,gap=22,plotW=w-padL-padR; ctx.clearRect(0,0,w,h); ctx.font='12px system-ui'; ctx.textBaseline='middle';
-  const max=Math.max(before,after,1); const y2=h-padB-barH/2, y1=y2-(barH+gap); ctx.strokeStyle='#e2e8f0';
-  for(let i=0;i<=4;i++){const x=padL+plotW*(i/4);ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,h-padB);ctx.stroke();}
-  const w0=plotW*(before/max), w1=plotW*(after/max); ctx.fillStyle='#cbd5e1'; ctx.fillRect(padL,y1-barH/2,w0,barH);
-  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bar-after').trim()||'#4fb3c1'; ctx.fillRect(padL,y2-barH/2,w1,barH);
-  ctx.fillStyle='#334155'; ctx.textAlign='left'; ctx.fillText('導入なし',padL,y1-barH/2-6); ctx.fillText('導入あり',padL,y2-barH/2-6);
-  ctx.fillStyle='#0f172a'; ctx.font='bold 13px system-ui'; ctx.textAlign='right'; ctx.fillText(fmt(before),padL+w0,y1); ctx.fillText(fmt(after),padL+w1,y2);
-  ctx.textAlign='right'; ctx.font='bold 14px system-ui'; ctx.fillStyle='#166b8a'; ctx.fillText(label,w-padR,padT-2);
+  const c=$(id);
+  const ctx=c.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  const w=c.clientWidth,h=c.clientHeight;
+  c.width=w*dpr;c.height=h*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const padL=28,padR=28,padT=16,padB=6,barH=24,gap=22,plotW=w-padL-padR;
+  ctx.clearRect(0,0,w,h);
+  ctx.font='12px system-ui';
+  ctx.textBaseline='middle';
+
+  const max=Math.max(before,after,1);
+  const y2=h-padB-barH/2, y1=y2-(barH+gap);
+
+  ctx.strokeStyle='#e2e8f0';
+  for(let i=0;i<=4;i++){
+    const x=padL+plotW*(i/4);
+    ctx.beginPath();
+    ctx.moveTo(x,padT);
+    ctx.lineTo(x,h-padB);
+    ctx.stroke();
+  }
+
+  const w0=plotW*(before/max), w1=plotW*(after/max);
+
+  ctx.fillStyle='#cbd5e1';
+  ctx.fillRect(padL,y1-barH/2,w0,barH);
+
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--bar-after').trim()||'#4fb3c1';
+  ctx.fillRect(padL,y2-barH/2,w1,barH);
+
+  ctx.fillStyle='#334155';
+  ctx.textAlign='left';
+  ctx.fillText('導入なし',padL,y1-barH/2-6);
+  ctx.fillText('導入あり',padL,y2-barH/2-6);
+
+  ctx.fillStyle='#0f172a';
+  ctx.font='bold 13px system-ui';
+  ctx.textAlign='right';
+  ctx.fillText(fmt(before),padL+w0,y1);
+  ctx.fillText(fmt(after),padL+w1,y2);
+
+  ctx.textAlign='right';
+  ctx.font='bold 14px system-ui';
+  ctx.fillStyle='#166b8a';
+  ctx.fillText(label,w-padR,padT-2);
 }
+
 const chartState={init:false,time:{before:0,after:0},cost:{before:0,after:0},rate:0,animId:null};
+
 function drawChartsOnce(r){
-  const rate=r.hB>0?(r.hB-r.hC)/r.hB*100:0; $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
+  const rate=r.hB>0?(r.hB-r.hC)/r.hB*100:0;
+  $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
   drawBarH('chartTime',r.hB,r.hC,v=>`${safeFixed(v,2)}h`,`時間短縮 ${safeFixed(r.saveH,2)}h`);
   drawBarH('chartCost',r.costB,r.costC,v=>yen(v),`人件費削減 ${yen(r.saveY)}`);
 }
+
 function drawChartsAnimated(r){
-  const next={time:{before:Math.max(0,r.hB),after:Math.max(0,r.hC)},cost:{before:Math.max(0,r.costB),after:Math.max(0,r.costC)},rate:(r.hB>0?(r.hB-r.hC)/r.hB*100:0)};
-  if(!chartState.init){chartState.time={...next.time};chartState.cost={...next.cost};chartState.rate=next.rate;chartState.init=true;drawChartsOnce(r);return;}
-  const prev={time:{...chartState.time},cost:{...chartState.cost},rate:chartState.rate}; if(chartState.animId)cancelAnimationFrame(chartState.animId);
-  const dur=500,t0=performance.now(); const step=(now)=>{const t=Math.min(1,(now-t0)/dur); const e=(t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2);
-    const tb=prev.time.before+(next.time.before-prev.time.before)*e, ta=prev.time.after+(next.time.after-prev.time.after)*e;
-    const cb=prev.cost.before+(next.cost.before-prev.cost.before)*e, ca=prev.cost.after+(next.cost.after-prev.cost.after)*e;
-    const rate=prev.rate+(next.rate-prev.rate)*e; $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
-    drawBarH('chartTime',tb,ta,v=>`${safeFixed(Math.max(tb,0),2)}h`,`時間短縮 ${safeFixed(Math.max(0,tb-ta),2)}h`);
-    drawBarH('chartCost',cb,ca,v=>yen(Math.max(cb,0)),`人件費削減 ${yen(Math.max(0,cb-ca))}`);
-    if(t<1){chartState.animId=requestAnimationFrame(step);}else{chartState.time={...next.time};chartState.cost={...next.cost};chartState.rate=next.rate;chartState.animId=null;}
-  }; chartState.animId=requestAnimationFrame(step);
+  const next={
+    time:{before:Math.max(0,r.hB),after:Math.max(0,r.hC)},
+    cost:{before:Math.max(0,r.costB),after:Math.max(0,r.costC)},
+    rate:(r.hB>0?(r.hB-r.hC)/r.hB*100:0)
+  };
+  if(!chartState.init){
+    chartState.time={...next.time};
+    chartState.cost={...next.cost};
+    chartState.rate=next.rate;
+    chartState.init=true;
+    drawChartsOnce(r);
+    return;
+  }
+  const prev={
+    time:{...chartState.time},
+    cost:{...chartState.cost},
+    rate:chartState.rate
+  };
+  if(chartState.animId)cancelAnimationFrame(chartState.animId);
+  const dur=500,t0=performance.now();
+  const stepAnim=(now)=>{
+    const t=Math.min(1,(now-t0)/dur);
+    const e=(t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2);
+
+    const tb=prev.time.before+(next.time.before-prev.time.before)*e;
+    const ta=prev.time.after+(next.time.after-prev.time.after)*e;
+    const cb=prev.cost.before+(next.cost.before-prev.cost.before)*e;
+    const ca=prev.cost.after+(next.cost.after-prev.cost.after)*e;
+    const rate=prev.rate+(next.rate-prev.rate)*e;
+
+    $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
+    drawBarH('chartTime',tb,ta,v=>`${safeFixed(v,2)}h`,`時間短縮 ${safeFixed(Math.max(0,tb-ta),2)}h`);
+    drawBarH('chartCost',cb,ca,v=>yen(v),`人件費削減 ${yen(Math.max(0,cb-ca))}`);
+
+    if(t<1){
+      chartState.animId=requestAnimationFrame(stepAnim);
+    }else{
+      chartState.time={...next.time};
+      chartState.cost={...next.cost};
+      chartState.rate=next.rate;
+      chartState.animId=null;
+    }
+  };
+  chartState.animId=requestAnimationFrame(stepAnim);
 }
 
 async function copySummary(){
-  const r=compute(); const lines=[]; lines.push('【自動化効果試算ツール（5機能）サマリー】');
-  lines.push('時給(社保16%込み): '+Math.round(r.w)+' 円/時'); lines.push('仕訳自動化率: '+(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%（導入機能: '+r.adopted+' / 5）');
+  const r=compute();
+  const lines=[];
+  lines.push('【自動化効果試算ツール（5機能）サマリー】');
+  lines.push('時給(社保16%込み): '+Math.round(r.w)+' 円/時');
+  lines.push('仕訳自動化率: '+(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%（導入機能: '+r.adopted+' / 5）');
   r.arr.forEach(m=>lines.push(`${m.label} [${m.adopted?'導入':'未導入'}] 件数=${m.cnt} 手作業=${m.tb}分 自動化=${m.ta}分 削減=${safeFixed(m.hSaved)}h`));
-  lines.push('— 合計'); lines.push(`導入なし 総時間: ${safeFixed(r.hB)}h（人件費相当額: ${Math.round(r.costB)}円）`);
+  lines.push('— 合計');
+  lines.push(`導入なし 総時間: ${safeFixed(r.hB)}h（人件費相当額: ${Math.round(r.costB)}円）`);
   lines.push(`導入あり 総時間: ${safeFixed(r.hC)}h（人件費相当額: ${Math.round(r.costC)}円）`);
-  lines.push(`時間短縮(月): ${safeFixed(r.saveH)}h`); lines.push(`人件費削減(月): ${Math.round(r.saveY)} 円`); lines.push(`人件費削減(年): ${Math.round(r.saveY*12)} 円`);
-  const text=lines.join('\n'); try{await navigator.clipboard.writeText(text);}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();}
+  lines.push(`時間短縮(月): ${safeFixed(r.saveH)}h`);
+  lines.push(`人件費削減(月): ${Math.round(r.saveY)} 円`);
+  lines.push(`人件費削減(年): ${Math.round(r.saveY*12)} 円`);
+  const text=lines.join('\n');
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
 }
+
 function exportCSV(){
-  const r=compute(), rows=[]; rows.push(['項目','導入','件数','手作業(分/件)','自動化(分/件)','導入あり時間(h)','導入なし時間(h)','削減時間(h)']);
+  const r=compute(), rows=[];
+  rows.push(['項目','導入','件数','手作業(分/件)','自動化(分/件)','導入あり時間(h)','導入なし時間(h)','削減時間(h)']);
   r.arr.forEach(m=>rows.push([m.label,(m.adopted?'導入':'未導入'),m.cnt,m.tb,m.ta,safeFixed(m.hChosen),safeFixed(m.hBefore),safeFixed(m.hSaved)]));
-  rows.push([]); rows.push(['時給(社保16%込み)',Math.round(r.w)]); rows.push(['仕訳自動化率',(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%']);
-  rows.push(['導入なし 人件費相当額(円)',Math.round(r.costB)]); rows.push(['導入あり 人件費相当額(円)',Math.round(r.costC)]);
-  rows.push(['時間短縮(h/月)',safeFixed(r.saveH)]); rows.push(['人件費削減(円/月)',Math.round(r.saveY)]); rows.push(['人件費削減(円/年)',Math.round(r.saveY*12)]);
-  const csv=rows.map(cols=>cols.map(v=>{v=(v??'').toString().replace(/"/g,'""');return /[",\n\r]/.test(v)?`"${v}"`:v;}).join(',')).join('\r\n');
-  const bom=new Uint8Array([0xEF,0xBB,0xBF]); const blob=new Blob([bom,csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); const n=new Date(),p=x=>String(x).padStart(2,'0');
-  a.download=`auto_effect_${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}_${p(n.getHours())}${p(n.getMinutes())}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  rows.push([]);
+  rows.push(['時給(社保16%込み)',Math.round(r.w)]);
+  rows.push(['仕訳自動化率',(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%']);
+  rows.push(['導入なし 人件費相当額(円)',Math.round(r.costB)]);
+  rows.push(['導入あり 人件費相当額(円)',Math.round(r.costC)]);
+  rows.push(['時間短縮(h/月)',safeFixed(r.saveH)]);
+  rows.push(['人件費削減(円/月)',Math.round(r.saveY)]);
+  rows.push(['人件費削減(円/年)',Math.round(r.saveY*12)]);
+
+  const csv=rows.map(cols=>cols.map(v=>{
+    v=(v??'').toString().replace(/"/g,'""');
+    return /[",\n\r]/.test(v)?`"${v}"`:v;
+  }).join(',')).join('\r\n');
+
+  const bom=new Uint8Array([0xEF,0xBB,0xBF]);
+  const blob=new Blob([bom,csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const n=new Date(),p=x=>String(x).padStart(2,'0');
+  a.download=`auto_effect_${n.getFullYear()}${p(n.getMonth()+1)}${p(n.getDate())}_${p(n.getHours())}${p(n.getMinutes())}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
+
 function printPage(){window.print()}
+
 function resetAll(){
-  setUnit('year'); $('totalJournals').value=320;
+  setUnit('year');
+  $('totalJournals').value=320;
   ['cb_receipts','cb_bank','cb_payroll','cb_sales','cb_pos'].forEach(id=>$(id).checked=true);
+
   $('n_receipts').value=30; $('tb_receipts').value=3; $('ta_receipts').value=2;
   $('n_bank').value=260; $('tb_bank').value=2; $('ta_bank').value=0.5;
   $('n_payroll').value=10; $('tb_payroll').value=8; $('ta_payroll').value=3;
   $('n_sales').value=12; $('tb_sales').value=10; $('ta_sales').value=5;
   $('n_pos').value=0; $('tb_pos').value=3; $('ta_pos').value=0.5;
+
   $('tb_other').value=3; $('ta_other').value=3;
+
   ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos','sv_other'].forEach(id=>$(id).textContent='0.00');
-  const bc=$('baseComp'); bc.value='4,780,000'; formatLive(bc); updateWage();
+
+  const bc=$('baseComp');
+  bc.value='4,780,000';
+  formatLive(bc);
+  updateWage();
+
   setTimeout(()=>{refreshBulk();syncKPIHeights();},0);
 }
-function calc(){syncOther();recalcOther();const r=compute();updateUI(r);}
+
+function calc(){
+  syncOther();
+  recalcOther();
+  const r=compute();
+  updateUI(r);
+}
+
+/* ---- 売上換算ツールへの連携 ---- */
+function jumpToSalesTool(){
+  const r=compute();
+  const amount = Math.max(0, r.saveY); // 月間人件費削減額を「今回検討する支出額」として連携
+
+  if(!Number.isFinite(amount) || amount<=0){
+    alert('「人件費削減（月）」が0円以下のため、売上換算する金額がありません。分数や件数を見直してください。');
+    return;
+  }
+
+  try{
+    localStorage.setItem(MK_SALES_EFFECT_AMOUNT_KEY, String(Math.round(amount)));
+    localStorage.setItem(MK_SALES_EFFECT_SOURCE_KEY, 'autoEffect');
+  }catch(e){}
+
+  window.location.href = SALES_TOOL_URL;
+}
 
 /* ---- Tutorial（フローティング） ---- */
 const STEPS=[
@@ -501,21 +798,55 @@ const STEPS=[
  {sel:'#featuresCard', t:'③ 機能の導入と分数', b:'チェックで導入ON/OFF。件数・分/件を調整すると結果とグラフが即時更新。'},
  {sel:'#chartArea', t:'④ Before→After', b:'横棒グラフで総時間・人件費のBefore/Afterと合計の「時間短縮」「人件費削減」を表示。'},
  {sel:'#kpiSavings', t:'⑤ 人件費削減／自動化率', b:'月間・年間の<strong>人件費削減</strong>、<strong>仕訳自動化率</strong>、機能別の寄与を確認。'},
- {sel:'#footerBtns', t:'⑥ 出力', b:'「コピー／CSV出力／印刷」で共有・資料化。CSVはUTF-8（BOM付）で文字化け対策済み。'}
+ {sel:'#footerBtns', t:'⑥ 出力・売上換算', b:'「売上換算／コピー／CSV出力／印刷」で共有・資料化。CSVはUTF-8（BOM付）で文字化け対策済み。'}
 ];
 let tourActive=false, step=0, rafId=null;
 
-function startTour(){tourActive=true; step=0; renderDots(); showStep(); $('tour').classList.add('show');}
-function endTour(){tourActive=false; $('tour').classList.remove('show'); localStorage.setItem('mk_auto_tour_seen','1'); cancelAnimationFrame(rafId); rafId=null;}
-function nextStep(){ if(step<STEPS.length-1){step++; showStep();} else{ endTour(); } }
-function prevStep(){ if(step>0){step--; showStep();} }
-function renderDots(){const d=$('tourDots'); d.innerHTML=''; STEPS.forEach((_,i)=>{const n=document.createElement('div'); n.className='dot'+(i===step?' on':''); d.appendChild(n);})}
-function showStep(){ renderDots(); $('tourStep').textContent=`${step+1}/${STEPS.length}`; $('tourTitle').innerHTML=STEPS[step].t; $('tourBody').innerHTML=STEPS[step].b; focusTo(STEPS[step].sel); $('tourPrev').disabled=(step===0); $('tourNext').textContent=(step===STEPS.length-1)?'終了':'次へ'; }
+function startTour(){
+  tourActive=true;
+  step=0;
+  renderDots();
+  showStep();
+  $('tour').classList.add('show');
+}
+function endTour(){
+  tourActive=false;
+  $('tour').classList.remove('show');
+  localStorage.setItem('mk_auto_tour_seen','1');
+  cancelAnimationFrame(rafId);
+  rafId=null;
+}
+function nextStep(){
+  if(step<STEPS.length-1){step++;showStep();}
+  else{endTour();}
+}
+function prevStep(){
+  if(step>0){step--;showStep();}
+}
+function renderDots(){
+  const d=$('tourDots');
+  d.innerHTML='';
+  STEPS.forEach((_,i)=>{
+    const n=document.createElement('div');
+    n.className='dot'+(i===step?' on':'');
+    d.appendChild(n);
+  });
+}
+function showStep(){
+  renderDots();
+  $('tourStep').textContent=`${step+1}/${STEPS.length}`;
+  $('tourTitle').innerHTML=STEPS[step].t;
+  $('tourBody').innerHTML=STEPS[step].b;
+  focusTo(STEPS[step].sel);
+  $('tourPrev').disabled=(step===0);
+  $('tourNext').textContent=(step===STEPS.length-1)?'終了':'次へ';
+}
 
 /* 吹き出しの配置：対象要素の下に置き、はみ出す場合は上に */
 function placeSheetForRect(r){
   const sheet=$('tourSheet');
-  sheet.style.left='0px'; sheet.style.top='0px';
+  sheet.style.left='0px';
+  sheet.style.top='0px';
   const sh=sheet.getBoundingClientRect();
   const margin=12, vw=window.innerWidth, vh=window.innerHeight;
 
@@ -532,7 +863,12 @@ function placeSheetForRect(r){
 }
 
 function focusTo(sel){
-  const el=document.querySelector(sel); if(!el){$('tourSpot').style.width='0px';$('tourSpot').style.height='0px';return;}
+  const el=document.querySelector(sel);
+  if(!el){
+    $('tourSpot').style.width='0px';
+    $('tourSpot').style.height='0px';
+    return;
+  }
   el.scrollIntoView({behavior:'smooth',block:'center'}); // 一旦スクロール
 
   let last={x:0,y:0,w:0,h:0}, stable=0;
@@ -542,7 +878,11 @@ function focusTo(sel){
     const x=Math.max(8, r.left-pad), y=Math.max(8, r.top-pad);
     const w=Math.min(window.innerWidth-x-8, r.width+pad*2);
     const h=Math.min(window.innerHeight-y-8, r.height+pad*2);
-    const spot=$('tourSpot'); spot.style.left=x+'px'; spot.style.top=y+'px'; spot.style.width=w+'px'; spot.style.height=h+'px';
+    const spot=$('tourSpot');
+    spot.style.left=x+'px';
+    spot.style.top=y+'px';
+    spot.style.width=w+'px';
+    spot.style.height=h+'px';
 
     placeSheetForRect(r);
 
@@ -551,24 +891,34 @@ function focusTo(sel){
     last={x,y,w,h};
     if(stable<20){rafId=requestAnimationFrame(follow);} // 約300ms追従
   }
-  cancelAnimationFrame(rafId); rafId=requestAnimationFrame(follow);
+  cancelAnimationFrame(rafId);
+  rafId=requestAnimationFrame(follow);
 }
+
 function spotTick(){
   if(!tourActive) return;
-  const el=document.querySelector(STEPS[step].sel); if(!el) return;
+  const el=document.querySelector(STEPS[step].sel);
+  if(!el) return;
   const r=el.getBoundingClientRect(), pad=8;
   const x=Math.max(8, r.left-pad), y=Math.max(8, r.top-pad);
   const w=Math.min(window.innerWidth-x-8, r.width+pad*2);
   const h=Math.min(window.innerHeight-y-8, r.height+pad*2);
-  const spot=$('tourSpot'); spot.style.left=x+'px'; spot.style.top=y+'px'; spot.style.width=w+'px'; spot.style.height=h+'px';
+  const spot=$('tourSpot');
+  spot.style.left=x+'px';
+  spot.style.top=y+'px';
+  spot.style.width=w+'px';
+  spot.style.height=h+'px';
   placeSheetForRect(r);
 }
+
 $('helpBtn').addEventListener('click',startTour);
 $('tourEnd').addEventListener('click',endTour);
 $('tourNext').addEventListener('click',nextStep);
 $('tourPrev').addEventListener('click',prevStep);
 /* どこでもクリックで次へ（カード内は除外） */
-$('tour').addEventListener('click',(e)=>{ if(!e.target.closest('#tourSheet')) nextStep(); });
+$('tour').addEventListener('click',(e)=>{
+  if(!e.target.closest('#tourSheet')) nextStep();
+});
 
 document.addEventListener('keydown',e=>{
   if(!tourActive) return;
@@ -579,8 +929,19 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('scroll',()=>{spotTick();},{passive:true});
 
 /* init */
-window.addEventListener('DOMContentLoaded',()=>{resetAll();calc(); if(localStorage.getItem('mk_auto_tour_seen')!=='1'){startTour();}});
-window.addEventListener('resize',()=>{const r=compute();drawChartsOnce(r); if(tourActive) spotTick(); setTimeout(syncKPIHeights,0);});
+window.addEventListener('DOMContentLoaded',()=>{
+  resetAll();
+  calc();
+  if(localStorage.getItem('mk_auto_tour_seen')!=='1'){
+    startTour();
+  }
+});
+window.addEventListener('resize',()=>{
+  const r=compute();
+  drawChartsOnce(r);
+  if(tourActive) spotTick();
+  setTimeout(syncKPIHeights,0);
+});
 </script>
 </body>
 </html>
