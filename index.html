@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>自動化効果試算ツール（r67）</title>
+<title>自動化効果試算ツール</title>
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
@@ -783,11 +783,15 @@ function jumpToSalesTool(){
   }
 
   try{
+    // 旧方式（互換性のためのlocalStorage保存）
     localStorage.setItem(MK_SALES_EFFECT_AMOUNT_KEY, String(Math.round(amount)));
     localStorage.setItem(MK_SALES_EFFECT_SOURCE_KEY, 'autoEffect');
   }catch(e){}
 
-  window.location.href = SALES_TOOL_URL;
+  // URLパラメータ付きで遷移
+  // source=jidouka-kouka
+  const nextUrl = SALES_TOOL_URL + '?amount=' + Math.round(amount) + '&source=jidouka-kouka';
+  window.location.href = nextUrl;
 }
 
 /* ---- Tutorial（フローティング） ---- */
