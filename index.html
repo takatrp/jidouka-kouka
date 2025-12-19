@@ -1,11 +1,19 @@
 <!DOCTYPE html>
+<!--
+  自動化効果試算ツール（完全版） r68
+  - 入力値の自動保存（localStorage）
+  - CSV出力ボタン実装（BOM付きUTF-8）
+  - 売上換算連携（ボタン + mk-nav 連携フック mkNavBeforeNext）
+  - 自動化率の上限補正（>100% を抑止）＋超過時警告の強化
+  - コピー完了トースト
+  - 既存UI/設計は維持（外部ライブラリ不要）
+-->
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>自動化効果試算ツール</title>
 
-<!-- Favicon -->
 <link rel="icon" type="image/png" sizes="192x192" href="./favicon192192.png">
 <meta name="theme-color" content="#2084A8"/>
 
@@ -14,7 +22,7 @@
   --bg:#eef5f9; --card:#fff; --ink:#0f172a; --muted:#64748b;
   --accent:#2084A8; --accent-600:#1b7899; --accent-700:#166b8a;
   --ring:rgba(32,132,168,.18);
-  --good:#059669; --warn:#b45309; --radius:14px;
+  --good:#059669; --warn:#b45309; --bad:#b91c1c; --radius:14px;
   --cols:.9fr 1fr 2.8fr 1.0fr 1.15fr .35fr 1.15fr .8fr;
   --row-gap:6px; --col-gap:4px; --kpiRowH:auto;
   --bar-after:#4fb3c1;
@@ -65,53 +73,31 @@ button{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-size
 
 /* ========= Buttons (primary / soft / outline) ========= */
 .btn{
-  cursor:pointer;
-  border-radius:14px;
-  padding:10px 16px;
-  font-size:14px;
-  font-weight:700;
-  letter-spacing:.02em;
-  transition:.15s;
-  border:1px solid transparent;
+  cursor:pointer;border-radius:14px;padding:10px 16px;font-size:14px;font-weight:700;
+  letter-spacing:.02em;transition:.15s;border:1px solid transparent;
 }
 .btn:disabled{opacity:.65;cursor:not-allowed}
 
 /* 主ボタン：やや強めのブルーグラデ */
 .btn-primary{
-  color:#fff;
-  background:linear-gradient(180deg,#2b97b8 0%, #1f7fa3 100%);
-  border-color:#1b7899;
-  box-shadow:0 6px 16px rgba(32,132,168,.25);
+  color:#fff;background:linear-gradient(180deg,#2b97b8 0%, #1f7fa3 100%);
+  border-color:#1b7899;box-shadow:0 6px 16px rgba(32,132,168,.25);
 }
-.btn-primary:hover{
-  transform:translateY(-1px);
-  box-shadow:0 10px 22px rgba(32,132,168,.32);
-}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(32,132,168,.32)}
 .btn-primary:active{transform:translateY(0)}
 
 /* 淡色ボタン：薄いブルーで控えめ */
 .btn-soft{
-  color:#1b7899;
-  background:#eef6fb;
-  border-color:#d7eaf3;
+  color:#1b7899;background:#eef6fb;border-color:#d7eaf3;
 }
-.btn-soft:hover{
-  background:#e7f2f9;
-  border-color:#cbe5f2;
-  transform:translateY(-1px);
-}
+.btn-soft:hover{background:#e7f2f9;border-color:#cbe5f2;transform:translateY(-1px)}
 .btn-soft:active{transform:translateY(0)}
 
 /* アウトラインボタン：白地＋アクセント枠 */
 .btn-outline{
-  color:#1b7899;
-  background:#fff;
-  border-color:#1b7899;
+  color:#1b7899;background:#fff;border-color:#1b7899;
 }
-.btn-outline:hover{
-  background:#f5fbfe;
-  transform:translateY(-1px);
-}
+.btn-outline:hover{background:#f5fbfe;transform:translateY(-1px)}
 .btn-outline:active{transform:translateY(0)}
 
 /* KPI */
@@ -157,7 +143,7 @@ button{cursor:pointer;border:none;border-radius:12px;padding:10px 14px;font-size
 .hourly-badge{margin-top:6px;font-weight:700}
 
 .sumline{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 12px;background:#eaf2f7;border-radius:10px;font-size:13px}
-.ok{color:var(--good)} .warn{color:var(--warn)}
+.ok{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
 
 /* グラフ */
 .chart-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px}
@@ -173,15 +159,9 @@ canvas{width:100%;height:120px;display:block}
 .tour{position:fixed;inset:0;z-index:9998;display:none}
 .tour.show{display:block}
 /* ぼかしを完全無効化（対象UIをくっきり表示） */
-#tourShade{
-  position:absolute;inset:0;
-  background:transparent !important;
-  backdrop-filter:none !important;
-  pointer-events:none;
-}
+#tourShade{position:absolute;inset:0;background:transparent !important;backdrop-filter:none !important;pointer-events:none;}
 #tourSpot{
   position:absolute;left:0;top:0;width:0;height:0;border:2px solid var(--accent);border-radius:12px;
-  /* 外側のみ暗転：内側は無加工でクッキリ */
   box-shadow:0 0 0 9999px rgba(2,6,23,.55);
   pointer-events:none;transition:all .18s ease
 }
@@ -204,8 +184,16 @@ canvas{width:100%;height:120px;display:block}
 .dot.on{background:var(--accent)}
 .tHint{font-size:12px;color:#64748b;margin-top:6px}
 
+/* toast */
+.toast{
+  position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;
+  background:#0f172a;color:#fff;border-radius:12px;padding:10px 12px;
+  font-size:12.5px;box-shadow:0 10px 24px rgba(2,6,23,.25);opacity:.95;
+  display:none;text-align:center;
+}
+
 /* print */
-@media print{.btns,#footerBtns,footer.mk-mini,.tour{display:none!important}.card{box-shadow:none;border:1px solid #e5e7eb}}
+@media print{.btns,#footerBtns,footer.mk-mini,.tour,.toast{display:none!important}.card{box-shadow:none;border:1px solid #e5e7eb}}
 footer.mk-mini{margin-top:18px;padding:10px 0;text-align:center;color:#475569;font-size:12px}
 footer.mk-mini a{color:inherit;text-decoration:underline}
 </style>
@@ -214,12 +202,12 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
 <div class="wrap" id="app">
   <header>
     <div class="brand" id="hdrBrand">
-      <a href="https://takatrp.github.io/tool-portal/" target="_blank" rel="noopener">
-        <img src="./ロゴ.jpg" alt="松本会計ロゴ">
+      <a href="https://takatrp.github.io/tool-portal/" target="_blank" rel="noopener" aria-label="松本会計ツールポータルへ">
+        <img src="./ロゴ.jpg" alt="松本会計ロゴ" onerror="this.onerror=null;this.src='./ロゴ.png';">
       </a>
       <div>
         <h1>自動化効果試算ツール</h1>
-        <div class="sub">5機能のチェックで<strong>導入（自動化後）/未導入（手作業）</strong>を切替。導入効果（時間・人件費）を算出します。月間仕訳総数との差分は<strong>「その他」</strong>として自動調整。</div>
+        <div class="sub">5機能のチェックで<strong>導入（自動化後）/未導入（手作業）</strong>を切替。導入効果（時間・人件費）を算出します。月間仕訳総数との差分は<strong>「その他」</strong>として自動調整します（超過時は警告）。</div>
       </div>
     </div>
     <button id="helpBtn" class="help-btn" type="button" title="チュートリアル">チュートリアル</button>
@@ -232,20 +220,20 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
         <label>給与の単位を選択して入力（社保等<strong>事業主負担16%</strong>は換算時に自動加算）</label>
         <div class="comp-row">
           <div class="seg sm" role="tablist" aria-label="給与単位">
-            <button type="button" class="segbtn" data-unit="hour"  onclick="setUnit('hour')">時給</button>
-            <button type="button" class="segbtn" data-unit="month" onclick="setUnit('month')">月給</button>
-            <button type="button" class="segbtn active" data-unit="year" onclick="setUnit('year')">年収</button>
+            <button type="button" class="segbtn" data-unit="hour">時給</button>
+            <button type="button" class="segbtn" data-unit="month">月給</button>
+            <button type="button" class="segbtn active" data-unit="year">年収</button>
           </div>
-          <input id="baseComp" type="text" inputmode="numeric" value="4,780,000" oninput="formatLive(this);updateWage()">
+          <input id="baseComp" type="text" inputmode="numeric" value="4,780,000">
         </div>
-        <div class="calc-note">※初期値：令和6年民間給与実態統計調査の平均年収<strong>478万円</strong>をベースに算出。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
+        <div class="calc-note">※初期値は例です（必要に応じて変更してください）。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
         <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,888 / 時</span>（16％込み）</div>
         <input type="hidden" id="wage" value="2888">
       </div>
 
       <div class="td field" style="grid-column:span 6" id="journalsBlock">
         <label>月間仕訳数（<span class="note">総数</span>）</label>
-        <input id="totalJournals" type="number" value="320" min="0" oninput="calc()">
+        <input id="totalJournals" type="number" value="320" min="0">
       </div>
     </div>
   </section>
@@ -258,7 +246,7 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
     </div>
     <div class="features-head">
       <div class="th bulk">
-        <label class="bulk-label"><span>一括</span><input id="cb_all" type="checkbox" onclick="toggleAll(this.checked)"></label>
+        <label class="bulk-label"><span>一括</span><input id="cb_all" type="checkbox"></label>
       </div>
       <div class="th kind">取引種類</div>
       <div class="th c-name">機能</div>
@@ -271,53 +259,53 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
 
     <div class="features-rows">
       <!-- 証憑 -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_receipts" type="checkbox" checked onchange="calc()"></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_receipts" type="checkbox" checked></div></div>
       <div class="td kind">現金</div>
       <div class="td c-name"><a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-tds" target="_blank" rel="noopener">証憑保存機能（スマホで経費）</a></div>
-      <div class="td"><input id="n_receipts" type="number" value="30" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_receipts" type="number" value="3" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="n_receipts" type="number" value="30" min="0"></div>
+      <div class="td"><input id="tb_receipts" type="number" value="3" min="0" step="0.1"></div>
       <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_receipts" type="number" value="2" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="ta_receipts" type="number" value="2" min="0" step="0.1"></div>
       <div class="td res" id="sv_receipts">0.00</div>
 
       <!-- 銀行信販 -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_bank" type="checkbox" checked onchange="calc()"></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_bank" type="checkbox" checked></div></div>
       <div class="td kind">預金・カード</div>
       <div class="td c-name"><a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-FinTech" target="_blank" rel="noopener">銀行信販データ受信機能</a></div>
-      <div class="td"><input id="n_bank" type="number" value="260" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_bank" type="number" value="2" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="n_bank" type="number" value="260" min="0"></div>
+      <div class="td"><input id="tb_bank" type="number" value="2" min="0" step="0.1"></div>
       <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_bank" type="number" value="0.5" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="ta_bank" type="number" value="0.5" min="0" step="0.1"></div>
       <div class="td res" id="sv_bank">0.00</div>
 
       <!-- 給与 -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_payroll" type="checkbox" checked onchange="calc()"></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_payroll" type="checkbox" checked></div></div>
       <div class="td kind">給与</div>
       <div class="td c-name"><a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-system012" target="_blank" rel="noopener">給与計算機能（仕訳含む）</a></div>
-      <div class="td"><input id="n_payroll" type="number" value="10" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_payroll" type="number" value="8" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="n_payroll" type="number" value="10" min="0"></div>
+      <div class="td"><input id="tb_payroll" type="number" value="8" min="0" step="0.1"></div>
       <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_payroll" type="number" value="3" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="ta_payroll" type="number" value="3" min="0" step="0.1"></div>
       <div class="td res" id="sv_payroll">0.00</div>
 
       <!-- 販売管理 -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_sales" type="checkbox" checked onchange="calc()"></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_sales" type="checkbox" checked></div></div>
       <div class="td kind">売上</div>
       <div class="td c-name"><a class="feat-link" href="https://www.tkc.jp/file.jsp?id=166750" target="_blank" rel="noopener">販売管理機能（売上計上・請求）</a></div>
-      <div class="td"><input id="n_sales" type="number" value="12" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_sales" type="number" value="10" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="n_sales" type="number" value="12" min="0"></div>
+      <div class="td"><input id="tb_sales" type="number" value="10" min="0" step="0.1"></div>
       <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_sales" type="number" value="5" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="ta_sales" type="number" value="5" min="0" step="0.1"></div>
       <div class="td res" id="sv_sales">0.00</div>
 
       <!-- レジ -->
-      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_pos" type="checkbox" checked onchange="calc()"></div></div>
+      <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_pos" type="checkbox" checked></div></div>
       <div class="td kind">レジ</div>
-      <div class="td c-name"><a class="feat-link" href="https://www.tkc.jp/fx/#:~:text=%E3%81%97%E3%81%8F%E3%81%AF%E3%81%93%E3%81%A1%E3%82%89-,%E5%A3%B2%E4%B8%8A%E4%BB%95%E8%A8%B3%E3%81%AE%E5%85%A5%E5%8A%9B%E6%A5%AD%E5%8B%99%E3%82%92%E5%A4%A7%E5%B9%85%E3%81%AB%E7%9C%81%E5%8A%9B%E5%8C%96,-%E3%82%BF%E3%83%96%E3%83%AC%E3%83%83%E3%83%88POS%E3%83%AC%E3%82%B8" target="_blank" rel="noopener">レジからのデータ受信</a></div>
-      <div class="td"><input id="n_pos" type="number" value="0" min="0" oninput="calc()"></div>
-      <div class="td"><input id="tb_pos" type="number" value="3" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td c-name"><a class="feat-link" href="https://www.tkc.jp/fx/#:~:text=%E5%A3%B2%E4%B8%8A%E4%BB%95%E8%A8%B3%E3%81%AE%E5%85%A5%E5%8A%9B%E6%A5%AD%E5%8B%99%E3%82%92%E5%A4%A7%E5%B9%85%E3%81%AB%E7%9C%81%E5%8A%9B%E5%8C%96" target="_blank" rel="noopener">レジからのデータ受信</a></div>
+      <div class="td"><input id="n_pos" type="number" value="0" min="0"></div>
+      <div class="td"><input id="tb_pos" type="number" value="3" min="0" step="0.1"></div>
       <div class="td arrow">▷</div>
-      <div class="td"><input id="ta_pos" type="number" value="0.5" min="0" step="0.1" oninput="calc()"></div>
+      <div class="td"><input id="ta_pos" type="number" value="0.5" min="0" step="0.1"></div>
       <div class="td res" id="sv_pos">0.00</div>
 
       <!-- その他 -->
@@ -325,7 +313,7 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
       <div class="td kind">その他</div>
       <div class="td c-name">その他（自動調整・対象外）</div>
       <div class="td"><input id="n_other" type="number" value="0" readonly></div>
-      <div class="td"><input id="tb_other" type="number" value="3" min="0" step="0.1" oninput="syncOther();calc()"></div>
+      <div class="td"><input id="tb_other" type="number" value="3" min="0" step="0.1"></div>
       <div class="td arrow">▷</div>
       <div class="td"><input id="ta_other" type="number" value="3" readonly></div>
       <div class="td res" id="sv_other">0.00</div>
@@ -337,7 +325,7 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
     </div>
 
     <div class="btns" style="margin-top:8px">
-      <button class="outline" onclick="resetAll();calc()">リセット</button>
+      <button class="outline" id="resetTopBtn" type="button">リセット</button>
     </div>
   </section>
 
@@ -369,26 +357,58 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
           <div class="aside">
             <div class="label">導入機能数</div>
             <div class="val" id="kpiAdopt">0 / 5</div>
-            <div class="note-right">チェックあり＆件数>0を採用としてカウント</div>
+            <div class="note-right">チェックあり＆件数&gt;0を採用としてカウント</div>
           </div>
         </div>
       </div>
-      <div class="item" id="kpiBefore"><h3>導入なし 総時間（月）</h3><div class="krow"><div class="val" id="kpiHBefore">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div></div></div>
-      <div class="item" id="kpiAfter"><h3>導入あり 総時間（月）</h3><div class="krow"><div class="val" id="kpiHAfter">0.00 時間</div><div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div></div></div>
 
-      <!-- 入替：時間短縮 → 左、人件費削減（強調） → 右 -->
-      <div class="item"><h3>時間短縮（合計・月間）</h3><div class="val" id="kpiSaved">0.00 時間</div><div class="note">（導入なし − 導入あり）</div></div>
-      <div class="item item--emph savings" id="kpiSavings"><h3>人件費削減</h3><div class="krow"><div class="val-main" id="kpiYen">¥0</div><div class="aside"><div class="label">年間（12ヶ月換算）</div><div class="yen" id="kpiYenYear">¥0</div></div></div></div>
+      <div class="item" id="kpiBefore">
+        <h3>導入なし 総時間（月）</h3>
+        <div class="krow">
+          <div class="val" id="kpiHBefore">0.00 時間</div>
+          <div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostBefore">¥0</div></div>
+        </div>
+      </div>
 
-      <div class="item"><h3>機能別 削減時間（h）</h3><div class="note">チェック時のみ削減 > 0</div><div class="val" id="kpiBreakdown">—</div></div>
+      <div class="item" id="kpiAfter">
+        <h3>導入あり 総時間（月）</h3>
+        <div class="krow">
+          <div class="val" id="kpiHAfter">0.00 時間</div>
+          <div class="aside"><div class="label">人件費相当額</div><div class="yen" id="kpiCostAfter">¥0</div></div>
+        </div>
+      </div>
+
+      <div class="item">
+        <h3>時間短縮（合計・月間）</h3>
+        <div class="val" id="kpiSaved">0.00 時間</div>
+        <div class="note">（導入なし − 導入あり）</div>
+      </div>
+
+      <div class="item item--emph savings" id="kpiSavings">
+        <h3>人件費削減</h3>
+        <div class="krow">
+          <div class="val-main" id="kpiYen">¥0</div>
+          <div class="aside">
+            <div class="label">年間（12ヶ月換算）</div>
+            <div class="yen" id="kpiYenYear">¥0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="item">
+        <h3>機能別 削減時間（h）</h3>
+        <div class="note">チェック時のみ削減 &gt; 0</div>
+        <div class="val" id="kpiBreakdown">—</div>
+      </div>
     </div>
   </section>
 
   <div class="btns" id="footerBtns" style="justify-content:center;margin-top:8px">
-    <button class="btn btn-primary" id="salesBtn" onclick="jumpToSalesTool()">売上換算</button>
-    <button class="btn btn-soft"    id="copyBtn"  onclick="copySummary()">コピー</button>
-    <button class="btn btn-soft"                onclick="resetAll();calc()">リセット</button>
-    <button class="btn btn-outline" id="printBtn" onclick="printPage()">印刷</button>
+    <button class="btn btn-primary" id="salesBtn" type="button">売上換算</button>
+    <button class="btn btn-soft" id="copyBtn" type="button">コピー</button>
+    <button class="btn btn-soft" id="csvBtn" type="button">CSV出力</button>
+    <button class="btn btn-soft" id="resetBtn" type="button">リセット</button>
+    <button class="btn btn-outline" id="printBtn" type="button">印刷</button>
   </div>
 
   <footer class="mk-mini">
@@ -396,9 +416,11 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
     <a href="https://www.matsumoto-kaikei.or.jp/" target="_blank" rel="noopener">税理士法人松本会計事務所</a> ｜ 
     <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="license noopener">CC BY-NC-SA 4.0</a> ｜ 
     <a href="/tool-portal/terms.html" target="_blank" rel="noopener">利用条件</a> ｜ 
-    <span id="build-rev">r67</span>（<span id="last-updated-date"></span>）
+    <span id="build-rev">r68</span>（<span id="last-updated-date"></span>）
   </footer>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ===== Tutorial (floating + focus) ===== -->
 <div class="tour" id="tour" aria-hidden="true">
@@ -421,28 +443,160 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
 </div>
 
 <script>
-/* ---- utilities ---- */
+/* =========================
+   utilities / footer
+========================= */
 const $=id=>document.getElementById(id);
 const safeFixed=(n,d=2)=>Number.isFinite(n)?n.toFixed(d):(0).toFixed(d);
 const yen=n=>Number.isFinite(n)?n.toLocaleString('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}):'¥0';
 const num=id=>parseFloat(String($(id).value||'').replace(/[,\s]/g,''))||0;
-function formatLive(el){const raw=(el.value||'').replace(/[^\d]/g,'');el.value=raw?Number(raw).toLocaleString('ja-JP'):'';}
-(function(){const y=new Date().getFullYear();$('cpy-year').textContent=y;
- const d=new Date(document.lastModified),p=x=>String(x).padStart(2,'0');
- $('last-updated-date').textContent=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;})();
 
-/* ---- inputs / calc ---- */
+function formatLive(el){
+  const raw=(el.value||'').replace(/[^\d]/g,'');
+  el.value=raw?Number(raw).toLocaleString('ja-JP'):'';
+}
+
+(function initFooter(){
+  const y=new Date().getFullYear();
+  $('cpy-year').textContent=y;
+  const d=new Date(document.lastModified);
+  const p=x=>String(x).padStart(2,'0');
+  $('last-updated-date').textContent=`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+})();
+
+function toast(msg){
+  const t=$('toast');
+  t.textContent=msg;
+  t.style.display='block';
+  clearTimeout(toast._tm);
+  toast._tm=setTimeout(()=>{t.style.display='none';},1400);
+}
+
+/* =========================
+   constants / storage keys
+========================= */
+const VERSION='r68';
+const STORAGE_KEY='mk_auto_effect_'+VERSION;
+const HOURS_PER_MONTH=160;
+const EMPLOYER_RATE=0.16;
+
+const MK_SALES_EFFECT_AMOUNT_KEY='mk_salesEffectAmount';
+const MK_SALES_EFFECT_SOURCE_KEY='mk_salesEffectSource';
+const SALES_TOOL_URL='https://takatrp.github.io/convert-to-sales/';
+
+/* =========================
+   state
+========================= */
+let payUnit='year';
+let saveTimer=null;
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(saveState,120);
+}
+
+function snapshotState(){
+  return {
+    v:VERSION,
+    payUnit,
+    baseComp: $('baseComp').value,
+    totalJournals: Number($('totalJournals').value||0),
+
+    cb_receipts: $('cb_receipts').checked,
+    cb_bank: $('cb_bank').checked,
+    cb_payroll: $('cb_payroll').checked,
+    cb_sales: $('cb_sales').checked,
+    cb_pos: $('cb_pos').checked,
+
+    n_receipts: Number($('n_receipts').value||0),
+    tb_receipts: Number($('tb_receipts').value||0),
+    ta_receipts: Number($('ta_receipts').value||0),
+
+    n_bank: Number($('n_bank').value||0),
+    tb_bank: Number($('tb_bank').value||0),
+    ta_bank: Number($('ta_bank').value||0),
+
+    n_payroll: Number($('n_payroll').value||0),
+    tb_payroll: Number($('tb_payroll').value||0),
+    ta_payroll: Number($('ta_payroll').value||0),
+
+    n_sales: Number($('n_sales').value||0),
+    tb_sales: Number($('tb_sales').value||0),
+    ta_sales: Number($('ta_sales').value||0),
+
+    n_pos: Number($('n_pos').value||0),
+    tb_pos: Number($('tb_pos').value||0),
+    ta_pos: Number($('ta_pos').value||0),
+
+    tb_other: Number($('tb_other').value||0)
+  };
+}
+
+function applyState(s){
+  if(!s || typeof s!=='object') return;
+
+  if(['hour','month','year'].includes(s.payUnit)) payUnit=s.payUnit;
+  setUnit(payUnit, true);
+
+  if(typeof s.baseComp==='string') $('baseComp').value=s.baseComp;
+  formatLive($('baseComp'));
+
+  if(Number.isFinite(s.totalJournals)) $('totalJournals').value=s.totalJournals;
+
+  const setCB=(id,val)=>{ if(typeof val==='boolean') $(id).checked=val; };
+  setCB('cb_receipts',s.cb_receipts);
+  setCB('cb_bank',s.cb_bank);
+  setCB('cb_payroll',s.cb_payroll);
+  setCB('cb_sales',s.cb_sales);
+  setCB('cb_pos',s.cb_pos);
+
+  const setNum=(id,val)=>{ if(Number.isFinite(val)) $(id).value=val; };
+  setNum('n_receipts',s.n_receipts); setNum('tb_receipts',s.tb_receipts); setNum('ta_receipts',s.ta_receipts);
+  setNum('n_bank',s.n_bank); setNum('tb_bank',s.tb_bank); setNum('ta_bank',s.ta_bank);
+  setNum('n_payroll',s.n_payroll); setNum('tb_payroll',s.tb_payroll); setNum('ta_payroll',s.ta_payroll);
+  setNum('n_sales',s.n_sales); setNum('tb_sales',s.tb_sales); setNum('ta_sales',s.ta_sales);
+  setNum('n_pos',s.n_pos); setNum('tb_pos',s.tb_pos); setNum('ta_pos',s.ta_pos);
+
+  setNum('tb_other',s.tb_other);
+  syncOther();
+}
+
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshotState()));
+  }catch(e){}
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){
+    return null;
+  }
+}
+
+/* =========================
+   main calc
+========================= */
 function syncOther(){ $('ta_other').value=$('tb_other').value; }
+
 function recalcOther(){
-  const total=num('totalJournals');
-  const sumFeat=num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales')+num('n_pos');
-  const other=total-sumFeat;
-  $('n_other').value=other;
-  $('sumFeat').textContent=sumFeat;
-  $('sumOther').textContent=other;
-  $('sumTotal').textContent=sumFeat+other;
+  const total = num('totalJournals');
+  const sumFeat = num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales')+num('n_pos');
+  const other = total - sumFeat;
+
+  $('n_other').value = other;
+  $('sumFeat').textContent = sumFeat;
+  $('sumOther').textContent = other;
+  $('sumTotal').textContent = sumFeat + other; // = total（超過時は other が負になる）
+
   const m=$('deltaMsg');
-  if(other<0){
+  if(total<0 || sumFeat<0){
+    m.textContent='件数は0以上で入力してください。';
+    m.className='bad';
+  }else if(other<0){
     m.textContent='合計が総数を超過しています（その他が負値）。件数配分を見直してください。';
     m.className='warn';
   }else{
@@ -451,82 +605,93 @@ function recalcOther(){
   }
 }
 
-const HOURS_PER_MONTH=160;
-const MK_SALES_EFFECT_AMOUNT_KEY='mk_salesEffectAmount';
-const MK_SALES_EFFECT_SOURCE_KEY='mk_salesEffectSource';
-const SALES_TOOL_URL='https://takatrp.github.io/convert-to-sales/';
-let payUnit='year';
-
-function setUnit(u){
+function setUnit(u, silent){
   payUnit=u;
+
   document.querySelectorAll('.segbtn').forEach(b=>{
     const on=b.dataset.unit===u;
     b.classList.toggle('active',on);
   });
-  const base=$('baseComp');
-  if(u==='hour') base.value='2,500';
-  if(u==='month') base.value='300,000';
-  if(u==='year') base.value='4,780,000';
-  formatLive(base);
+
+  // 既存仕様：単位切替時は入力値をプリセットへ
+  if(!silent){
+    const base=$('baseComp');
+    if(u==='hour') base.value='2,500';
+    if(u==='month') base.value='300,000';
+    if(u==='year') base.value='4,780,000';
+    formatLive(base);
+  }
+
   updateWage();
+  scheduleSave();
 }
 
 function updateWage(){
   const v=num('baseComp');
-  let hourly = (payUnit==='hour')?v:(payUnit==='month')?v/HOURS_PER_MONTH:v/12/HOURS_PER_MONTH;
-  hourly*=1.16;
-  $('hourlyDisplay').textContent=yen(Math.round(hourly))+' / 時';
-  $('wage').value=Math.round(hourly);
-  calc();
+  let hourly = (payUnit==='hour')?v : (payUnit==='month')? (v/HOURS_PER_MONTH) : (v/12/HOURS_PER_MONTH);
+  hourly *= (1+EMPLOYER_RATE);
+
+  const h = Math.max(0, Math.round(hourly));
+  $('hourlyDisplay').textContent = yen(h) + ' / 時';
+  $('wage').value = h;
+
+  calc(); // ここで scheduleSave も走る（calc内）
 }
 
 function mod(label,checked,n,tb,ta,w){
   const cnt=Math.max(0,n);
-  const hB=(tb*cnt)/60, hA=(ta*cnt)/60;
+  const hB=(tb*cnt)/60;
+  const hA=(ta*cnt)/60;
+  const chosen = checked ? hA : hB;
+  const saved = Math.max(0, hB - chosen);
+
   return{
-    label,
-    checked,
-    cnt,
-    tb,
-    ta,
-    hBefore:hB,
-    hAfter:hA,
-    hChosen:checked?hA:hB,
-    hSaved:Math.max(0,hB-(checked?hA:hB)),
-    adopted:!!checked&&cnt>0,
-    cBefore:hB*w,
-    cChosen:(checked?hA:hB)*w
+    label, checked, cnt, tb, ta,
+    hBefore:hB, hAfter:hA, hChosen:chosen, hSaved:saved,
+    adopted: !!checked && cnt>0,
+    cBefore:hB*w, cChosen:chosen*w
   };
 }
 
 function compute(){
   const w=parseFloat($('wage').value)||0;
+
   const m1=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),w);
   const m2=mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),w);
   const m3=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),w);
   const m4=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),w);
-  const cbp=$('cb_pos').checked, np=num('n_pos'), tbp=num('tb_pos'), tap=num('ta_pos');
-  const m5obj=mod('レジからのデータ受信',cbp,np,tbp,tap,w);
+  const m5=mod('レジからのデータ受信',$('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),w);
 
-  const hOther=(num('tb_other')*Math.max(0,num('n_other')))/60;
-  const arr=[m1,m2,m3,m4,m5obj];
+  const otherCnt = Math.max(0, num('n_other')); // 表示が負でも計算は0扱い
+  const hOther=(num('tb_other')*otherCnt)/60;
 
-  const hB=arr.reduce((s,m)=>s+m.hBefore,0)+hOther;
-  const hC=arr.reduce((s,m)=>s+m.hChosen,0)+hOther;
-  const saveH=Math.max(0,hB-hC);
-  const costB=hB*w, costC=hC*w, saveY=costB-costC;
-  const adopted=arr.reduce((s,m)=>s+(m.adopted?1:0),0);
+  const arr=[m1,m2,m3,m4,m5];
 
-  const total=num('totalJournals');
-  const auto=arr.reduce((s,m)=>s+(m.checked?m.cnt:0),0);
-  const rate= total>0 ? auto/total*100:0;
+  const hB = arr.reduce((s,m)=>s+m.hBefore,0) + hOther;
+  const hC = arr.reduce((s,m)=>s+m.hChosen,0) + hOther;
 
-  return{w,arr,hB,hC,saveH,costB,costC,saveY,adopted,rate};
+  const saveH = Math.max(0, hB - hC);
+
+  const costB = hB * w;
+  const costC = hC * w;
+  const saveY = costB - costC;
+
+  const adopted = arr.reduce((s,m)=>s+(m.adopted?1:0),0);
+
+  const total = num('totalJournals');
+  const autoCnt = arr.reduce((s,m)=>s+(m.checked ? m.cnt : 0),0);
+
+  // 入力超過などで 100% を超えるケースを抑止（ただし警告は sumline で出る）
+  const rateRaw = (total>0) ? (autoCnt/total*100) : 0;
+  const rate = Math.max(0, Math.min(100, rateRaw));
+
+  return{w,arr,hB,hC,saveH,costB,costC,saveY,adopted,rate,rateRaw,total,autoCnt};
 }
 
 function updateUI(r){
   const id=['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos'];
   r.arr.forEach((m,i)=>$(id[i]).textContent=safeFixed(m.hSaved));
+  $('sv_other').textContent='0.00';
 
   $('kpiHBefore').textContent=safeFixed(r.hB)+' 時間';
   $('kpiHAfter').textContent=safeFixed(r.hC)+' 時間';
@@ -534,24 +699,28 @@ function updateUI(r){
 
   $('kpiCostBefore').textContent=yen(r.costB);
   $('kpiCostAfter').textContent=yen(r.costC);
-  $('kpiYen').textContent=yen(r.saveY);
-  $('kpiYenYear').textContent=yen(r.saveY*12);
+
+  const saveMonth = Math.max(0, r.saveY);
+  $('kpiYen').textContent=yen(saveMonth);
+  $('kpiYenYear').textContent=yen(saveMonth*12);
 
   $('kpiRate').textContent=(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%';
   $('kpiAdopt').textContent=r.adopted+' / 5';
 
-  const txt=r.arr.map(m=>m.label+':'+safeFixed(m.hSaved)+'h').join(' / ')||'—';
+  // Breakdown（削減>0 のみを表示）
+  const lines = r.arr
+    .filter(m=>m.checked && m.hSaved>0)
+    .map(m=>`${m.label}:${safeFixed(m.hSaved)}h`);
+  const txt = lines.length ? lines.join(' / ') : '—';
   $('kpiBreakdown').textContent=txt;
   $('kpiBreakdown').title=txt;
 
   // 売上換算ボタンの有効／無効
   const sb=$('salesBtn');
   if(sb){
-    const enable=r.saveY>0;
+    const enable=saveMonth>0;
     sb.disabled=!enable;
-    sb.title=enable
-      ? '売上換算ツールへ（削減「月額」をプリセット）'
-      : '人件費削減（月）が0円以下のため、売上換算できる金額がありません。';
+    sb.title=enable ? '売上換算ツールへ（削減「月額」をプリセット）' : '人件費削減（月）が0円のため売上換算できません。';
   }
 
   drawChartsAnimated(r);
@@ -563,7 +732,6 @@ function toggleAll(ch){
   document.querySelectorAll('.feat-cb').forEach(cb=>cb.checked=ch);
   calc();
 }
-
 function refreshBulk(){
   const boxes=[...document.querySelectorAll('.feat-cb')];
   const all=$('cb_all');
@@ -571,7 +739,6 @@ function refreshBulk(){
   all.indeterminate=(on>0&&on<boxes.length);
   all.checked=(on===boxes.length);
 }
-
 function syncKPIHeights(){
   const a=$('kpiBefore'),b=$('kpiAfter');
   if(!a||!b)return;
@@ -579,6 +746,9 @@ function syncKPIHeights(){
   document.documentElement.style.setProperty('--kpiRowH',h+'px');
 }
 
+/* =========================
+   charts
+========================= */
 function drawBarH(id, before, after, fmt, label){
   const c=$(id);
   const ctx=c.getContext('2d');
@@ -632,17 +802,17 @@ function drawBarH(id, before, after, fmt, label){
 const chartState={init:false,time:{before:0,after:0},cost:{before:0,after:0},rate:0,animId:null};
 
 function drawChartsOnce(r){
-  const rate=r.hB>0?(r.hB-r.hC)/r.hB*100:0;
+  const rate = (r.hB>0) ? ((r.hB-r.hC)/r.hB*100) : 0;
   $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
   drawBarH('chartTime',r.hB,r.hC,v=>`${safeFixed(v,2)}h`,`時間短縮 ${safeFixed(r.saveH,2)}h`);
-  drawBarH('chartCost',r.costB,r.costC,v=>yen(v),`人件費削減 ${yen(r.saveY)}`);
+  drawBarH('chartCost',r.costB,r.costC,v=>yen(v),`人件費削減 ${yen(Math.max(0,r.saveY))}`);
 }
 
 function drawChartsAnimated(r){
   const next={
     time:{before:Math.max(0,r.hB),after:Math.max(0,r.hC)},
     cost:{before:Math.max(0,r.costB),after:Math.max(0,r.costC)},
-    rate:(r.hB>0?(r.hB-r.hC)/r.hB*100:0)
+    rate:(r.hB>0? (r.hB-r.hC)/r.hB*100 : 0)
   };
   if(!chartState.init){
     chartState.time={...next.time};
@@ -652,21 +822,18 @@ function drawChartsAnimated(r){
     drawChartsOnce(r);
     return;
   }
-  const prev={
-    time:{...chartState.time},
-    cost:{...chartState.cost},
-    rate:chartState.rate
-  };
+  const prev={time:{...chartState.time},cost:{...chartState.cost},rate:chartState.rate};
   if(chartState.animId)cancelAnimationFrame(chartState.animId);
-  const dur=500,t0=performance.now();
+
+  const dur=480,t0=performance.now();
   const stepAnim=(now)=>{
     const t=Math.min(1,(now-t0)/dur);
     const e=(t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2);
 
     const tb=prev.time.before+(next.time.before-prev.time.before)*e;
-    const ta=prev.time.after+(next.time.after-prev.time.after)*e;
+    const ta=prev.time.after +(next.time.after -prev.time.after )*e;
     const cb=prev.cost.before+(next.cost.before-prev.cost.before)*e;
-    const ca=prev.cost.after+(next.cost.after-prev.cost.after)*e;
+    const ca=prev.cost.after +(next.cost.after -prev.cost.after )*e;
     const rate=prev.rate+(next.rate-prev.rate)*e;
 
     $('chartRate').textContent=(Number.isFinite(rate)?rate.toFixed(2):'0.00')+'%';
@@ -685,44 +852,62 @@ function drawChartsAnimated(r){
   chartState.animId=requestAnimationFrame(stepAnim);
 }
 
+/* =========================
+   actions: copy / csv / print / reset
+========================= */
 async function copySummary(){
   const r=compute();
   const lines=[];
   lines.push('【自動化効果試算ツール（5機能）サマリー】');
   lines.push('時給(社保16%込み): '+Math.round(r.w)+' 円/時');
+  lines.push('月間仕訳数: '+Math.round(r.total)+' 件');
   lines.push('仕訳自動化率: '+(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%（導入機能: '+r.adopted+' / 5）');
-  r.arr.forEach(m=>lines.push(`${m.label} [${m.adopted?'導入':'未導入'}] 件数=${m.cnt} 手作業=${m.tb}分 自動化=${m.ta}分 削減=${safeFixed(m.hSaved)}h`));
+
+  r.arr.forEach(m=>{
+    lines.push(`${m.label} [${m.adopted?'導入':'未導入'}] 件数=${m.cnt} 手作業=${m.tb}分 自動化=${m.ta}分 削減=${safeFixed(m.hSaved)}h`);
+  });
+
   lines.push('— 合計');
   lines.push(`導入なし 総時間: ${safeFixed(r.hB)}h（人件費相当額: ${Math.round(r.costB)}円）`);
   lines.push(`導入あり 総時間: ${safeFixed(r.hC)}h（人件費相当額: ${Math.round(r.costC)}円）`);
   lines.push(`時間短縮(月): ${safeFixed(r.saveH)}h`);
-  lines.push(`人件費削減(月): ${Math.round(r.saveY)} 円`);
-  lines.push(`人件費削減(年): ${Math.round(r.saveY*12)} 円`);
+  lines.push(`人件費削減(月): ${Math.round(Math.max(0,r.saveY))} 円`);
+  lines.push(`人件費削減(年): ${Math.round(Math.max(0,r.saveY)*12)} 円`);
+  lines.push(`(ver ${VERSION})`);
+
   const text=lines.join('\n');
   try{
     await navigator.clipboard.writeText(text);
+    toast('コピーしました');
   }catch(e){
     const ta=document.createElement('textarea');
     ta.value=text;
     document.body.appendChild(ta);
     ta.select();
-    document.execCommand('copy');
+    try{document.execCommand('copy');}catch(_){}
     ta.remove();
+    toast('コピーしました');
   }
 }
 
 function exportCSV(){
-  const r=compute(), rows=[];
+  const r=compute();
+  const rows=[];
   rows.push(['項目','導入','件数','手作業(分/件)','自動化(分/件)','導入あり時間(h)','導入なし時間(h)','削減時間(h)']);
-  r.arr.forEach(m=>rows.push([m.label,(m.adopted?'導入':'未導入'),m.cnt,m.tb,m.ta,safeFixed(m.hChosen),safeFixed(m.hBefore),safeFixed(m.hSaved)]));
+  r.arr.forEach(m=>rows.push([
+    m.label,(m.adopted?'導入':'未導入'),m.cnt,m.tb,m.ta,
+    safeFixed(m.hChosen),safeFixed(m.hBefore),safeFixed(m.hSaved)
+  ]));
   rows.push([]);
   rows.push(['時給(社保16%込み)',Math.round(r.w)]);
-  rows.push(['仕訳自動化率',(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%']);
+  rows.push(['月間仕訳数',Math.round(r.total)]);
+  rows.push(['仕訳自動化率', (Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%']);
   rows.push(['導入なし 人件費相当額(円)',Math.round(r.costB)]);
   rows.push(['導入あり 人件費相当額(円)',Math.round(r.costC)]);
   rows.push(['時間短縮(h/月)',safeFixed(r.saveH)]);
-  rows.push(['人件費削減(円/月)',Math.round(r.saveY)]);
-  rows.push(['人件費削減(円/年)',Math.round(r.saveY*12)]);
+  rows.push(['人件費削減(円/月)',Math.round(Math.max(0,r.saveY))]);
+  rows.push(['人件費削減(円/年)',Math.round(Math.max(0,r.saveY)*12)]);
+  rows.push(['ver',VERSION]);
 
   const csv=rows.map(cols=>cols.map(v=>{
     v=(v??'').toString().replace(/"/g,'""');
@@ -738,13 +923,19 @@ function exportCSV(){
   document.body.appendChild(a);
   a.click();
   a.remove();
+  toast('CSVを出力しました');
 }
 
-function printPage(){window.print()}
+function printPage(){window.print();}
 
 function resetAll(){
-  setUnit('year');
+  payUnit='year';
+  document.querySelectorAll('.segbtn').forEach(b=>b.classList.toggle('active', b.dataset.unit==='year'));
+  $('baseComp').value='4,780,000';
+  formatLive($('baseComp'));
+
   $('totalJournals').value=320;
+
   ['cb_receipts','cb_bank','cb_payroll','cb_sales','cb_pos'].forEach(id=>$(id).checked=true);
 
   $('n_receipts').value=30; $('tb_receipts').value=3; $('ta_receipts').value=2;
@@ -753,56 +944,92 @@ function resetAll(){
   $('n_sales').value=12; $('tb_sales').value=10; $('ta_sales').value=5;
   $('n_pos').value=0; $('tb_pos').value=3; $('ta_pos').value=0.5;
 
-  $('tb_other').value=3; $('ta_other').value=3;
+  $('tb_other').value=3;
+  syncOther();
 
   ['sv_receipts','sv_bank','sv_payroll','sv_sales','sv_pos','sv_other'].forEach(id=>$(id).textContent='0.00');
 
-  const bc=$('baseComp');
-  bc.value='4,780,000';
-  formatLive(bc);
   updateWage();
+  refreshBulk();
+  calc();
 
-  setTimeout(()=>{refreshBulk();syncKPIHeights();},0);
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  toast('リセットしました');
 }
 
+/* =========================
+   売上換算連携（ボタン + mk-nav）
+========================= */
+function buildSalesUrl(amount){
+  const u = new URL(SALES_TOOL_URL);
+  u.searchParams.set('amount', String(amount));
+  u.searchParams.set('source', 'jidouka-kouka');
+  return u.toString();
+}
+
+function prepareSalesHandoff(){
+  const r=compute();
+  const amount = Math.round(Math.max(0, r.saveY)); // 月間人件費削減額
+
+  if(!Number.isFinite(amount) || amount<=0) return null;
+
+  try{
+    localStorage.setItem(MK_SALES_EFFECT_AMOUNT_KEY, String(amount));
+    localStorage.setItem(MK_SALES_EFFECT_SOURCE_KEY, 'autoEffect');
+  }catch(e){}
+
+  return buildSalesUrl(amount);
+}
+
+function jumpToSalesTool(){
+  const nextUrl = prepareSalesHandoff();
+  if(!nextUrl){
+    alert('「人件費削減（月）」が0円のため、売上換算する金額がありません。分数や件数を見直してください。');
+    return;
+  }
+  window.location.href = nextUrl;
+}
+
+// mk-nav.js（下部固定ナビ）から呼べるフック
+window.mkNavBeforeNext = function(ctx){
+  try{
+    const nextUrl = (ctx && ctx.nextUrl) ? ctx.nextUrl : (typeof ctx === 'string' ? ctx : '');
+    if(!nextUrl) return;
+
+    const u = new URL(nextUrl, location.href);
+    if(!u.pathname.includes('/convert-to-sales')) return;
+
+    const salesUrl = prepareSalesHandoff();
+    if(!salesUrl) return { cancel:true };
+
+    return { href: salesUrl };
+  }catch(e){
+    return;
+  }
+};
+
+/* =========================
+   calc orchestrator
+========================= */
 function calc(){
   syncOther();
   recalcOther();
   const r=compute();
   updateUI(r);
+  scheduleSave();
 }
 
-/* ---- 売上換算ツールへの連携 ---- */
-function jumpToSalesTool(){
-  const r=compute();
-  const amount = Math.max(0, r.saveY); // 月間人件費削減額を「今回検討する支出額」として連携
-
-  if(!Number.isFinite(amount) || amount<=0){
-    alert('「人件費削減（月）」が0円以下のため、売上換算する金額がありません。分数や件数を見直してください。');
-    return;
-  }
-
-  try{
-    // 旧方式（互換性のためのlocalStorage保存）
-    localStorage.setItem(MK_SALES_EFFECT_AMOUNT_KEY, String(Math.round(amount)));
-    localStorage.setItem(MK_SALES_EFFECT_SOURCE_KEY, 'autoEffect');
-  }catch(e){}
-
-  // URLパラメータ付きで遷移
-  // source=jidouka-kouka
-  const nextUrl = SALES_TOOL_URL + '?amount=' + Math.round(amount) + '&source=jidouka-kouka';
-  window.location.href = nextUrl;
-}
-
-/* ---- Tutorial（フローティング） ---- */
+/* =========================
+   Tutorial（フローティング）
+========================= */
 const STEPS=[
- {sel:'#hdrBrand', t:'ツールの狙い', b:'TKCの5つの自動化機能で、どれだけ<strong>時間</strong>と<strong>人件費</strong>が削減できるかを可視化します。'},
+ {sel:'#hdrBrand', t:'ツールの狙い', b:'5つの自動化機能で、どれだけ<strong>時間</strong>と<strong>人件費</strong>が削減できるかを可視化します。'},
  {sel:'#payUnitBlock', t:'① 人件費の前提', b:'<strong>時給／月給／年収</strong>から入力。<strong>事業主負担16%</strong>は自動加算し時給化します。'},
- {sel:'#journalsBlock', t:'② 月間仕訳数', b:'総数を入力。機能合計との差分は<strong>その他</strong>に自動配分され、合計は常に一致します。'},
+ {sel:'#journalsBlock', t:'② 月間仕訳数', b:'総数を入力。機能合計との差分は<strong>その他</strong>に自動配分されます（超過時は警告）。'},
  {sel:'#featuresCard', t:'③ 機能の導入と分数', b:'チェックで導入ON/OFF。件数・分/件を調整すると結果とグラフが即時更新。'},
  {sel:'#chartArea', t:'④ Before→After', b:'横棒グラフで総時間・人件費のBefore/Afterと合計の「時間短縮」「人件費削減」を表示。'},
  {sel:'#kpiSavings', t:'⑤ 人件費削減／自動化率', b:'月間・年間の<strong>人件費削減</strong>、<strong>仕訳自動化率</strong>、機能別の寄与を確認。'},
- {sel:'#footerBtns', t:'⑥ 出力・売上換算', b:'「売上換算／コピー／CSV出力／印刷」で共有・資料化。CSVはUTF-8（BOM付）で文字化け対策済み。'}
+ {sel:'#footerBtns', t:'⑥ 出力・売上換算', b:'「売上換算／コピー／CSV出力／印刷」で共有・資料化できます。CSVはUTF-8（BOM付）で文字化け対策済み。'}
 ];
 let tourActive=false, step=0, rafId=null;
 
@@ -812,11 +1039,13 @@ function startTour(){
   renderDots();
   showStep();
   $('tour').classList.add('show');
+  $('tour').setAttribute('aria-hidden','false');
 }
 function endTour(){
   tourActive=false;
   $('tour').classList.remove('show');
-  localStorage.setItem('mk_auto_tour_seen','1');
+  $('tour').setAttribute('aria-hidden','true');
+  try{localStorage.setItem('mk_auto_tour_seen','1');}catch(e){}
   cancelAnimationFrame(rafId);
   rafId=null;
 }
@@ -915,38 +1144,101 @@ function spotTick(){
   placeSheetForRect(r);
 }
 
-$('helpBtn').addEventListener('click',startTour);
-$('tourEnd').addEventListener('click',endTour);
-$('tourNext').addEventListener('click',nextStep);
-$('tourPrev').addEventListener('click',prevStep);
-/* どこでもクリックで次へ（カード内は除外） */
-$('tour').addEventListener('click',(e)=>{
-  if(!e.target.closest('#tourSheet')) nextStep();
-});
+/* =========================
+   wiring
+========================= */
+function wireInputs(){
+  // segment
+  document.querySelectorAll('.segbtn').forEach(btn=>{
+    btn.addEventListener('click',()=>setUnit(btn.dataset.unit,false));
+  });
 
-document.addEventListener('keydown',e=>{
-  if(!tourActive) return;
-  if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){e.preventDefault();nextStep();}
-  else if(e.key==='ArrowLeft'){e.preventDefault();prevStep();}
-  else if(e.key==='Escape'){e.preventDefault();endTour();}
-});
-window.addEventListener('scroll',()=>{spotTick();},{passive:true});
+  // base comp
+  $('baseComp').addEventListener('input',()=>{ formatLive($('baseComp')); updateWage(); });
 
-/* init */
-window.addEventListener('DOMContentLoaded',()=>{
-  resetAll();
-  calc();
-  if(localStorage.getItem('mk_auto_tour_seen')!=='1'){
-    startTour();
+  // total journals
+  $('totalJournals').addEventListener('input',calc);
+
+  // bulk
+  $('cb_all').addEventListener('change',(e)=>toggleAll(e.target.checked));
+
+  // feature inputs
+  const ids=[
+    'cb_receipts','n_receipts','tb_receipts','ta_receipts',
+    'cb_bank','n_bank','tb_bank','ta_bank',
+    'cb_payroll','n_payroll','tb_payroll','ta_payroll',
+    'cb_sales','n_sales','tb_sales','ta_sales',
+    'cb_pos','n_pos','tb_pos','ta_pos',
+    'tb_other'
+  ];
+  ids.forEach(id=>{
+    const el=$(id);
+    if(!el) return;
+    el.addEventListener('input',calc);
+    el.addEventListener('change',calc);
+  });
+
+  // top reset
+  $('resetTopBtn').addEventListener('click',resetAll);
+
+  // footer buttons
+  $('salesBtn').addEventListener('click',jumpToSalesTool);
+  $('copyBtn').addEventListener('click',copySummary);
+  $('csvBtn').addEventListener('click',exportCSV);
+  $('resetBtn').addEventListener('click',resetAll);
+  $('printBtn').addEventListener('click',printPage);
+
+  // tutorial
+  $('helpBtn').addEventListener('click',startTour);
+  $('tourEnd').addEventListener('click',endTour);
+  $('tourNext').addEventListener('click',nextStep);
+  $('tourPrev').addEventListener('click',prevStep);
+  $('tour').addEventListener('click',(e)=>{ if(!e.target.closest('#tourSheet')) nextStep(); });
+
+  document.addEventListener('keydown',e=>{
+    if(!tourActive) return;
+    if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){e.preventDefault();nextStep();}
+    else if(e.key==='ArrowLeft'){e.preventDefault();prevStep();}
+    else if(e.key==='Escape'){e.preventDefault();endTour();}
+  });
+
+  window.addEventListener('scroll',()=>{spotTick();},{passive:true});
+  window.addEventListener('resize',()=>{
+    const r=compute();
+    drawChartsOnce(r);
+    if(tourActive) spotTick();
+    setTimeout(syncKPIHeights,0);
+  });
+}
+
+function init(){
+  wireInputs();
+
+  // load state (if exists), else defaults
+  const saved = loadState();
+  if(saved){
+    applyState(saved);
+  }else{
+    // ensure initial payUnit reflects active button in HTML
+    payUnit='year';
+    formatLive($('baseComp'));
+    syncOther();
+    updateWage();
   }
-});
-window.addEventListener('resize',()=>{
-  const r=compute();
-  drawChartsOnce(r);
-  if(tourActive) spotTick();
-  setTimeout(syncKPIHeights,0);
-});
+
+  calc();
+
+  // tutorial auto
+  try{
+    if(localStorage.getItem('mk_auto_tour_seen')!=='1'){
+      startTour();
+    }
+  }catch(e){}
+}
+
+window.addEventListener('DOMContentLoaded', init);
 </script>
-  <script src="https://takatrp.github.io/tool-portal/mk-nav.js" defer></script>
+
+<script src="https://takatrp.github.io/tool-portal/mk-nav.js" defer></script>
 </body>
 </html>
