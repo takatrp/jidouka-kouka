@@ -282,7 +282,7 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
       <div class="td"><div class="adopt-box"><input class="feat-cb" id="cb_payroll" type="checkbox" checked></div></div>
       <div class="td kind">給与</div>
       <div class="td c-name"><a class="feat-link" href="https://www.matsumoto-kaikei.or.jp/tkc-system012" target="_blank" rel="noopener">給与計算機能（仕訳含む）</a></div>
-      <div class="td"><input id="n_payroll" type="number" value="10" min="0"></div>
+      <div class="td"><input id="n_payroll" type="number" value="10" min="0" aria-label="給与の処理件数・転送時は支給人数"><small id="payrollCountNote" class="note">処理件数</small><div id="payrollRowsBlock" hidden><label for="n_payroll_rows">給与仕訳行数</label><input id="n_payroll_rows" type="number" min="0" step="1" value="0"><small class="note">自動化率・その他の計算に使用</small></div></div>
       <div class="td"><input id="tb_payroll" type="number" value="8" min="0" step="0.1"></div>
       <div class="td arrow">▷</div>
       <div class="td"><input id="ta_payroll" type="number" value="3" min="0" step="0.1"></div>
@@ -489,6 +489,48 @@ const SALES_TOOL_URL='https://takatrp.github.io/convert-to-sales/';
 ========================= */
 let payUnit='year';
 let saveTimer=null;
+let journalImportMonth=null;
+
+function payrollJournalCount(){
+  return journalImportMonth ? num('n_payroll_rows') : num('n_payroll');
+}
+
+function updatePayrollNote(){
+  $('payrollRowsBlock').hidden=!journalImportMonth;
+  $('payrollCountNote').textContent=journalImportMonth
+    ? `${journalImportMonth} 集計：支給人数（人）。時間計算に使用`
+    : '処理件数（手入力時は仕訳件数にも使用）';
+}
+
+function validateJournalSummary(s){
+  if(!s || typeof s!=='object' || Array.isArray(s) || s.v!==1 || s.source!=='journal-automation-summary') return false;
+  if(typeof s.month!=='string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(s.month)) return false;
+  if(!['total','receipts','bank','payroll','payrollRows','sales','pos'].every(k=>Number.isSafeInteger(s[k]) && s[k]>=0)) return false;
+  return s.receipts+s.bank+s.payrollRows+s.sales+s.pos<=s.total;
+}
+
+function importJournalSummary(){
+  if(!location.hash.startsWith('#journal-summary=')) return;
+  try{
+    if(location.hash.length>4096) throw new Error('size');
+    const s=JSON.parse(decodeURIComponent(location.hash.slice('#journal-summary='.length)));
+    if(!validateJournalSummary(s)) throw new Error('invalid');
+    $('totalJournals').value=s.total;
+    ['receipts','bank','payroll','sales','pos'].forEach(k=>{
+      $('n_'+k).value=s[k];
+      $('cb_'+k).checked=(k==='payroll'?s.payrollRows:s[k])>0;
+    });
+    journalImportMonth=s.month;
+    $('n_payroll_rows').value=s.payrollRows;
+    updatePayrollNote();
+    refreshBulk();
+    toast(s.month+' の集計を反映しました');
+  }catch(e){
+    toast('集計データを取り込めません。転送元で件数を確認してください。');
+  }
+  // 集計数値を履歴や後続リンクに残さない。
+  history.replaceState(null,'',location.pathname+location.search);
+}
 
 function scheduleSave(){
   clearTimeout(saveTimer);
@@ -498,6 +540,8 @@ function scheduleSave(){
 function snapshotState(){
   return {
     v:VERSION,
+    journalImportMonth,
+    payrollRows: journalImportMonth ? num('n_payroll_rows') : null,
     payUnit,
     baseComp: $('baseComp').value,
     totalJournals: Number($('totalJournals').value||0),
@@ -534,6 +578,9 @@ function snapshotState(){
 
 function applyState(s){
   if(!s || typeof s!=='object') return;
+  journalImportMonth=typeof s.journalImportMonth==='string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(s.journalImportMonth) && Number.isSafeInteger(s.payrollRows) && s.payrollRows>=0 ? s.journalImportMonth : null;
+  $('n_payroll_rows').value=journalImportMonth?s.payrollRows:0;
+  updatePayrollNote();
 
   if(['hour','month','year'].includes(s.payUnit)) payUnit=s.payUnit;
   setUnit(payUnit, true);
@@ -584,7 +631,7 @@ function syncOther(){ $('ta_other').value=$('tb_other').value; }
 
 function recalcOther(){
   const total = num('totalJournals');
-  const sumFeat = num('n_receipts')+num('n_bank')+num('n_payroll')+num('n_sales')+num('n_pos');
+  const sumFeat = num('n_receipts')+num('n_bank')+payrollJournalCount()+num('n_sales')+num('n_pos');
   const other = total - sumFeat;
 
   $('n_other').value = other;
@@ -659,6 +706,10 @@ function compute(){
   const m1=mod('証憑保存機能（スマホで経費）',$('cb_receipts').checked,num('n_receipts'),num('tb_receipts'),num('ta_receipts'),w);
   const m2=mod('銀行信販データ受信機能',$('cb_bank').checked,num('n_bank'),num('tb_bank'),num('ta_bank'),w);
   const m3=mod('給与計算機能（仕訳含む）',$('cb_payroll').checked,num('n_payroll'),num('tb_payroll'),num('ta_payroll'),w);
+  if(journalImportMonth){
+    m3.label='給与計算機能（支給人数・人）';
+    m3.adopted=m3.checked && (m3.cnt>0 || payrollJournalCount()>0);
+  }
   const m4=mod('販売管理機能（売上計上・請求）',$('cb_sales').checked,num('n_sales'),num('tb_sales'),num('ta_sales'),w);
   const m5=mod('レジからのデータ受信',$('cb_pos').checked,num('n_pos'),num('tb_pos'),num('ta_pos'),w);
 
@@ -679,7 +730,7 @@ function compute(){
   const adopted = arr.reduce((s,m)=>s+(m.adopted?1:0),0);
 
   const total = num('totalJournals');
-  const autoCnt = arr.reduce((s,m)=>s+(m.checked ? m.cnt : 0),0);
+  const autoCnt = arr.reduce((s,m,i)=>s+(m.checked ? (i===2?payrollJournalCount():m.cnt) : 0),0);
 
   // 入力超過などで 100% を超えるケースを抑止（ただし警告は sumline で出る）
   const rateRaw = (total>0) ? (autoCnt/total*100) : 0;
@@ -861,6 +912,7 @@ async function copySummary(){
   lines.push('【自動化効果試算ツール（5機能）サマリー】');
   lines.push('時給(社保16%込み): '+Math.round(r.w)+' 円/時');
   lines.push('月間仕訳数: '+Math.round(r.total)+' 件');
+  if(journalImportMonth) lines.push('集計対象月: '+journalImportMonth+' / 給与仕訳行数: '+payrollJournalCount()+' 行（給与の処理件数は支給人数）');
   lines.push('仕訳自動化率: '+(Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%（導入機能: '+r.adopted+' / 5）');
 
   r.arr.forEach(m=>{
@@ -901,6 +953,11 @@ function exportCSV(){
   rows.push([]);
   rows.push(['時給(社保16%込み)',Math.round(r.w)]);
   rows.push(['月間仕訳数',Math.round(r.total)]);
+  if(journalImportMonth){
+    rows.push(['集計対象月',journalImportMonth]);
+    rows.push(['給与支給人数（時間計算）',num('n_payroll')]);
+    rows.push(['給与仕訳行数（自動化率計算）',payrollJournalCount()]);
+  }
   rows.push(['仕訳自動化率', (Number.isFinite(r.rate)?r.rate.toFixed(2):'0.00')+'%']);
   rows.push(['導入なし 人件費相当額(円)',Math.round(r.costB)]);
   rows.push(['導入あり 人件費相当額(円)',Math.round(r.costC)]);
@@ -929,6 +986,9 @@ function exportCSV(){
 function printPage(){window.print();}
 
 function resetAll(){
+  journalImportMonth=null;
+  $('n_payroll_rows').value=0;
+  updatePayrollNote();
   payUnit='year';
   document.querySelectorAll('.segbtn').forEach(b=>b.classList.toggle('active', b.dataset.unit==='year'));
   $('baseComp').value='4,780,000';
@@ -1166,7 +1226,7 @@ function wireInputs(){
   const ids=[
     'cb_receipts','n_receipts','tb_receipts','ta_receipts',
     'cb_bank','n_bank','tb_bank','ta_bank',
-    'cb_payroll','n_payroll','tb_payroll','ta_payroll',
+    'cb_payroll','n_payroll','n_payroll_rows','tb_payroll','ta_payroll',
     'cb_sales','n_sales','tb_sales','ta_sales',
     'cb_pos','n_pos','tb_pos','ta_pos',
     'tb_other'
@@ -1226,6 +1286,8 @@ function init(){
     updateWage();
   }
 
+  updatePayrollNote();
+  importJournalSummary();
   calc();
 
   // tutorial auto
