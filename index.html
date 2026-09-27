@@ -512,13 +512,14 @@ function importJournalSummary(){
     const s=JSON.parse(decodeURIComponent(location.hash.slice('#journal-summary='.length)));
     if(!validateJournalSummary(s)) throw new Error('invalid');
     $('totalJournals').value=s.total;
+    const payrollRows=s.automated===undefined
+      ? s.payrollRows : s.automated-s.receipts-s.bank-s.sales-s.pos;
     ['receipts','bank','payroll','sales','pos'].forEach(k=>{
       $('n_'+k).value=s[k];
-      $('cb_'+k).checked=(k==='payroll'?(s.automated===undefined ? s.payrollRows : s.automated-s.receipts-s.bank-s.sales-s.pos):s[k])>0;
+      $('cb_'+k).checked=k==='payroll' ? s.payroll>0 || payrollRows>0 : s[k]>0;
     });
     journalImportMonth=s.month;
-    journalPayrollCount=s.automated===undefined
-      ? s.payrollRows : s.automated-s.receipts-s.bank-s.sales-s.pos;
+    journalPayrollCount=payrollRows;
     refreshBulk();
     toast(s.month+' の集計を反映しました');
   }catch(e){
