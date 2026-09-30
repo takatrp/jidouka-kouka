@@ -224,11 +224,11 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
             <button type="button" class="segbtn" data-unit="month">月給</button>
             <button type="button" class="segbtn active" data-unit="year">年収</button>
           </div>
-          <input id="baseComp" type="text" inputmode="numeric" value="4,780,000">
+          <input id="baseComp" type="text" inputmode="numeric" value="4,870,000">
         </div>
-        <div class="calc-note">※初期値は例です（必要に応じて変更してください）。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
-        <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,888 / 時</span>（16％込み）</div>
-        <input type="hidden" id="wage" value="2888">
+        <div class="calc-note">※年収の初期値は国税庁「<a href="https://www.nta.go.jp/publication/statistics/kokuzeicho/minkan/gaiyou/2025.htm" target="_blank" rel="noopener">令和7年分民間給与実態統計調査</a>」の平均給与487万円です（必要に応じて変更してください）。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
+        <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,942 / 時</span>（16％込み）</div>
+        <input type="hidden" id="wage" value="2942">
       </div>
 
       <div class="td field" style="grid-column:span 6" id="journalsBlock">
@@ -666,7 +666,7 @@ function setUnit(u, silent){
     const base=$('baseComp');
     if(u==='hour') base.value='2,500';
     if(u==='month') base.value='300,000';
-    if(u==='year') base.value='4,780,000';
+    if(u==='year') base.value='4,870,000';
     formatLive(base);
   }
 
@@ -990,7 +990,7 @@ function resetAll(){
   journalPayrollCount=null;
   payUnit='year';
   document.querySelectorAll('.segbtn').forEach(b=>b.classList.toggle('active', b.dataset.unit==='year'));
-  $('baseComp').value='4,780,000';
+  $('baseComp').value='4,870,000';
   formatLive($('baseComp'));
 
   $('totalJournals').value=320;
