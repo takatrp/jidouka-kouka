@@ -226,9 +226,7 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
           </div>
           <input id="baseComp" type="text" inputmode="numeric" value="4,870,000">
         </div>
-        <div class="calc-note">※年収の初期値は国税庁「<a href="https://www.nta.go.jp/publication/statistics/kokuzeicho/minkan/gaiyou/2025.htm" target="_blank" rel="noopener">令和7年分民間給与実態統計調査</a>」の平均給与487万円です（必要に応じて変更してください）。換算は<strong>月160時間×12ヶ月</strong>、<strong>事業主負担16％</strong>を自動加算して時給化。</div>
-        <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,942 / 時</span>（16％込み）</div>
-        <input type="hidden" id="wage" value="2942">
+
       </div>
 
       <div class="td field" style="grid-column:span 6" id="journalsBlock">
@@ -236,6 +234,9 @@ footer.mk-mini a{color:inherit;text-decoration:underline}
         <input id="totalJournals" type="number" value="320" min="0">
       </div>
     </div>
+    <div class="calc-note salary-source">年収初期値：487万円（出典：国税庁「<a href="https://www.nta.go.jp/publication/statistics/kokuzeicho/minkan/gaiyou/2025.htm" target="_blank" rel="noopener">令和7年分民間給与実態統計調査</a>」）。時給換算：<strong>月160時間×12ヶ月</strong>・<strong>事業主負担16％</strong>。</div>
+    <div class="hourly-badge">換算結果：<span id="hourlyDisplay">¥2,942 / 時</span>（16％込み）</div>
+    <input type="hidden" id="wage" value="2942">
   </section>
 
   <!-- 機能別 -->
